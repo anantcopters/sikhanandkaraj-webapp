@@ -523,201 +523,229 @@ $statusClass = match ($status) {
 </div>
 
 <?php if ($canUpload): ?>
-<!-- ============================================================
+    <!-- ============================================================
      EXISTING AADHAAR UPLOAD MODAL UI
      Same member-facing modal flow, now owned by Account Settings.
      ============================================================ -->
-<div
-    class="modal fade"
-    id="aadhaarUploadModal"
-    tabindex="-1"
-    aria-labelledby="aadhaarUploadModalLabel"
-    aria-hidden="true">
-
     <div
-        class="modal-dialog
+        class="modal fade"
+        id="aadhaarUploadModal"
+        tabindex="-1"
+        aria-labelledby="aadhaarUploadModalLabel"
+        aria-hidden="true">
+
+        <div
+            class="modal-dialog
             modal-dialog-centered">
 
-        <div class="modal-content">
+            <div class="modal-content">
 
-            <div
-                class="modal-header
+                <div
+                    class="modal-header
                     bg-info-subtle
                     py-2">
 
-                <div>
-                    <h2
-                        class="modal-title fs-17"
-                        id="aadhaarUploadModalLabel">
+                    <div>
+                        <h2
+                            class="modal-title fs-17"
+                            id="aadhaarUploadModalLabel">
 
-                        <?= $status === 'REJECTED'
-                            ? 'Re-upload Aadhaar'
-                            : 'Upload Aadhaar' ?>
+                            <?= $status === 'REJECTED'
+                                ? 'Re-upload Aadhaar'
+                                : 'Upload Aadhaar' ?>
 
-                    </h2>
+                        </h2>
 
-                    <p
-                        class="text-muted
+                        <p
+                            class="text-muted
                             fs-12 mb-0">
 
-                        Upload a clear Aadhaar document
-                        for verification.
+                            Upload a clear Aadhaar document
+                            for verification.
 
-                    </p>
+                        </p>
+                    </div>
+
+                    <button
+                        type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Close">
+                    </button>
+
                 </div>
 
-                <button
-                    type="button"
-                    class="btn-close"
-                    data-bs-dismiss="modal"
-                    aria-label="Close">
-                </button>
+                <form
+                    method="post"
+                    action="<?= route_to(
+                                'web.member.aadhaar.upload'
+                            ) ?>"
+                    enctype="multipart/form-data"
+                    data-validate
+                    data-submit-loader
+                    novalidate>
 
-            </div>
+                    <?= csrf_field() ?>
 
-            <form
-                method="post"
-                action="<?= route_to(
-                            'web.member.aadhaar.upload'
-                        ) ?>"
-                enctype="multipart/form-data"
-                data-validate
-                data-submit-loader
-                novalidate>
+                    <input
+                        type="hidden"
+                        name="return_context"
+                        value="ACCOUNT_SETTINGS">
 
-                <?= csrf_field() ?>
+                    <div class="modal-body">
 
-                <input
-                    type="hidden"
-                    name="return_context"
-                    value="ACCOUNT_SETTINGS">
+                        <div class="mb-3">
 
-                <div class="modal-body">
+                            <label
+                                for="aadhaarDocument"
+                                class="form-label">
 
-                    <div class="mb-3">
+                                Aadhaar Document
 
-                        <label
-                            for="aadhaarDocument"
-                            class="form-label">
+                                <span class="text-danger">
+                                    *
+                                </span>
 
-                            Aadhaar Document
+                            </label>
+                            <div
+                                class="alert alert-info border fs-13 mb-3"
+                                role="note">
 
-                            <span class="text-danger">
-                                *
-                            </span>
+                                <div
+                                    class="d-flex align-items-start gap-2">
 
-                        </label>
+                                    <i
+                                        class="ri-information-line fs-18"
+                                        aria-hidden="true">
+                                    </i>
 
-                        <input
-                            type="file"
-                            id="aadhaarDocument"
-                            name="aadhaar_document"
-                            class="form-control
+                                    <div>
+                                        <strong>
+                                            Upload both sides of your Aadhaar
+                                        </strong>
+
+                                        <div class="mt-1">
+                                            Please upload the
+                                            <strong>front and back side</strong>
+                                            of your Aadhaar together as a
+                                            <strong>single image or PDF file</strong>.
+                                        </div>
+                                    </div>
+
+                                </div>
+
+                            </div>
+                            <input
+                                type="file"
+                                id="aadhaarDocument"
+                                name="aadhaar_document"
+                                class="form-control
                                 <?= isset(
                                     $aadhaarValidationErrors['aadhaar_document']
                                 )
                                     ? 'is-invalid'
                                     : '' ?>"
-                            accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
-                            data-error-required="Please select your Aadhaar document."
-                            required>
+                                accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
+                                data-error-required="Please select your Aadhaar document."
+                                required>
 
-                        <div
-                            class="invalid-feedback
+                            <div
+                                class="invalid-feedback
                                 <?= isset(
                                     $aadhaarValidationErrors['aadhaar_document']
                                 )
                                     ? 'd-block'
                                     : '' ?>"
-                            data-validation-error="aadhaar_document">
+                                data-validation-error="aadhaar_document">
 
-                            <?= esc(
-                                $aadhaarValidationErrors['aadhaar_document']
-                                    ?? ''
-                            ) ?>
+                                <?= esc(
+                                    $aadhaarValidationErrors['aadhaar_document']
+                                        ?? ''
+                                ) ?>
+
+                            </div>
+
+                            <div class="form-text color-pink">
+                                Upload the front and back side of your Aadhaar
+                                together as a single JPG, JPEG, PNG or PDF file.
+                                Maximum file size: 1 MB.
+                            </div>
 
                         </div>
 
-                        <div class="form-text color-pink">
-                            JPG, JPEG, PNG or PDF. Maximum
-                            file size 1 MB.
-                        </div>
-
-                    </div>
-
-                    <div
-                        class="alert
+                        <div
+                            class="alert
                             alert-warning
                             border
                             fs-13
                             mb-0">
 
-                        <div
-                            class="d-flex
+                            <div
+                                class="d-flex
                                 align-items-start
                                 gap-2">
 
-                            <i
-                                class="ri-shield-check-line
+                                <i
+                                    class="ri-shield-check-line
                                     text-primary
                                     fs-18"
-                                aria-hidden="true">
-                            </i>
+                                    aria-hidden="true">
+                                </i>
 
-                            <div class="text-muted">
-                                Your Aadhaar document is used
-                                only for profile verification
-                                and is not displayed to other
-                                members.
+                                <div class="text-muted">
+                                    Your Aadhaar document is used
+                                    only for profile verification
+                                    and is not displayed to other
+                                    members.
+                                </div>
+
                             </div>
 
                         </div>
 
                     </div>
 
-                </div>
+                    <div class="modal-footer">
 
-                <div class="modal-footer">
+                        <button
+                            type="button"
+                            class="btn btn-light"
+                            data-bs-dismiss="modal">
 
-                    <button
-                        type="button"
-                        class="btn btn-light"
-                        data-bs-dismiss="modal">
+                            Cancel
 
-                        Cancel
+                        </button>
 
-                    </button>
+                        <button
+                            type="submit"
+                            class="btn btn-success"
+                            data-submit-button>
 
-                    <button
-                        type="submit"
-                        class="btn btn-success"
-                        data-submit-button>
+                            <span data-submit-idle>
+                                <i
+                                    class="ri-upload-line me-1"
+                                    aria-hidden="true"></i>
 
-                        <span data-submit-idle>
-                            <i
-                                class="ri-upload-line me-1"
-                                aria-hidden="true"></i>
-
-                            Upload Aadhaar
-                        </span>
-
-                        <span
-                            data-submit-loading
-                            class="d-none">
+                                Upload Aadhaar
+                            </span>
 
                             <span
-                                class="spinner-border
+                                data-submit-loading
+                                class="d-none">
+
+                                <span
+                                    class="spinner-border
                         spinner-border-sm
                         me-1"
-                                aria-hidden="true"></span>
+                                    aria-hidden="true"></span>
 
-                            Uploading...
-                        </span>
-                    </button>
+                                Uploading...
+                            </span>
+                        </button>
 
 
 
-                    <!-- <button
+                        <!-- <button
                         type="submit"
                         class="btn
             registration-form__submit
@@ -760,15 +788,15 @@ $statusClass = match ($status) {
 
                     </button> -->
 
-                </div>
+                    </div>
 
-            </form>
+                </form>
+
+            </div>
 
         </div>
 
     </div>
-
-</div>
 <?php endif; ?>
 
 <?php if ($openAadhaarModal): ?>
