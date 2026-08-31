@@ -11,6 +11,8 @@ use App\Services\Aws\CloudFrontService;
 use App\Services\Notification\MemberNotificationService;
 use App\Services\Profile\MemberTrustVerificationService;
 use App\Services\Profile\MemberPhotoUrlService;
+use App\Models\UserModel;
+use App\Services\Email\MemberEmailService;
 use CodeIgniter\Database\BaseConnection;
 use Config\VideoIntroduction;
 use DomainException;
@@ -20,14 +22,35 @@ use Throwable;
 final class MemberVideoModerationService
 {
     public function __construct(
-        private readonly MemberVideoIntroductionModel $videoModel,
-        private readonly MemberVideoModerationHistoryModel $historyModel,
-        private readonly CloudFrontService $cloudFrontService,
-        private readonly MemberNotificationService $notificationService,
-        private readonly MemberPhotoUrlService $photoUrlService,
-        private readonly MemberTrustVerificationService $trustService,
-        private readonly BaseConnection $database,
-        private readonly VideoIntroduction $config
+        private readonly MemberVideoIntroductionModel
+        $videoModel,
+
+        private readonly MemberVideoModerationHistoryModel
+        $historyModel,
+
+        private readonly UserModel
+        $userModel,
+
+        private readonly CloudFrontService
+        $cloudFrontService,
+
+        private readonly MemberNotificationService
+        $notificationService,
+
+        private readonly MemberEmailService
+        $memberEmailService,
+
+        private readonly MemberPhotoUrlService
+        $photoUrlService,
+
+        private readonly MemberTrustVerificationService
+        $trustService,
+
+        private readonly BaseConnection
+        $database,
+
+        private readonly VideoIntroduction
+        $config
     ) {}
 
     /**
@@ -425,5 +448,37 @@ final class MemberVideoModerationService
 
             throw $exception;
         }
+
+        /*
+        * The Video moderation decision and its
+        * in-app notification are already committed.
+        *
+        * Email is a downstream best-effort channel.
+        */
+        $member =
+            $this->userModel
+            ->find(
+                $memberId
+            );
+
+        $this->memberEmailService
+            ->queueVideoModeration(
+                recipientUserId: $memberId,
+
+                recipientName: is_array($member)
+                    ? trim(
+                        (string) (
+                            $member['full_name']
+                            ?? ''
+                        )
+                    )
+                    : '',
+
+                videoId: $videoId,
+
+                status: $targetStatus,
+
+                reason: $reason
+            );
     }
 }

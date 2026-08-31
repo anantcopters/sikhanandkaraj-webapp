@@ -14,6 +14,7 @@ use App\Services\Aws\S3Service;
 use CodeIgniter\Database\BaseConnection;
 use CodeIgniter\HTTP\Files\UploadedFile;
 use App\Services\Membership\MembershipEntitlementService;
+use App\Services\Email\MemberEmailService;
 use Config\MemberMedia;
 use DomainException;
 use RuntimeException;
@@ -51,6 +52,9 @@ final class MemberAadhaarService
 
         private readonly AdminAuditService
         $auditService,
+
+        private readonly MemberEmailService
+        $memberEmailService,
 
         private readonly BaseConnection
         $database,
@@ -833,6 +837,37 @@ final class MemberAadhaarService
                 ]
             )
         );
+
+        $memberId =
+            (int) (
+                $submission['member_id']
+                ?? 0
+            );
+
+        $member =
+            $this->userModel
+            ->find(
+                $memberId
+            );
+
+        $this->memberEmailService
+            ->queueAadhaarApproved(
+                recipientUserId: $memberId,
+
+                recipientName: is_array($member)
+                    ? trim(
+                        (string) (
+                            $member['full_name']
+                            ?? ''
+                        )
+                    )
+                    : '',
+
+                submissionId: (int) (
+                    $submission['id']
+                    ?? 0
+                )
+            );
     }
 
     /**
@@ -1004,6 +1039,39 @@ final class MemberAadhaarService
                 ]
             )
         );
+
+        $memberId =
+            (int) (
+                $submission['member_id']
+                ?? 0
+            );
+
+        $member =
+            $this->userModel
+            ->find(
+                $memberId
+            );
+
+        $this->memberEmailService
+            ->queueAadhaarRejected(
+                recipientUserId: $memberId,
+
+                recipientName: is_array($member)
+                    ? trim(
+                        (string) (
+                            $member['full_name']
+                            ?? ''
+                        )
+                    )
+                    : '',
+
+                submissionId: (int) (
+                    $submission['id']
+                    ?? 0
+                ),
+
+                reason: $normalizedReason
+            );
     }
 
     /**

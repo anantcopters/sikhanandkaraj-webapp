@@ -175,6 +175,227 @@ final class MemberEmailService
         );
     }
 
+    public function queuePhotoRejected(
+        int $recipientUserId,
+        string $recipientName,
+        int $photoId,
+        string $reason = ''
+    ): ?int {
+        $reason =
+            trim($reason);
+
+        return $this->queueMemberCommunication(
+            recipientUserId: $recipientUserId,
+
+            recipientName: $recipientName,
+
+            definitionKey: EmailRegistry
+            ::MEMBER_PHOTO_REJECTED,
+
+            viewData: [
+                'heading' =>
+                'Your profile photo was not approved',
+
+                'message' =>
+                'One of your profile photos was not approved. '
+                    . 'Please review the photo guidelines and '
+                    . 'upload a suitable replacement.',
+
+                'reason' =>
+                $reason,
+
+                'actionUrl' =>
+                base_url(
+                    'profile/photos'
+                ),
+
+                'actionLabel' =>
+                'Review Profile Photos',
+            ],
+
+            referenceType: 'MEMBER_PHOTO',
+
+            referenceId: $photoId
+        );
+    }
+
+    public function queueAadhaarApproved(
+        int $recipientUserId,
+        string $recipientName,
+        int $submissionId
+    ): ?int {
+        return $this->queueMemberCommunication(
+            recipientUserId: $recipientUserId,
+
+            recipientName: $recipientName,
+
+            definitionKey: EmailRegistry
+            ::MEMBER_AADHAAR_APPROVED,
+
+            viewData: [
+                'heading' =>
+                'Your Aadhaar verification is approved',
+
+                'message' =>
+                'Your Aadhaar verification has been '
+                    . 'reviewed and approved.',
+
+                'reason' =>
+                '',
+
+                'actionUrl' =>
+                base_url(
+                    'account-settings/aadhaar'
+                ),
+
+                'actionLabel' =>
+                'View Verification Status',
+            ],
+
+            referenceType: 'AADHAAR_SUBMISSION',
+
+            referenceId: $submissionId
+        );
+    }
+
+    public function queueAadhaarRejected(
+        int $recipientUserId,
+        string $recipientName,
+        int $submissionId,
+        string $reason
+    ): ?int {
+        return $this->queueMemberCommunication(
+            recipientUserId: $recipientUserId,
+
+            recipientName: $recipientName,
+
+            definitionKey: EmailRegistry
+            ::MEMBER_AADHAAR_REJECTED,
+
+            viewData: [
+                'heading' =>
+                'Your Aadhaar verification was not approved',
+
+                'message' =>
+                'Your Aadhaar verification has been '
+                    . 'reviewed and was not approved.',
+
+                'reason' =>
+                trim($reason),
+
+                'actionUrl' =>
+                base_url(
+                    'account-settings/aadhaar'
+                ),
+
+                'actionLabel' =>
+                'Review Aadhaar Verification',
+            ],
+
+            referenceType: 'AADHAAR_SUBMISSION',
+
+            referenceId: $submissionId
+        );
+    }
+
+    public function queueVideoModeration(
+        int $recipientUserId,
+        string $recipientName,
+        int $videoId,
+        string $status,
+        string $reason = ''
+    ): ?int {
+        $status =
+            mb_strtoupper(
+                trim($status)
+            );
+
+        $reason =
+            trim($reason);
+
+        [
+            $definitionKey,
+            $heading,
+            $message,
+            $actionLabel,
+        ] = match ($status) {
+            'APPROVED' => [
+                EmailRegistry
+                ::MEMBER_VIDEO_APPROVED,
+
+                'Your Video Introduction is approved',
+
+                'Your Video Introduction has been '
+                    . 'reviewed and approved. It will follow '
+                    . 'the privacy setting selected for your profile.',
+
+                'View Video Introduction',
+            ],
+
+            'REJECTED' => [
+                EmailRegistry
+                ::MEMBER_VIDEO_REJECTED,
+
+                'Your Video Introduction was not approved',
+
+                'Your Video Introduction has been reviewed '
+                    . 'and was not approved.',
+
+                'Review Video Introduction',
+            ],
+
+            'RESUBMISSION_REQUESTED' => [
+                EmailRegistry
+                ::MEMBER_VIDEO_RESUBMISSION_REQUESTED,
+
+                'Please resubmit your Video Introduction',
+
+                'Our verification team has requested a new '
+                    . 'Video Introduction from you.',
+
+                'Record Video Introduction',
+            ],
+
+            default =>
+            throw new \InvalidArgumentException(
+                'Unsupported Video Introduction moderation status.'
+            ),
+        };
+
+        return $this->queueMemberCommunication(
+            recipientUserId: $recipientUserId,
+
+            recipientName: $recipientName,
+
+            definitionKey: $definitionKey,
+
+            viewData: [
+                'heading' =>
+                $heading,
+
+                'message' =>
+                $message,
+
+                'reason' =>
+                $status === 'APPROVED'
+                    ? ''
+                    : $reason,
+
+                'actionUrl' =>
+                base_url(
+                    'account-settings/video-introduction'
+                ),
+
+                'actionLabel' =>
+                $actionLabel,
+            ],
+
+            referenceType: 'VIDEO_INTRODUCTION',
+
+            referenceId: $videoId
+        );
+    }
+
     /**
      * Central boundary for normal member email.
      *

@@ -984,24 +984,48 @@ final class Services extends BaseService
             );
         }
 
-        $database = db_connect();
+        $database =
+            db_connect();
 
         /** @var MemberMedia $configuration */
-        $configuration = config(
-            MemberMedia::class
-        );
+        $configuration =
+            config(
+                MemberMedia::class
+            );
 
         return new MemberPhotoApprovalService(
             new AdminMemberPhotoApprovalModel(
                 $database
             ),
+
             new MemberPhotoModel(
                 $database
             ),
-            static::cloudFrontService(false),
+
+            new UserModel(
+                $database
+            ),
+
+            static::cloudFrontService(
+                false
+            ),
+
             $configuration,
-            static::adminAuditService(false),
-            static::memberNotificationService(false),
+
+            static::adminAuditService(
+                false
+            ),
+
+            new MemberNotificationService(
+                new MemberNotificationModel(
+                    $database
+                )
+            ),
+
+            static::memberEmailService(
+                false
+            ),
+
             $database
         );
     }
@@ -1018,12 +1042,14 @@ final class Services extends BaseService
             );
         }
 
-        $database = db_connect();
+        $database =
+            db_connect();
 
         /** @var MemberMedia $configuration */
-        $configuration = config(
-            MemberMedia::class
-        );
+        $configuration =
+            config(
+                MemberMedia::class
+            );
 
         return new MemberAadhaarService(
             new UserModel(
@@ -1050,15 +1076,14 @@ final class Services extends BaseService
                 false
             ),
 
-            $database,
-
-            config(
-                MemberMedia::class
+            static::memberEmailService(
+                false
             ),
 
-            /*
-            * Aadhaar upload/re-upload is membership controlled.
-            */
+            $database,
+
+            $configuration,
+
             static::membershipEntitlementService(
                 false
             )
@@ -1114,23 +1139,13 @@ final class Services extends BaseService
             );
         }
 
-        $database = db_connect();
+        $database =
+            db_connect();
 
         return new MemberNotificationService(
             new MemberNotificationModel(
                 $database
-            ),
-            new MemberNotificationService(
-                new MemberNotificationModel(
-                    $database
-                )
-            ),
-
-            static::memberEmailService(
-                false
-            ),
-
-            $database,
+            )
         );
     }
 
@@ -2719,7 +2734,8 @@ final class Services extends BaseService
             );
         }
 
-        $database = db_connect();
+        $database =
+            db_connect();
 
         return new MemberVideoModerationService(
             new MemberVideoIntroductionModel(
@@ -2730,11 +2746,21 @@ final class Services extends BaseService
                 $database
             ),
 
+            new UserModel(
+                $database
+            ),
+
             static::cloudFrontService(
                 false
             ),
 
-            static::memberNotificationService(
+            new MemberNotificationService(
+                new MemberNotificationModel(
+                    $database
+                )
+            ),
+
+            static::memberEmailService(
                 false
             ),
 

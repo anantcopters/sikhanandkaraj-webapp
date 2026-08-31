@@ -23,6 +23,27 @@ final class EmailRegistry
     public const MEMBER_INTEREST_DECLINED =
     'MEMBER_INTEREST_DECLINED';
 
+    public const MEMBER_PHOTO_REJECTED =
+    'MEMBER_PHOTO_REJECTED';
+
+    public const MEMBER_AADHAAR_APPROVED =
+    'MEMBER_AADHAAR_APPROVED';
+
+    public const MEMBER_AADHAAR_REJECTED =
+    'MEMBER_AADHAAR_REJECTED';
+
+    public const MEMBER_VIDEO_APPROVED =
+    'MEMBER_VIDEO_APPROVED';
+
+    public const MEMBER_VIDEO_REJECTED =
+    'MEMBER_VIDEO_REJECTED';
+
+    public const MEMBER_VIDEO_RESUBMISSION_REQUESTED =
+    'MEMBER_VIDEO_RESUBMISSION_REQUESTED';
+
+    public const CATEGORY_MODERATION =
+    'MODERATION';
+
     public const CATEGORY_VERIFICATION =
     'VERIFICATION';
 
@@ -207,6 +228,250 @@ final class EmailRegistry
 
                     'actionLabel' =>
                     'View Interests',
+                ],
+
+                priority: 20,
+
+                maxAttempts: 3
+            ),
+
+            self::MEMBER_PHOTO_REJECTED =>
+            new EmailDefinition(
+                key: self::MEMBER_PHOTO_REJECTED,
+
+                name: 'Profile Photo Rejected',
+
+                category: self::CATEGORY_MODERATION,
+
+                subject: 'Your profile photo needs attention',
+
+                viewName: 'Emails/Member/ModerationActivity',
+
+                previewData: [
+                    'userName' =>
+                    'Harpreet Singh',
+
+                    'heading' =>
+                    'Your profile photo was not approved',
+
+                    'message' =>
+                    'One of your profile photos was not approved. '
+                        . 'Please review the photo guidelines and upload '
+                        . 'a suitable replacement.',
+
+                    'reason' =>
+                    'The photo does not meet the profile photo guidelines.',
+
+                    'actionUrl' =>
+                    base_url(
+                        'profile/photos'
+                    ),
+
+                    'actionLabel' =>
+                    'Review Profile Photos',
+                ],
+
+                priority: 20,
+
+                maxAttempts: 3
+            ),
+
+            self::MEMBER_AADHAAR_APPROVED =>
+            new EmailDefinition(
+                key: self::MEMBER_AADHAAR_APPROVED,
+
+                name: 'Aadhaar Approved',
+
+                category: self::CATEGORY_VERIFICATION,
+
+                subject: 'Your Aadhaar verification is approved',
+
+                viewName: 'Emails/Member/ModerationActivity',
+
+                previewData: [
+                    'userName' =>
+                    'Harpreet Singh',
+
+                    'heading' =>
+                    'Your Aadhaar verification is approved',
+
+                    'message' =>
+                    'Your Aadhaar verification has been reviewed '
+                        . 'and approved.',
+
+                    'reason' =>
+                    '',
+
+                    'actionUrl' =>
+                    base_url(
+                        'account-settings/aadhaar'
+                    ),
+
+                    'actionLabel' =>
+                    'View Verification Status',
+                ],
+
+                priority: 20,
+
+                maxAttempts: 3
+            ),
+
+            self::MEMBER_AADHAAR_REJECTED =>
+            new EmailDefinition(
+                key: self::MEMBER_AADHAAR_REJECTED,
+
+                name: 'Aadhaar Rejected',
+
+                category: self::CATEGORY_VERIFICATION,
+
+                subject: 'Your Aadhaar verification needs attention',
+
+                viewName: 'Emails/Member/ModerationActivity',
+
+                previewData: [
+                    'userName' =>
+                    'Harpreet Singh',
+
+                    'heading' =>
+                    'Your Aadhaar verification was not approved',
+
+                    'message' =>
+                    'Your Aadhaar verification has been reviewed '
+                        . 'and was not approved.',
+
+                    'reason' =>
+                    'The submitted document could not be verified.',
+
+                    'actionUrl' =>
+                    base_url(
+                        'account-settings/aadhaar'
+                    ),
+
+                    'actionLabel' =>
+                    'Review Aadhaar Verification',
+                ],
+
+                priority: 20,
+
+                maxAttempts: 3
+            ),
+
+            self::MEMBER_VIDEO_APPROVED =>
+            new EmailDefinition(
+                key: self::MEMBER_VIDEO_APPROVED,
+
+                name: 'Video Introduction Approved',
+
+                category: self::CATEGORY_VERIFICATION,
+
+                subject: 'Your Video Introduction is approved',
+
+                viewName: 'Emails/Member/ModerationActivity',
+
+                previewData: [
+                    'userName' =>
+                    'Harpreet Singh',
+
+                    'heading' =>
+                    'Your Video Introduction is approved',
+
+                    'message' =>
+                    'Your Video Introduction has been reviewed '
+                        . 'and approved. It will follow the privacy '
+                        . 'setting selected for your profile.',
+
+                    'reason' =>
+                    '',
+
+                    'actionUrl' =>
+                    base_url(
+                        'account-settings/video-introduction'
+                    ),
+
+                    'actionLabel' =>
+                    'View Video Introduction',
+                ],
+
+                priority: 20,
+
+                maxAttempts: 3
+            ),
+
+            self::MEMBER_VIDEO_REJECTED =>
+            new EmailDefinition(
+                key: self::MEMBER_VIDEO_REJECTED,
+
+                name: 'Video Introduction Rejected',
+
+                category: self::CATEGORY_MODERATION,
+
+                subject: 'Your Video Introduction needs attention',
+
+                viewName: 'Emails/Member/ModerationActivity',
+
+                previewData: [
+                    'userName' =>
+                    'Harpreet Singh',
+
+                    'heading' =>
+                    'Your Video Introduction was not approved',
+
+                    'message' =>
+                    'Your Video Introduction has been reviewed '
+                        . 'and was not approved.',
+
+                    'reason' =>
+                    'Please record a clear introduction that follows '
+                        . 'the Video Introduction guidelines.',
+
+                    'actionUrl' =>
+                    base_url(
+                        'account-settings/video-introduction'
+                    ),
+
+                    'actionLabel' =>
+                    'Review Video Introduction',
+                ],
+
+                priority: 20,
+
+                maxAttempts: 3
+            ),
+
+            self::MEMBER_VIDEO_RESUBMISSION_REQUESTED =>
+            new EmailDefinition(
+                key: self::MEMBER_VIDEO_RESUBMISSION_REQUESTED,
+
+                name: 'Video Introduction Resubmission Requested',
+
+                category: self::CATEGORY_MODERATION,
+
+                subject: 'Please resubmit your Video Introduction',
+
+                viewName: 'Emails/Member/ModerationActivity',
+
+                previewData: [
+                    'userName' =>
+                    'Harpreet Singh',
+
+                    'heading' =>
+                    'Please resubmit your Video Introduction',
+
+                    'message' =>
+                    'Our verification team has requested a new '
+                        . 'Video Introduction from you.',
+
+                    'reason' =>
+                    'Please record the introduction again following '
+                        . 'the Video Introduction guidelines.',
+
+                    'actionUrl' =>
+                    base_url(
+                        'account-settings/video-introduction'
+                    ),
+
+                    'actionLabel' =>
+                    'Record Video Introduction',
                 ],
 
                 priority: 20,

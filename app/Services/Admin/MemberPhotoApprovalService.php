@@ -12,6 +12,8 @@ use App\Services\Admin\Audit\AdminAuditService;
 use App\Services\Aws\CloudFrontService;
 use App\Models\MemberNotificationModel;
 use App\Services\Notification\MemberNotificationService;
+use App\Models\UserModel;
+use App\Services\Email\MemberEmailService;
 use CodeIgniter\Database\BaseConnection;
 use App\Support\BooleanValue;
 use Config\MemberMedia;
@@ -24,13 +26,32 @@ use Throwable;
 final class MemberPhotoApprovalService
 {
     public function __construct(
-        private readonly AdminMemberPhotoApprovalModel $approvalModel,
-        private readonly MemberPhotoModel $photoModel,
-        private readonly CloudFrontService $cloudFrontService,
-        private readonly MemberMedia $mediaConfig,
-        private readonly AdminAuditService $auditService,
-        private readonly MemberNotificationService $notificationService,
-        private readonly BaseConnection $database
+        private readonly AdminMemberPhotoApprovalModel
+        $approvalModel,
+
+        private readonly MemberPhotoModel
+        $photoModel,
+
+        private readonly UserModel
+        $userModel,
+
+        private readonly CloudFrontService
+        $cloudFrontService,
+
+        private readonly MemberMedia
+        $mediaConfig,
+
+        private readonly AdminAuditService
+        $auditService,
+
+        private readonly MemberNotificationService
+        $notificationService,
+
+        private readonly MemberEmailService
+        $memberEmailService,
+
+        private readonly BaseConnection
+        $database
     ) {}
 
     /**
@@ -289,7 +310,8 @@ final class MemberPhotoApprovalService
             $adminId
         );
 
-        $reason = trim($reason);
+        $reason =
+            trim($reason);
 
         if (mb_strlen($reason) > 500) {
             throw new DomainException(
@@ -297,8 +319,11 @@ final class MemberPhotoApprovalService
             );
         }
 
-        $photo = $this->approvalModel
-            ->findPendingPhoto($photoId);
+        $photo =
+            $this->approvalModel
+            ->findPendingPhoto(
+                $photoId
+            );
 
         if ($photo === null) {
             throw new DomainException(
@@ -306,14 +331,11 @@ final class MemberPhotoApprovalService
             );
         }
 
-        /*
-     * member_photos.member_id stores the owning users.id value.
-     * It is therefore also the recipient_user_id used by
-     * member_notifications.
-     */
-        $memberId = (int) (
-            $photo['member_id'] ?? 0
-        );
+        $memberId =
+            (int) (
+                $photo['member_id']
+                ?? 0
+            );
 
         if ($memberId <= 0) {
             throw new DomainException(
@@ -321,23 +343,25 @@ final class MemberPhotoApprovalService
             );
         }
 
-        $rejectedAt = date('Y-m-d H:i:s');
+        $rejectedAt =
+            date(
+                'Y-m-d H:i:s'
+            );
 
-        /*
-     * The current administrator UI does not collect a reason. Use a helpful
-     * generic message in that case, while supporting a supplied reason for
-     * future moderation workflows.
-     */
-        $notificationMessage = $reason !== ''
+        $notificationMessage =
+            $reason !== ''
             ? 'Your profile photo was not approved. Reason: '
             . $reason
-            : 'Your profile photo was not approved. Please upload a clear, '
-            . 'recent photo that follows the profile photo guidelines.';
+            : 'Your profile photo was not approved. '
+            . 'Please upload a clear, recent photo '
+            . 'that follows the profile photo guidelines.';
 
-        $this->database->transBegin();
+        $this->database
+            ->transBegin();
 
         try {
-            $updated = $this->photoModel
+            $updated =
+                $this->photoModel
                 ->where(
                     'id',
                     $photoId
@@ -351,23 +375,38 @@ final class MemberPhotoApprovalService
                     null
                 )
                 ->set([
-                    'status' => 'REJECTED',
-                    'is_primary' => false,
-                    'rejected_by' => $adminId,
-                    'rejected_at' => $rejectedAt,
+                    'status' =>
+                    'REJECTED',
+
+                    'is_primary' =>
+                    false,
+
+                    'rejected_by' =>
+                    $adminId,
+
+                    'rejected_at' =>
+                    $rejectedAt,
+
                     'rejection_reason' =>
                     $reason !== ''
                         ? $reason
                         : null,
-                    'approved_by' => null,
-                    'approved_at' => null,
-                    'updated_at' => $rejectedAt,
+
+                    'approved_by' =>
+                    null,
+
+                    'approved_at' =>
+                    null,
+
+                    'updated_at' =>
+                    $rejectedAt,
                 ])
                 ->update();
 
             if (
                 $updated !== true
-                || $this->database->affectedRows() !== 1
+                || $this->database
+                ->affectedRows() !== 1
             ) {
                 throw new DomainException(
                     'The photo could not be rejected.'
@@ -375,15 +414,27 @@ final class MemberPhotoApprovalService
             }
 
             $this->recordModerationAudit(
-                action: AdminAuditAction::MEMBER_PHOTO_REJECTED,
+                action: AdminAuditAction
+                ::MEMBER_PHOTO_REJECTED,
+
                 adminId: $adminId,
+
                 memberId: $memberId,
+
                 photoId: $photoId,
+
                 description: 'Administrator rejected a member photo.',
+
                 metadata: [
-                    'previous_status' => 'PENDING',
-                    'new_status' => 'REJECTED',
-                    'rejected_at' => $rejectedAt,
+                    'previous_status' =>
+                    'PENDING',
+
+                    'new_status' =>
+                    'REJECTED',
+
+                    'rejected_at' =>
+                    $rejectedAt,
+
                     'rejection_reason' =>
                     $reason !== ''
                         ? $reason
@@ -391,46 +442,94 @@ final class MemberPhotoApprovalService
                 ]
             );
 
-            /*
-         * actor_user_id is intentionally omitted.
-         *
-         * member_notifications.actor_user_id references users.id, whereas
-         * $adminId belongs to admin_users. Saving the administrator ID in
-         * actor_user_id would violate the foreign-key relationship.
-         */
-            $notificationId = $this->notificationService
+            $notificationId =
+                $this->notificationService
                 ->create([
-                    'recipientUserId' => $memberId,
+                    'recipientUserId' =>
+                    $memberId,
+
                     'type' =>
-                    MemberNotificationModel::TYPE_PHOTO_REJECTED,
-                    'title' => 'Profile photo not approved',
-                    'message' => $notificationMessage,
-                    'entityType' => 'MEMBER_PHOTO',
-                    'entityId' => $photoId,
-                    'targetUrl' => '/profile/photos',
+                    MemberNotificationModel
+                    ::TYPE_PHOTO_REJECTED,
+
+                    'title' =>
+                    'Profile photo not approved',
+
+                    'message' =>
+                    $notificationMessage,
+
+                    'entityType' =>
+                    'MEMBER_PHOTO',
+
+                    'entityId' =>
+                    $photoId,
+
+                    'targetUrl' =>
+                    '/profile/photos',
                 ]);
 
             if (
-                $this->database->transStatus() === false
+                $this->database
+                ->transStatus()
+                === false
             ) {
                 throw new DomainException(
                     'The photo rejection could not be completed.'
                 );
             }
 
-            $this->database->transCommit();
-
-            return [
-                'photoId' => $photoId,
-                'memberId' => $memberId,
-                'notificationId' => $notificationId,
-                'status' => 'REJECTED',
-            ];
-        } catch (Throwable $exception) {
-            $this->database->transRollback();
+            $this->database
+                ->transCommit();
+        } catch (
+            Throwable $exception
+        ) {
+            $this->database
+                ->transRollback();
 
             throw $exception;
         }
+
+        /*
+     * External communication is downstream
+     * from the completed moderation transaction.
+     */
+        $member =
+            $this->userModel
+            ->find(
+                $memberId
+            );
+
+        $this->memberEmailService
+            ->queuePhotoRejected(
+                recipientUserId: $memberId,
+
+                recipientName: is_array($member)
+                    ? trim(
+                        (string) (
+                            $member['full_name']
+                            ?? ''
+                        )
+                    )
+                    : '',
+
+                photoId: $photoId,
+
+                reason: $reason
+            );
+
+        return [
+            'photoId' =>
+            $photoId,
+
+            'memberId' =>
+            $memberId,
+
+            'notificationId' =>
+            $notificationId,
+
+            'status' =>
+            'REJECTED',
+        ];
     }
 
     /**
