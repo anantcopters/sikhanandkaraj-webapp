@@ -9,6 +9,32 @@ use CodeIgniter\Router\RouteCollection;
  */
 
 // -----------------------------------------------------------------------------
+// Public SikhanandKaraj short URLs
+// -----------------------------------------------------------------------------
+//
+// DLT/SMS-safe short links.
+//
+// Example:
+//
+// /ISAK/A7B2K9
+//      -> /field-officer/login
+//
+// Resolution is intentionally public. Creation and management are restricted
+// separately to SUPER_ADMIN.
+//
+$routes->get(
+    'ISAK/(:alphanum)',
+    'ShortUrlController::redirect/$1',
+    [
+        'namespace' =>
+        'App\Controllers\Web',
+
+        'as' =>
+        'web.short-url.redirect',
+    ]
+);
+
+// -----------------------------------------------------------------------------
 // Public legal pages
 // -----------------------------------------------------------------------------
 //
@@ -1690,6 +1716,47 @@ $routes->group('admin', [
                     [
                         'as' =>
                         'admin.match-score.update',
+                    ]
+                );
+            }
+        );
+
+        /*
+        * --------------------------------------------------------------------------
+        * Short URL Management
+        * --------------------------------------------------------------------------
+        *
+        * Short URL creation is an application-level communication tool used for
+        * DLT/SMS links.
+        *
+        * Only SUPER_ADMIN may create or view the short URL registry.
+        *
+        * Public resolution remains outside admin authentication.
+        */
+        $routes->group(
+            'short-urls',
+            [
+                'filter' =>
+                'superAdmin',
+            ],
+            static function (
+                RouteCollection $routes
+            ): void {
+                $routes->get(
+                    '',
+                    'ShortUrlController::index',
+                    [
+                        'as' =>
+                        'admin.short-urls.index',
+                    ]
+                );
+
+                $routes->post(
+                    '',
+                    'ShortUrlController::store',
+                    [
+                        'as' =>
+                        'admin.short-urls.store',
                     ]
                 );
             }

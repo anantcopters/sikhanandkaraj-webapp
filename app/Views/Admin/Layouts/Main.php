@@ -125,6 +125,11 @@ $pageScripts = $pageScripts ?? [];
                 $currentPath,
                 'admin/communication-operations'
             );
+        $shortUrlsActive =
+            str_starts_with(
+                $currentPath,
+                'admin/short-urls'
+            );
 
         $sakVolunteersActive =
             str_starts_with(
@@ -149,7 +154,8 @@ $pageScripts = $pageScripts ?? [];
             $administratorsActive
             || $matchScoreActive
             || $emailPreviewActive
-            || $communicationOperationsActive;
+            || $communicationOperationsActive
+            || $shortUrlsActive;
 
         $profileReportsActive =
             str_starts_with(
@@ -712,6 +718,30 @@ $pageScripts = $pageScripts ?? [];
                                                 </i>
 
                                                 Communication Operations
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a
+                                                href="<?= route_to(
+                                                            'admin.short-urls.index'
+                                                        ) ?>"
+                                                class="dropdown-item
+            d-flex
+            align-items-center
+            gap-2
+            <?= $shortUrlsActive
+                                    ? 'active'
+                                    : '' ?>"
+                                                <?= $shortUrlsActive
+                                                    ? 'aria-current="page"'
+                                                    : '' ?>>
+
+                                                <i
+                                                    class="ri-links-line"
+                                                    aria-hidden="true">
+                                                </i>
+
+                                                Short URLs
                                             </a>
                                         </li>
                                     </ul>
