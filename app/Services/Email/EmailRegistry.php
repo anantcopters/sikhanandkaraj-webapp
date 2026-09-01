@@ -15,6 +15,9 @@ final class EmailRegistry
     public const ADMIN_INVITATION =
     'ADMIN_INVITATION';
 
+    public const ADMIN_NEW_PROFILE_CREATED =
+    'ADMIN_NEW_PROFILE_CREATED';
+
     public const MEMBER_INTEREST_RECEIVED =
     'MEMBER_INTEREST_RECEIVED';
 
@@ -216,6 +219,40 @@ final class EmailRegistry
                 ],
 
                 priority: 5,
+
+                maxAttempts: 3
+            ),
+
+            self::ADMIN_NEW_PROFILE_CREATED =>
+            new EmailDefinition(
+                key: self::ADMIN_NEW_PROFILE_CREATED,
+
+                name: 'New Profile Created',
+
+                category: self::CATEGORY_TRANSACTIONAL,
+
+                subject: 'New profile created on Sikhanandkaraj',
+
+                viewName: 'Emails/Admin/NewProfileCreated',
+
+                previewData: [
+                    'fullName' =>
+                    'Harpreet Singh',
+
+                    'gender' =>
+                    'Male',
+
+                    'mobileNumber' =>
+                    '+91 9876543210',
+
+                    'profileReference' =>
+                    'SAK123456',
+
+                    'source' =>
+                    'Registration',
+                ],
+
+                priority: 20,
 
                 maxAttempts: 3
             ),
