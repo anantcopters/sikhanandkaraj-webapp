@@ -934,6 +934,7 @@ final class MemberMatchCandidateModel extends Model
             'ep.annual_income_id',
 
             'fd.community_id',
+            'fd.nearest_gurudwara',
 
             /*
             * Candidate-level Match Score signal.

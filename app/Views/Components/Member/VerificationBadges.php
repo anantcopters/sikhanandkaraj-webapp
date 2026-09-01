@@ -3,12 +3,12 @@
 declare(strict_types=1);
 
 /**
- * Member profile verification trust strip.
+ * Member profile verification/trust strip.
  *
- * Backend services supply normalized verification booleans. This component
- * owns only the UI labels and icons.
+ * Backend services supply normalized booleans. This component owns only
+ * the UI labels and icons.
  *
- * Only successfully verified attributes are displayed.
+ * Only successfully verified or available trust attributes are displayed.
  *
  * @var array<string, bool> $verification
  */
@@ -63,6 +63,17 @@ $verificationItems = [
         'icon' =>
         'ri-video-line',
     ],
+
+    [
+        'key' =>
+        'nearestGurudwara',
+
+        'label' =>
+        'Nearest Gurudwara',
+
+        'icon' =>
+        'ri-map-pin-line',
+    ],
 ];
 
 $verifiedItems = array_values(
@@ -84,9 +95,9 @@ $verifiedCount =
 
 $verificationSummary =
     $verifiedCount === 1
-    ? '1 profile detail verified'
+    ? '1 trust detail available'
     : $verifiedCount
-    . ' profile details verified';
+    . ' trust details available';
 ?>
 
 <?php if ($verifiedItems !== []): ?>
@@ -109,7 +120,7 @@ $verificationSummary =
                 <span
                     class="avatar-title
                         rounded-circle
-                        bg-success-subtle
+                        bg-dark-subtle
                         text-success">
 
                     <i
@@ -147,7 +158,7 @@ $verificationSummary =
 
         </div>
 
-        <!-- Successfully verified profile attributes -->
+        <!-- Successfully verified / available profile attributes -->
         <div
             class="d-flex
                 flex-wrap
@@ -166,10 +177,10 @@ $verificationSummary =
 
                 <span
                     class="badge rounded
-                        bg-success-subtle
+                        bg-dark-subtle
                         text-success
-                        border border-success
-                        border-opacity-25
+                        border border-primary
+                        border-opacity-50
                         d-inline-flex
                         align-items-center
                         gap-2
@@ -200,8 +211,8 @@ $verificationSummary =
                     </span>
 
                     <i
-                        class="ri-checkbox-circle-line
-                            fs-15 text-success"
+                        class="mdi mdi-check-circle
+                            fs-16 text-success"
                         aria-hidden="true">
                     </i>
 
