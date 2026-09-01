@@ -1713,7 +1713,7 @@ form[aria-busy="true"] {
     bottom: 0;
     left: 0;
     width: 61%;
-    background-image: url("../images/Bg_Hero.png");
+    background-image: url("../images/Bg_Hero.webp");
     background-repeat: no-repeat;
     background-position: center center;
     background-size: cover;

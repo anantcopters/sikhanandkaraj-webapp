@@ -243,6 +243,14 @@ $routes->group(
         RouteCollection $routes
     ): void {
         $routes->get(
+            'sitemap.xml',
+            'SitemapController::index',
+            [
+                'as' => 'web.sitemap',
+            ]
+        );
+
+        $routes->get(
             'terms-and-conditions',
             'LegalController::termsAndConditions',
             [
@@ -1179,37 +1187,55 @@ $routes->group('', [
     $routes->get(
         'profile/video-introduction/record',
         'MemberVideoIntroductionController::record',
-        ['as' => 'web.video-introduction.record']
+        [
+            'as' => 'web.video-introduction.record',
+            'filter' => 'webAuth',
+        ]
     );
 
     $routes->post(
         'profile/video-introduction',
         'MemberVideoIntroductionController::submit',
-        ['as' => 'web.video-introduction.submit']
+        [
+            'as' => 'web.video-introduction.submit',
+            'filter' => 'webAuth',
+        ]
     );
 
     $routes->post(
         'account-settings/video-introduction/visibility',
         'MemberVideoIntroductionController::visibility',
-        ['as' => 'web.video-introduction.visibility']
+        [
+            'as' => 'web.video-introduction.visibility',
+            'filter' => 'webAuth',
+        ]
     );
 
     $routes->post(
         'account-settings/video-introduction/delete',
         'MemberVideoIntroductionController::delete',
-        ['as' => 'web.video-introduction.delete']
+        [
+            'as' => 'web.video-introduction.delete',
+            'filter' => 'webAuth',
+        ]
     );
 
     $routes->get(
         'account-settings/video-introduction/playback-url',
         'MemberVideoIntroductionController::ownerPlayback',
-        ['as' => 'web.video-introduction.owner-playback']
+        [
+            'as' => 'web.video-introduction.owner-playback',
+            'filter' => 'webAuth',
+        ]
     );
 
     $routes->get(
         'members/(:segment)/video-introduction/playback-url',
         'MemberVideoIntroductionController::viewerPlayback/$1',
-        ['as' => 'web.video-introduction.viewer-playback']
+        [
+            'as' => 'web.video-introduction.viewer-playback',
+            'filter' => 'webAuth',
+        ]
     );
 
     $routes->get(
@@ -1218,6 +1244,7 @@ $routes->group('', [
         [
             'as' =>
             'web.account.settings',
+            'filter' => 'webAuth',
         ]
     );
 
@@ -1236,6 +1263,7 @@ $routes->group('', [
         [
             'as' =>
             'web.account.settings.communication-preferences',
+            'filter' => 'webAuth',
         ]
     );
 
@@ -1245,6 +1273,7 @@ $routes->group('', [
         [
             'as' =>
             'web.account.settings.section',
+            'filter' => 'webAuth',
         ]
     );
 
@@ -1254,6 +1283,7 @@ $routes->group('', [
         [
             'as' =>
             'web.account.settings.password',
+            'filter' => 'webAuth',
         ]
     );
 
@@ -1275,6 +1305,7 @@ $routes->group('', [
         [
             'as' =>
             'web.account.settings.email',
+            'filter' => 'webAuth',
         ]
     );
 
@@ -1284,6 +1315,7 @@ $routes->group('', [
         [
             'as' =>
             'web.account.settings.email.resend',
+            'filter' => 'webAuth',
         ]
     );
 
@@ -1293,15 +1325,7 @@ $routes->group('', [
         [
             'as' =>
             'web.account.settings.contact',
-        ]
-    );
-
-    $routes->post(
-        'members/(:segment)/report',
-        'MemberProfileController::report/$1',
-        [
-            'as' =>
-            'web.members.report',
+            'filter' => 'webAuth',
         ]
     );
 

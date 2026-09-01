@@ -27,6 +27,8 @@ $currentYear = date('Y');
                                     'assets/images/logo_sak_header.png'
                                 ) ?>"
                         alt="Sikhanandkaraj"
+                        width="500"
+                        height="88"
                         class="public-navbar__logo w-75">
                 </a>
 

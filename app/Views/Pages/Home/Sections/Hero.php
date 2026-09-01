@@ -23,8 +23,6 @@ $formAlert = isset($formAlert)
     ? $formAlert
     : null;
 
-$this->extend('Layouts/Main');
-$this->section('content');
 ?>
 <section class="home-registration-section">
     <div class="container position-relative">
@@ -35,7 +33,7 @@ $this->section('content');
 
             <!--
                 Promotional content overlays the section-level background.
-                The actual bg_index.png image is applied through app.css.
+                The optimized Bg_Hero.webp image is applied through custom.css.
             -->
             <div class="col-lg-7 d-none d-lg-flex">
                 <div class="home-registration-visual">
@@ -45,10 +43,10 @@ $this->section('content');
                         </p>
 
                         <h1 class="home-registration-visual__title fs-36">
-                            Where Faith Unites,
+                            Find Your Life Partner
 
                             <span>
-                                Lives Forever
+                                in the Sikh Community
                             </span>
                         </h1>
 
@@ -533,4 +531,3 @@ $this->section('content');
         </div>
     </div>
 </section>
-<?php $this->endSection(); ?>

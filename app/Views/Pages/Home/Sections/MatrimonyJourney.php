@@ -33,7 +33,16 @@ declare(strict_types=1);
             <div class="col-lg-4">
                 <div class="process-card mt-4">
                     <div class="process-arrow-img d-none d-lg-block">
-                        <img src="assets/images/process-arrow-img.png" alt="" class="img-fluid">
+                        <img
+                            src="<?= base_url(
+                                        'assets/images/process-arrow-img.png'
+                                    ) ?>"
+                            alt=""
+                            width="250"
+                            height="46"
+                            loading="lazy"
+                            decoding="async"
+                            class="img-fluid">
                     </div>
                     <div class="avatar-sm mx-auto mb-4">
                         <div class="avatar-title bg-transparent text-danger rounded-circle h1">
@@ -49,9 +58,18 @@ declare(strict_types=1);
             <div class="col-lg-4">
                 <div class="process-card mt-4">
                     <div class="process-arrow-img d-none d-lg-block">
-                        <img src="assets/images/process-arrow-img.png" alt="" class="img-fluid">
+                        <img
+                            src="<?= base_url(
+                                        'assets/images/process-arrow-img.png'
+                                    ) ?>"
+                            alt=""
+                            width="250"
+                            height="46"
+                            loading="lazy"
+                            decoding="async"
+                            class="img-fluid">
                     </div>
-                    
+
                     <div class="avatar-sm mx-auto mb-4">
                         <div class="avatar-title bg-transparent text-success rounded-circle h1">
                             <i class="ri-user-heart-line"></i>

@@ -190,6 +190,8 @@ $hidePublicLoginAction =
                                 'assets/images/logo_sak_header.png'
                             ) ?>"
                     alt="Sikhanandkaraj"
+                    width="500"
+                    height="88"
                     class="public-navbar__logo">
             </a>
 
