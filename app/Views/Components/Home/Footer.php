@@ -45,33 +45,43 @@ $currentYear = date('Y');
             </div>
 
             <!-- Explore -->
+            <!-- Explore -->
             <div class="col-6 col-md-4 col-lg-2 text-lg-center">
                 <h2 class="fs-15 fw-semibold mb-3">
                     Explore
                 </h2>
 
                 <ul class="list-unstyled mb-0">
-                    <li class="mb-2">
-                        <a
-                            href="<?= site_url('/') ?>"
-                            class="text-decoration-none">
-                            Home
-                        </a>
-                    </li>
+
 
                     <li class="mb-2">
                         <a
                             href="<?= site_url('login') ?>"
                             class="text-decoration-none">
+
                             Login
                         </a>
                     </li>
 
                     <li class="mb-2">
                         <a
-                            href="<?= site_url('/') ?>#how-it-works"
+                            href="<?= url_to(
+                                        'web.seo.how-it-works'
+                                    ) ?>"
                             class="text-decoration-none">
+
                             How It Works
+                        </a>
+                    </li>
+
+                    <li class="mb-2">
+                        <a
+                            href="<?= url_to(
+                                        'web.seo.verification-safety'
+                                    ) ?>"
+                            class="text-decoration-none">
+
+                            Verification &amp; Safety
                         </a>
                     </li>
 
@@ -81,14 +91,18 @@ $currentYear = date('Y');
                                         'web.information.membership-plans'
                                     ) ?>"
                             class="text-decoration-none">
+
                             Membership Plans
                         </a>
                     </li>
 
                     <li>
                         <a
-                            href="<?= site_url('/') ?>#faqs"
+                            href="<?= url_to(
+                                        'web.seo.faq'
+                                    ) ?>"
                             class="text-decoration-none">
+
                             FAQs
                         </a>
                     </li>
@@ -283,6 +297,44 @@ $currentYear = date('Y');
                         <span class="mt-1">
                             Privacy-focused
                         </span>
+                    </li>
+                </ul>
+                <h2 class="fs-15 fw-semibold mb-3 mt-3">
+                    Popular Locations
+                </h2>
+
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2">
+                        <a
+                            href="<?= url_to(
+                                        'web.seo.location.delhi'
+                                    ) ?>"
+                            class="text-decoration-none">
+
+                            Delhi
+                        </a>
+                    </li>
+
+                    <li class="mb-2">
+                        <a
+                            href="<?= url_to(
+                                        'web.seo.location.punjab'
+                                    ) ?>"
+                            class="text-decoration-none">
+
+                            Punjab
+                        </a>
+                    </li>
+
+                    <li class="mb-2">
+                        <a
+                            href="<?= url_to(
+                                        'web.seo.location.chandigarh'
+                                    ) ?>"
+                            class="text-decoration-none">
+
+                            Chandigarh
+                        </a>
                     </li>
                 </ul>
             </div>

@@ -36,6 +36,13 @@ final class Seo extends BaseConfig
         'grievances',
         'fraud-alert',
         'cookie-policy',
+        'sikh-matrimony',
+        'how-it-works',
+        'verification-and-safety',
+        'faq',
+        'sikh-matrimony/delhi',
+        'sikh-matrimony/punjab',
+        'sikh-matrimony/chandigarh',
     ];
 
     /**
@@ -55,6 +62,13 @@ final class Seo extends BaseConfig
         'web.legal.grievances',
         'web.legal.fraud-alert',
         'web.legal.cookie-policy',
+        'web.seo.sikh-matrimony',
+        'web.seo.how-it-works',
+        'web.seo.verification-safety',
+        'web.seo.faq',
+        'web.seo.location.delhi',
+        'web.seo.location.punjab',
+        'web.seo.location.chandigarh',
     ];
 
     public function __construct()

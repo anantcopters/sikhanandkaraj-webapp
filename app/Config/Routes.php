@@ -308,6 +308,73 @@ $routes->group(
         RouteCollection $routes
     ): void {
         $routes->get(
+            'sikh-matrimony',
+            'SeoLandingPageController::sikhMatrimony',
+            [
+                'as' => 'web.seo.sikh-matrimony',
+            ]
+        );
+
+        $routes->get(
+            'how-it-works',
+            'SeoLandingPageController::howItWorks',
+            [
+                'as' => 'web.seo.how-it-works',
+            ]
+        );
+
+        $routes->get(
+            'verification-and-safety',
+            'SeoLandingPageController::verificationAndSafety',
+            [
+                'as' => 'web.seo.verification-safety',
+            ]
+        );
+
+        $routes->get(
+            'faq',
+            'SeoLandingPageController::faq',
+            [
+                'as' => 'web.seo.faq',
+            ]
+        );
+
+        $routes->get(
+            'sikh-matrimony/delhi',
+            'SeoLandingPageController::delhi',
+            [
+                'as' => 'web.seo.location.delhi',
+            ]
+        );
+
+        $routes->get(
+            'sikh-matrimony/punjab',
+            'SeoLandingPageController::punjab',
+            [
+                'as' => 'web.seo.location.punjab',
+            ]
+        );
+
+        $routes->get(
+            'sikh-matrimony/chandigarh',
+            'SeoLandingPageController::chandigarh',
+            [
+                'as' => 'web.seo.location.chandigarh',
+            ]
+        );
+    }
+);
+
+
+$routes->group(
+    '',
+    [
+        'namespace' => 'App\Controllers\Web',
+    ],
+    static function (
+        RouteCollection $routes
+    ): void {
+        $routes->get(
             'about-us',
             'InformationController::aboutUs',
             [

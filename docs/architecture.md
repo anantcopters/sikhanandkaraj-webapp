@@ -29,6 +29,19 @@ Browser / CLI
 - **Views/components** render already-authorized/normalized data and never query the database.
 - **Configuration** owns environment/provider settings and feature/deployment gates.
 
+## Public SEO content architecture
+
+Public search content extends the normal CodeIgniter web architecture rather
+than using a separate application or layout:
+
+```text
+Named public route
+  → SeoLandingPageController
+  → SeoLandingPageCatalog
+  → SeoMetadata
+  → Pages/Seo/LandingPage
+  → Layouts/Main
+
 ## Authentication contexts
 
 ### Member
