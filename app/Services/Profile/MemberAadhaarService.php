@@ -14,6 +14,8 @@ use App\Services\Aws\S3Service;
 use CodeIgniter\Database\BaseConnection;
 use CodeIgniter\HTTP\Files\UploadedFile;
 use App\Services\Membership\MembershipEntitlementService;
+use App\Services\Communication\CommunicationEventRegistry;
+use App\Services\Notification\MemberNotificationService;
 use App\Services\Email\MemberEmailService;
 use Config\MemberMedia;
 use DomainException;
@@ -69,7 +71,10 @@ final class MemberAadhaarService
         * Do not derive paid/free state from UserModel or plan codes here.
         */
         private readonly MembershipEntitlementService
-        $membershipEntitlementService
+        $membershipEntitlementService,
+
+        private readonly MemberNotificationService
+        $memberNotificationService,
     ) {}
 
     /**

@@ -12,6 +12,9 @@ namespace App\Services\Communication;
  */
 final class CommunicationEventRegistry
 {
+    public const MESSAGE =
+    'MESSAGE';
+
     public const INTEREST_RECEIVED =
     'INTEREST_RECEIVED';
 
@@ -27,6 +30,9 @@ final class CommunicationEventRegistry
     public const PROFILE_SHORTLISTED =
     'PROFILE_SHORTLISTED';
 
+    public const PHOTO_APPROVED =
+    'PHOTO_APPROVED';
+
     public const PHOTO_REJECTED =
     'PHOTO_REJECTED';
 
@@ -35,6 +41,9 @@ final class CommunicationEventRegistry
 
     public const AADHAAR_REJECTED =
     'AADHAAR_REJECTED';
+
+    public const AADHAAR_RESUBMISSION_REQUESTED =
+    'AADHAAR_RESUBMISSION_REQUESTED';
 
     public const VIDEO_APPROVED =
     'VIDEO_APPROVED';
@@ -59,6 +68,9 @@ final class CommunicationEventRegistry
 
     public const MEMBERSHIP_EXPIRED =
     'MEMBERSHIP_EXPIRED';
+
+    public const SYSTEM =
+    'SYSTEM';
 
     private function __construct() {}
 }

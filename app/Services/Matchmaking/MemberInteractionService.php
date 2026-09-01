@@ -1473,8 +1473,8 @@ final class MemberInteractionService
                     $fromUserId,
 
                     'type' =>
-                    \App\Models\MemberNotificationModel
-                    ::TYPE_INTEREST_RECEIVED,
+                    CommunicationEventRegistry
+                    ::INTEREST_RECEIVED,
 
                     'title' =>
                     'New Interest',

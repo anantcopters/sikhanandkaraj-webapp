@@ -6,7 +6,7 @@ namespace App\Services\Matchmaking;
 
 use App\Models\MemberInterestModel;
 use App\Models\MemberMatchCandidateModel;
-use App\Models\MemberNotificationModel;
+use App\Services\Communication\CommunicationEventRegistry;
 use App\Models\UserModel;
 use App\Services\Notification\MemberNotificationService;
 use App\Services\Membership\MembershipEntitlementService;
@@ -546,10 +546,10 @@ final class MemberInterestService
 
                     'type' =>
                     $accepted
-                        ? MemberNotificationModel
-                        ::TYPE_INTEREST_ACCEPTED
-                        : MemberNotificationModel
-                        ::TYPE_INTEREST_REJECTED,
+                        ? CommunicationEventRegistry
+                        ::INTEREST_ACCEPTED
+                        : CommunicationEventRegistry
+                        ::INTEREST_DECLINED,
 
                     'title' =>
                     $accepted

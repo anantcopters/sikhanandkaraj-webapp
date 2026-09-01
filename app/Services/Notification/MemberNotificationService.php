@@ -5,14 +5,16 @@ declare(strict_types=1);
 namespace App\Services\Notification;
 
 use App\Models\MemberNotificationModel;
+use App\Services\Communication\CommunicationEventRegistry;
 use InvalidArgumentException;
 use RuntimeException;
 
 /**
  * Provides the reusable member-notification workflow.
  *
- * Other features such as messaging, interests and profile views should call
- * this service instead of inserting directly into member_notifications.
+ * Business event identifiers are owned by CommunicationEventRegistry.
+ * This service is responsible only for in-application delivery,
+ * persistence and read state.
  */
 final class MemberNotificationService
 {
@@ -73,7 +75,7 @@ final class MemberNotificationService
     }
 
     /**
-     * Create a new notification.
+     * Create a new in-application notification.
      *
      * @param array{
      *     recipientUserId:int,
@@ -102,14 +104,34 @@ final class MemberNotificationService
         );
 
         $allowedTypes = [
-            MemberNotificationModel::TYPE_MESSAGE,
-            MemberNotificationModel::TYPE_INTEREST_RECEIVED,
-            MemberNotificationModel::TYPE_INTEREST_ACCEPTED,
-            MemberNotificationModel::TYPE_INTEREST_REJECTED,
-            MemberNotificationModel::TYPE_PROFILE_VIEW,
-            MemberNotificationModel::TYPE_SHORTLISTED,
-            MemberNotificationModel::TYPE_PHOTO_REJECTED,
-            MemberNotificationModel::TYPE_SYSTEM,
+            CommunicationEventRegistry::MESSAGE,
+
+            CommunicationEventRegistry::INTEREST_RECEIVED,
+            CommunicationEventRegistry::INTEREST_ACCEPTED,
+            CommunicationEventRegistry::INTEREST_DECLINED,
+
+            CommunicationEventRegistry::PROFILE_VIEWED,
+            CommunicationEventRegistry::PROFILE_SHORTLISTED,
+
+            CommunicationEventRegistry::PHOTO_APPROVED,
+            CommunicationEventRegistry::PHOTO_REJECTED,
+
+            CommunicationEventRegistry::AADHAAR_APPROVED,
+            CommunicationEventRegistry::AADHAAR_REJECTED,
+            CommunicationEventRegistry::AADHAAR_RESUBMISSION_REQUESTED,
+
+            CommunicationEventRegistry::VIDEO_APPROVED,
+            CommunicationEventRegistry::VIDEO_REJECTED,
+            CommunicationEventRegistry::VIDEO_RESUBMISSION_REQUESTED,
+
+            CommunicationEventRegistry::SUPPORT_RECEIVED,
+            CommunicationEventRegistry::SUPPORT_RESOLVED,
+
+            CommunicationEventRegistry::MEMBERSHIP_ACTIVATED,
+            CommunicationEventRegistry::MEMBERSHIP_EXPIRING_SOON,
+            CommunicationEventRegistry::MEMBERSHIP_EXPIRED,
+
+            CommunicationEventRegistry::SYSTEM,
         ];
 
         if (! in_array($type, $allowedTypes, true)) {
@@ -281,9 +303,6 @@ final class MemberNotificationService
             return null;
         }
 
-        /*
-         * Block absolute, protocol-relative and JavaScript URLs.
-         */
         if (
             str_starts_with(
                 $resolvedTargetUrl,
