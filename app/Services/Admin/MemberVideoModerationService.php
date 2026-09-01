@@ -418,37 +418,52 @@ final class MemberVideoModerationService
                 ],
             };
 
-            $this->notificationService->create(
-                [
-                    'recipientUserId' =>
-                    $memberId,
-
-                    'type' =>
-                    CommunicationEventRegistry::SYSTEM,
-
-                    'title' =>
-                    $title,
-
-                    'message' =>
-                    $message,
-
-                    'entityType' =>
-                    'VIDEO_INTRODUCTION',
-
-                    'entityId' =>
-                    $videoId,
-
-                    'targetUrl' =>
-                    '/account-settings/video-introduction',
-                ]
-            );
-
             $this->database->transCommit();
         } catch (Throwable $exception) {
             $this->database->transRollback();
 
             throw $exception;
         }
+
+        $notificationType =
+            match ($targetStatus) {
+                MemberVideoIntroductionModel::STATUS_APPROVED =>
+                CommunicationEventRegistry
+                ::VIDEO_APPROVED,
+
+                MemberVideoIntroductionModel::STATUS_REJECTED =>
+                CommunicationEventRegistry
+                ::VIDEO_REJECTED,
+
+                default =>
+                CommunicationEventRegistry
+                ::VIDEO_RESUBMISSION_REQUESTED,
+            };
+
+        $this->notificationService->create(
+            [
+                'recipientUserId' =>
+                $memberId,
+
+                'type' =>
+                $notificationType,
+
+                'title' =>
+                $title,
+
+                'message' =>
+                $message,
+
+                'entityType' =>
+                'VIDEO_INTRODUCTION',
+
+                'entityId' =>
+                $videoId,
+
+                'targetUrl' =>
+                '/account-settings/video-introduction',
+            ]
+        );
 
         /*
         * The Video moderation decision and its

@@ -802,31 +802,6 @@ final class MemberAadhaarService
                 );
             }
 
-            $this->memberNotificationService
-                ->create([
-                    'recipientUserId' =>
-                    $memberId,
-
-                    'type' =>
-                    CommunicationEventRegistry
-                    ::AADHAAR_APPROVED,
-
-                    'title' =>
-                    'Aadhaar Approved',
-
-                    'message' =>
-                    'Your Aadhaar verification has been approved.',
-
-                    'entityType' =>
-                    'AADHAAR_SUBMISSION',
-
-                    'entityId' =>
-                    (int) $submission['id'],
-
-                    'targetUrl' =>
-                    '/account-settings/aadhaar',
-                ]);
-
             if (
                 $this->database->transStatus()
                 === false
@@ -845,6 +820,30 @@ final class MemberAadhaarService
             throw $exception;
         }
 
+        $this->memberNotificationService
+            ->create([
+                'recipientUserId' =>
+                $memberId,
+
+                'type' =>
+                CommunicationEventRegistry
+                ::AADHAAR_APPROVED,
+
+                'title' =>
+                'Aadhaar Approved',
+
+                'message' =>
+                'Your Aadhaar verification has been approved.',
+
+                'entityType' =>
+                'AADHAAR_SUBMISSION',
+
+                'entityId' =>
+                (int) $submission['id'],
+
+                'targetUrl' =>
+                '/account-settings/aadhaar',
+            ]);
         /*
      * Audit after the business transaction commits.
      *
@@ -1037,31 +1036,6 @@ final class MemberAadhaarService
                 );
             }
 
-            $this->memberNotificationService
-                ->create([
-                    'recipientUserId' =>
-                    $memberId,
-
-                    'type' =>
-                    CommunicationEventRegistry
-                    ::AADHAAR_REJECTED,
-
-                    'title' =>
-                    'Aadhaar Rejected',
-
-                    'message' =>
-                    'Your Aadhaar verification was not approved. Please review the rejection reason and upload your Aadhaar again.',
-
-                    'entityType' =>
-                    'AADHAAR_SUBMISSION',
-
-                    'entityId' =>
-                    (int) $submission['id'],
-
-                    'targetUrl' =>
-                    '/account-settings/aadhaar',
-                ]);
-
             if (
                 $this->database->transStatus()
                 === false
@@ -1077,6 +1051,31 @@ final class MemberAadhaarService
 
             throw $exception;
         }
+
+        $this->memberNotificationService
+            ->create([
+                'recipientUserId' =>
+                $memberId,
+
+                'type' =>
+                CommunicationEventRegistry
+                ::AADHAAR_REJECTED,
+
+                'title' =>
+                'Aadhaar Rejected',
+
+                'message' =>
+                'Your Aadhaar verification was not approved. Please review the rejection reason and upload your Aadhaar again.',
+
+                'entityType' =>
+                'AADHAAR_SUBMISSION',
+
+                'entityId' =>
+                (int) $submission['id'],
+
+                'targetUrl' =>
+                '/account-settings/aadhaar',
+            ]);
 
         $this->auditService->record(
             new AdminAuditEvent(

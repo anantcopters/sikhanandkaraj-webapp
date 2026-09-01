@@ -10,7 +10,6 @@ use App\Services\Admin\Audit\AdminAuditAction;
 use App\Services\Admin\Audit\AdminAuditEvent;
 use App\Services\Admin\Audit\AdminAuditService;
 use App\Services\Aws\CloudFrontService;
-use App\Models\MemberNotificationModel;
 use App\Services\Notification\MemberNotificationService;
 use App\Models\UserModel;
 use App\Services\Email\MemberEmailService;
@@ -263,6 +262,31 @@ final class MemberPhotoApprovalService
                 ]
             );
 
+
+
+            if (
+                $this->database->transStatus() === false
+            ) {
+                throw new DomainException(
+                    'The photo approval could not be completed.'
+                );
+            }
+
+            $this->database->transCommit();
+        } catch (Throwable $exception) {
+            $this->database->transRollback();
+
+            throw $exception;
+        }
+
+        /*
+        * In-app notification is downstream from the
+        * completed moderation transaction.
+        *
+        * Notification failure must not rollback an
+        * already completed photo approval.
+        */
+        try {
             $this->notificationService
                 ->create([
                     'recipientUserId' =>
@@ -287,27 +311,29 @@ final class MemberPhotoApprovalService
                     'targetUrl' =>
                     '/profile/photos',
                 ]);
-
-            if (
-                $this->database->transStatus() === false
-            ) {
-                throw new DomainException(
-                    'The photo approval could not be completed.'
-                );
-            }
-
-            $this->database->transCommit();
-
-            return [
-                'photoId' => $photoId,
-                'memberId' => $memberId,
-                'status' => 'APPROVED',
-            ];
         } catch (Throwable $exception) {
-            $this->database->transRollback();
+            log_message(
+                'error',
+                'Photo approval notification failed for '
+                    . 'member {memberId}, photo {photoId}: {message}',
+                [
+                    'memberId' =>
+                    $memberId,
 
-            throw $exception;
+                    'photoId' =>
+                    $photoId,
+
+                    'message' =>
+                    $exception->getMessage(),
+                ]
+            );
         }
+
+        return [
+            'photoId' => $photoId,
+            'memberId' => $memberId,
+            'status' => 'APPROVED',
+        ];
     }
 
     /**
@@ -468,32 +494,6 @@ final class MemberPhotoApprovalService
                 ]
             );
 
-            $notificationId =
-                $this->notificationService
-                ->create([
-                    'recipientUserId' =>
-                    $memberId,
-
-                    'type' =>
-                    CommunicationEventRegistry
-                    ::PHOTO_REJECTED,
-
-                    'title' =>
-                    'Profile photo not approved',
-
-                    'message' =>
-                    $notificationMessage,
-
-                    'entityType' =>
-                    'MEMBER_PHOTO',
-
-                    'entityId' =>
-                    $photoId,
-
-                    'targetUrl' =>
-                    '/profile/photos',
-                ]);
-
             if (
                 $this->database
                 ->transStatus()
@@ -514,6 +514,32 @@ final class MemberPhotoApprovalService
 
             throw $exception;
         }
+
+        $notificationId =
+            $this->notificationService
+            ->create([
+                'recipientUserId' =>
+                $memberId,
+
+                'type' =>
+                CommunicationEventRegistry
+                ::PHOTO_REJECTED,
+
+                'title' =>
+                'Profile photo not approved',
+
+                'message' =>
+                $notificationMessage,
+
+                'entityType' =>
+                'MEMBER_PHOTO',
+
+                'entityId' =>
+                $photoId,
+
+                'targetUrl' =>
+                '/profile/photos',
+            ]);
 
         /*
         * External communication is downstream
@@ -646,17 +672,60 @@ final class MemberPhotoApprovalService
             }
 
             $this->database->transCommit();
-
-            return [
-                'memberId' => $memberId,
-                'photoIds' => $photoIds,
-                'approvedCount' => $approvedCount,
-            ];
         } catch (Throwable $exception) {
             $this->database->transRollback();
 
             throw $exception;
         }
+
+        try {
+            $this->notificationService
+                ->create([
+                    'recipientUserId' =>
+                    $memberId,
+
+                    'type' =>
+                    CommunicationEventRegistry
+                    ::PHOTO_APPROVED,
+
+                    'title' =>
+                    'Photos Approved',
+
+                    'message' =>
+                    $approvedCount === 1
+                        ? 'Your profile photo has been approved.'
+                        : $approvedCount
+                        . ' of your profile photos have been approved.',
+
+                    'entityType' =>
+                    'MEMBER_PHOTO',
+
+                    'targetUrl' =>
+                    '/profile/photos',
+                ]);
+        } catch (Throwable $exception) {
+            log_message(
+                'error',
+                'Photo approval notification failed for '
+                    . 'member {memberId}, photo {photoIds}: {message}',
+                [
+                    'memberId' =>
+                    $memberId,
+
+                    'photoId' =>
+                    $photoIds,
+
+                    'message' =>
+                    $exception->getMessage(),
+                ]
+            );
+        }
+
+        return [
+            'memberId' => $memberId,
+            'photoIds' => $photoIds,
+            'approvedCount' => $approvedCount,
+        ];
     }
 
     private function assertIdentifiers(
