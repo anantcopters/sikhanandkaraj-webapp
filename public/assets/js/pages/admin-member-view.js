@@ -674,12 +674,44 @@
         );
     }
 
+    /**
+     * Reopen the offline-payment modal after server validation failure.
+     */
+    function initializeOfflinePaymentModal() {
+        const modalElement = document.getElementById(
+            'offline-payment-modal'
+        );
+
+        if (
+            !modalElement
+            || typeof bootstrap === 'undefined'
+        ) {
+            return;
+        }
+
+        if (
+            String(
+                modalElement.dataset.openModal
+                ?? '0'
+            ) !== '1'
+        ) {
+            return;
+        }
+
+        bootstrap.Modal
+            .getOrCreateInstance(
+                modalElement
+            )
+            .show();
+    }
+
     document.addEventListener(
         'DOMContentLoaded',
         function () {
             initializeStatusModal();
             initializeHistoryModal();
             initializePhotoModal();
+            initializeOfflinePaymentModal();
         }
     );
 }());

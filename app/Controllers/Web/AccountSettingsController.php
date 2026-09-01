@@ -78,6 +78,41 @@ final class AccountSettingsController extends BaseController
             'plans' => [],
         ];
 
+        $offlinePayment = [];
+
+        if ($section === 'plans') {
+            $offlinePaymentConfig =
+                config(
+                    \Config\OfflinePayment::class
+                );
+
+            $offlinePayment = [
+                'accountName' =>
+                $offlinePaymentConfig
+                    ->accountName,
+
+                'bankName' =>
+                $offlinePaymentConfig
+                    ->bankName,
+
+                'accountNumber' =>
+                $offlinePaymentConfig
+                    ->accountNumber,
+
+                'ifscCode' =>
+                $offlinePaymentConfig
+                    ->ifscCode,
+
+                'upiId' =>
+                $offlinePaymentConfig
+                    ->upiId,
+
+                'whatsappNumbers' =>
+                $offlinePaymentConfig
+                    ->whatsappNumbers,
+            ];
+        }
+
         if ($section === 'plans') {
             $membershipPlans =
                 service(
@@ -311,6 +346,8 @@ final class AccountSettingsController extends BaseController
                     'membershipUsage' =>
                     $membershipUsage,
 
+                    'offlinePayment' =>
+                    $offlinePayment,
 
                     'pageScripts' => [
                         'assets/js/components/form-validator.js',

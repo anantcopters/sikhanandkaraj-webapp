@@ -1579,6 +1579,34 @@ $routes->group('admin', [
         );
 
         /*
+        * Offline membership payment.
+        *
+        * Financial membership activation is restricted to SUPER_ADMIN.
+        *
+        * The parent adminAuth filter establishes authenticated administrator
+        * identity; superAdmin adds the required financial authorization.
+        */
+        $routes->group(
+            'members',
+            [
+                'filter' =>
+                'superAdmin',
+            ],
+            static function (
+                RouteCollection $routes
+            ): void {
+                $routes->post(
+                    '(:num)/offline-payment',
+                    'MemberController::recordOfflinePayment/$1',
+                    [
+                        'as' =>
+                        'admin.members.offline-payment',
+                    ]
+                );
+            }
+        );
+
+        /*
          * Only SUPER_ADMIN may manage other administrators.
          */
         $routes->group('users', [

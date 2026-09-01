@@ -1096,7 +1096,18 @@ $this->section('content');
                         <?php elseif (
                             $activeSection === 'plans'
                         ): ?>
+                            <?= view(
+                                'Pages/AccountSettings/_OfflinePaymentInstructions',
+                                [
+                                    'offlinePayment' =>
+                                    $offlinePayment
+                                        ?? [],
 
+                                    'user' =>
+                                    $user
+                                        ?? [],
+                                ]
+                            ) ?>
                             <div class="text-center mb-4">
 
                                 <p

@@ -190,6 +190,32 @@ foreach ($resolvedAdminPhotos as $photo) {
     }
 }
 
+$resolvedAdminMembershipPlans =
+    isset($adminMembershipPlans)
+    && is_array($adminMembershipPlans)
+    ? $adminMembershipPlans
+    : [];
+
+$offlinePaymentValidationErrors =
+    isset($offlinePaymentValidationErrors)
+    && is_array($offlinePaymentValidationErrors)
+    ? $offlinePaymentValidationErrors
+    : [];
+
+$openOfflinePaymentModal =
+    ($openOfflinePaymentModal ?? false)
+    === true;
+
+$isSuperAdmin =
+    mb_strtoupper(
+        trim(
+            (string) session(
+                'admin_role'
+            )
+        )
+    )
+    === 'SUPER_ADMIN';
+
 /*
  * A legacy/member record may not have a primary photo.
  * Prefer an approved photograph next.
@@ -1160,7 +1186,21 @@ $this->section('content');
         )
     );
     ?>
+    <?php if ($isSuperAdmin): ?>
+        <button
+            type="button"
+            class="btn btn-sm btn-outline-danger"
+            data-bs-toggle="modal"
+            data-bs-target="#offline-payment-modal">
 
+            <i
+                class="ri-bank-card-line me-1"
+                aria-hidden="true">
+            </i>
+
+            Add Payment
+        </button>
+    <?php endif; ?>
     <!-- Member interaction activity -->
     <div
         class="card
@@ -1901,6 +1941,31 @@ $this->section('content');
         $resolvedPreferenceSections,
     ]
 ) ?>
+
+<?php if ($isSuperAdmin): ?>
+    <?= view(
+        'Admin/Members/Partials/_OfflinePaymentModal',
+        [
+            'memberId' =>
+            $resolvedMemberId,
+
+            'memberName' =>
+            $fullName,
+
+            'profileReference' =>
+            $profileReference,
+
+            'membershipPlans' =>
+            $resolvedAdminMembershipPlans,
+
+            'validationErrors' =>
+            $offlinePaymentValidationErrors,
+
+            'openModal' =>
+            $openOfflinePaymentModal,
+        ]
+    ) ?>
+<?php endif; ?>
 <!-- Block/unblock modal -->
 <div
     class="modal fade"
