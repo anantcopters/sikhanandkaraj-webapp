@@ -115,9 +115,7 @@ $this->section(
                                 type="url"
                                 class="form-control
                                     <?= isset(
-                                        $validationErrors[
-                                            'destination_url'
-                                        ]
+                                        $validationErrors['destination_url']
                                     )
                                         ? 'is-invalid'
                                         : '' ?>"
@@ -126,11 +124,11 @@ $this->section(
                                 maxlength="2048"
                                 required
                                 placeholder="<?= esc(
-                                                base_url(
-                                                    'field-officer/login'
-                                                ),
-                                                'attr'
-                                            ) ?>"
+                                                    base_url(
+                                                        'field-officer/login'
+                                                    ),
+                                                    'attr'
+                                                ) ?>"
                                 value="<?= esc(
                                             old(
                                                 'destination_url'
@@ -140,17 +138,13 @@ $this->section(
 
                             <?php if (
                                 isset(
-                                    $validationErrors[
-                                        'destination_url'
-                                    ]
+                                    $validationErrors['destination_url']
                                 )
                             ): ?>
 
                                 <div class="invalid-feedback">
                                     <?= esc(
-                                        $validationErrors[
-                                            'destination_url'
-                                        ]
+                                        $validationErrors['destination_url']
                                     ) ?>
                                 </div>
 
@@ -248,10 +242,8 @@ $this->section(
                                     readonly
                                     value="<?= esc(
                                                 (
-                                                    string
-                                                    $createdShortUrl[
-                                                        'short_url'
-                                                    ]
+                                                    (string)
+                                                    $createdShortUrl['short_url']
                                                 ),
                                                 'attr'
                                             ) ?>">
@@ -287,10 +279,8 @@ $this->section(
                             <div class="text-break">
                                 <?= esc(
                                     (
-                                        string
-                                        $createdShortUrl[
-                                            'destination_url'
-                                        ]
+                                        (string)
+                                        $createdShortUrl['destination_url']
                                     )
                                 ) ?>
                             </div>
@@ -366,10 +356,8 @@ $this->section(
                                             base_url(
                                                 'ISAK/'
                                                     . (
-                                                        string
-                                                        $shortUrl[
-                                                            'short_code'
-                                                        ]
+                                                        (string)
+                                                        $shortUrl['short_code']
                                                     )
                                             );
                                         ?>
@@ -399,10 +387,8 @@ $this->section(
 
                                                     <?= esc(
                                                         (
-                                                            string
-                                                            $shortUrl[
-                                                                'destination_url'
-                                                            ]
+                                                            (string)
+                                                            $shortUrl['destination_url']
                                                         )
                                                     ) ?>
 
@@ -412,10 +398,8 @@ $this->section(
                                             <td class="text-muted">
                                                 <?= esc(
                                                     (
-                                                        string
-                                                        $shortUrl[
-                                                            'created_at'
-                                                        ]
+                                                        (string)
+                                                        $shortUrl['created_at']
                                                     )
                                                 ) ?>
                                             </td>
@@ -443,7 +427,7 @@ $this->section(
 <script>
     document.addEventListener(
         'DOMContentLoaded',
-        function () {
+        function() {
             const form =
                 document.querySelector(
                     '[data-short-url-form]'
@@ -452,7 +436,7 @@ $this->section(
             if (form) {
                 form.addEventListener(
                     'submit',
-                    function (event) {
+                    function(event) {
                         const input =
                             form.querySelector(
                                 '[name="destination_url"]'
@@ -468,8 +452,8 @@ $this->section(
                         input.value = value;
 
                         if (
-                            value === ''
-                            || !input.checkValidity()
+                            value === '' ||
+                            !input.checkValidity()
                         ) {
                             event.preventDefault();
                             event.stopPropagation();
@@ -495,21 +479,21 @@ $this->section(
                     '[data-copy-short-url]'
                 )
                 .forEach(
-                    function (button) {
+                    function(button) {
                         button.addEventListener(
                             'click',
-                            async function () {
+                            async function() {
                                 const selector =
                                     button.getAttribute(
                                         'data-copy-target'
                                     );
 
                                 const input =
-                                    selector
-                                        ? document.querySelector(
-                                            selector
-                                        )
-                                        : null;
+                                    selector ?
+                                    document.querySelector(
+                                        selector
+                                    ) :
+                                    null;
 
                                 if (!input) {
                                     return;
@@ -526,12 +510,12 @@ $this->section(
                                         button.innerHTML;
 
                                     button.innerHTML =
-                                        '<i class="ri-check-line me-1" '
-                                        + 'aria-hidden="true"></i>'
-                                        + 'Copied';
+                                        '<i class="ri-check-line me-1" ' +
+                                        'aria-hidden="true"></i>' +
+                                        'Copied';
 
                                     window.setTimeout(
-                                        function () {
+                                        function() {
                                             button.innerHTML =
                                                 original;
                                         },
