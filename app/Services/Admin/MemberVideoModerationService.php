@@ -466,10 +466,8 @@ final class MemberVideoModerationService
         );
 
         /*
-        * The Video moderation decision and its
-        * in-app notification are already committed.
-        *
-        * Email is a downstream best-effort channel.
+        * External communication is downstream
+        * from the completed moderation transaction.
         */
         $member =
             $this->userModel

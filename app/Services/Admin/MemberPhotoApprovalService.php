@@ -706,14 +706,11 @@ final class MemberPhotoApprovalService
         } catch (Throwable $exception) {
             log_message(
                 'error',
-                'Photo approval notification failed for '
-                    . 'member {memberId}, photo {photoIds}: {message}',
+                'Photo bulk approval notification failed for '
+                    . 'member {memberId}: {message}',
                 [
                     'memberId' =>
                     $memberId,
-
-                    'photoId' =>
-                    $photoIds,
 
                     'message' =>
                     $exception->getMessage(),
