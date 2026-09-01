@@ -2441,28 +2441,28 @@ document.addEventListener('DOMContentLoaded', () => {
          *
          * @returns {void}
          */
-        const updateRecommendation = () => {
-            const selectedGender =
-                genderSelect.value
-                    .trim()
-                    .toUpperCase();
+        // const updateRecommendation = () => {
+        //     const selectedGender =
+        //         genderSelect.value
+        //             .trim()
+        //             .toUpperCase();
 
-            recommendation.classList.toggle(
-                'd-none',
-                selectedGender !== 'FEMALE'
-            );
-        };
+        //     recommendation.classList.toggle(
+        //         'd-none',
+        //         selectedGender !== 'FEMALE'
+        //     );
+        // };
 
-        genderSelect.addEventListener(
-            'change',
-            updateRecommendation
-        );
+        // genderSelect.addEventListener(
+        //     'change',
+        //     updateRecommendation
+        // );
 
         /*
          * Restore the correct state after initial page load,
          * old input or a server-side validation redirect.
          */
-        updateRecommendation();
+        //updateRecommendation();
     };
 
     /**
@@ -2686,7 +2686,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initializePhotoPreviews();
     initializeFieldOfficerVerification();
     initializeSavingModal();
-    initializeFemaleMobileRecommendation();
+    //initializeFemaleMobileRecommendation();
 
     /**
  * Initialize State → City dependency.
