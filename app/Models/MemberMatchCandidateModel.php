@@ -162,6 +162,101 @@ final class MemberMatchCandidateModel extends Model
     }
 
     /**
+     * Return exact administrator activity candidates by ID.
+     *
+     * Unlike member-facing candidate collections this deliberately does not
+     * remove a profile because:
+     *
+     * - either member blocked the other;
+     * - the account is no longer active;
+     * - the profile was subsequently hidden from matchmaking.
+     *
+     * Administrator activity is historical/diagnostic data and must represent
+     * the relationship which produced the activity count.
+     *
+     * @param list<int> $memberIds
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function adminCandidatesByIds(
+        int $viewerUserId,
+        array $memberIds
+    ): array {
+        $memberIds = array_values(
+            array_unique(
+                array_filter(
+                    array_map(
+                        'intval',
+                        $memberIds
+                    ),
+                    static fn(int $memberId): bool =>
+                    $memberId > 0
+                        && $memberId !== $viewerUserId
+                )
+            )
+        );
+
+        if (
+            $viewerUserId <= 0
+            || $memberIds === []
+        ) {
+            return [];
+        }
+
+        $builder =
+            $this->baseCandidateBuilder(
+                $viewerUserId,
+                '',
+                false
+            );
+
+        $rows =
+            $builder
+            ->whereIn(
+                'u.id',
+                $memberIds
+            )
+            ->get()
+            ->getResultArray();
+
+        $byMemberId = [];
+
+        foreach ($rows as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            $memberId = max(
+                0,
+                (int) (
+                    $row['id']
+                    ?? 0
+                )
+            );
+
+            if ($memberId > 0) {
+                $byMemberId[$memberId] =
+                    $row;
+            }
+        }
+
+        $ordered = [];
+
+        foreach ($memberIds as $memberId) {
+            if (
+                isset(
+                    $byMemberId[$memberId]
+                )
+            ) {
+                $ordered[] =
+                    $byMemberId[$memberId];
+            }
+        }
+
+        return $ordered;
+    }
+
+    /**
      * Search eligible matchmaking candidates.
      *
      * All member eligibility and blocking rules remain centralized through
@@ -793,7 +888,8 @@ final class MemberMatchCandidateModel extends Model
      */
     private function baseCandidateBuilder(
         int $viewerUserId,
-        string $viewerGender
+        string $viewerGender,
+        bool $applyMemberVisibility = true
     ): BaseBuilder {
         /*
          * int type declaration ensures this value cannot contain SQL.
@@ -1201,76 +1297,63 @@ final class MemberMatchCandidateModel extends Model
             false
         );
 
-        $builder
-            ->where(
-                'u.id !=',
-                $viewerUserId
-            )
-            ->where(
-                'u.account_status',
-                UserModel::STATUS_ACTIVE
-            )
-            ->where(
-                'u.deleted_at',
-                null
-            )
-            /*
-             * Any relationship block removes the candidate.
-             */
-            ->where(
-                'blocked_by_viewer.id',
-                null
-            )
-            ->where(
-                'blocking_viewer.id',
-                null
-            )
-            /*
-            * An administrator-confirmed report globally hides the reported
-            * profile from every member-facing candidate collection.
-            *
-            * NOT EXISTS avoids duplicate candidates when multiple reports
-            * against the same member reach ACTION_TAKEN.
-            */
-            ->where(
-                'NOT EXISTS ('
-                    . 'SELECT 1 '
-                    . 'FROM member_profile_reports hidden_report '
-                    . 'WHERE hidden_report.reported_user_id = u.id '
-                    . 'AND hidden_report.status = '
-                    . $hiddenReportStatusSql
-                    . ')',
-                null,
-                false
-            );
+        $builder->where(
+            'u.id !=',
+            $viewerUserId
+        );
 
-        /*
-         * The current application registration model supports M/F.
-         *
-         * Gender is base eligibility rather than one of the preference
-         * percentage criteria.
-         */
-        $normalizedGender =
-            mb_strtoupper(
-                trim(
-                    $viewerGender
+        if ($applyMemberVisibility) {
+            $builder
+                ->where(
+                    'u.account_status',
+                    UserModel::STATUS_ACTIVE
                 )
-            );
+                ->where(
+                    'u.deleted_at',
+                    null
+                )
+                ->where(
+                    'blocked_by_viewer.id',
+                    null
+                )
+                ->where(
+                    'blocking_viewer.id',
+                    null
+                )
+                ->where(
+                    'NOT EXISTS ('
+                        . 'SELECT 1 '
+                        . 'FROM member_profile_reports hidden_report '
+                        . 'WHERE hidden_report.reported_user_id = u.id '
+                        . 'AND hidden_report.status = '
+                        . $hiddenReportStatusSql
+                        . ')',
+                    null,
+                    false
+                );
 
-        if (
-            in_array(
-                $normalizedGender,
-                [
-                    'M',
-                    'F',
-                ],
-                true
-            )
-        ) {
-            $builder->where(
-                'u.gender !=',
-                $normalizedGender
-            );
+            $normalizedGender =
+                mb_strtoupper(
+                    trim(
+                        $viewerGender
+                    )
+                );
+
+            if (
+                in_array(
+                    $normalizedGender,
+                    [
+                        'M',
+                        'F',
+                    ],
+                    true
+                )
+            ) {
+                $builder->where(
+                    'u.gender !=',
+                    $normalizedGender
+                );
+            }
         }
 
         return $builder;

@@ -173,7 +173,7 @@ $this->section(
 
                                     <i
                                         class="ri-links-line
-                                            fs-20
+                                            fs-16
                                             align-middle
                                             me-1"
                                         aria-hidden="true"></i>

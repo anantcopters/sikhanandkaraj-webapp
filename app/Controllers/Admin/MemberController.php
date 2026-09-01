@@ -344,6 +344,115 @@ final class MemberController extends BaseController
     }
 
     /**
+     * Display one member's administrator activity collection.
+     */
+    public function activity(
+        int $userId,
+        string $activityType
+    ): string {
+        $search =
+            preg_replace(
+                '/\s+/u',
+                ' ',
+                trim(
+                    (string) $this->request
+                        ->getGet(
+                            'search'
+                        )
+                )
+            ) ?? '';
+
+        $search =
+            mb_substr(
+                $search,
+                0,
+                100
+            );
+
+        $page = max(
+            1,
+            (int) (
+                $this->request
+                ->getGet(
+                    'page_adminMemberActivity'
+                )
+                ?? 1
+            )
+        );
+
+        try {
+            $result =
+                service(
+                    'adminMemberActivityService'
+                )->paginatedActivity(
+                    memberUserId: $userId,
+
+                    activityType: $activityType,
+
+                    search: $search,
+
+                    page: $page,
+
+                    perPage: 9
+                );
+
+            return view(
+                'Admin/Members/Activity',
+                [
+                    'pageTitle' =>
+                    $result['activity']['label']
+                        ?? 'Member Activity',
+
+                    ...$result,
+
+                    /*
+                 * Reuse the existing Admin Match page loader.
+                 *
+                 * Activity.php uses the same data attributes.
+                 */
+                    'pageScripts' => [
+                        'assets/js/pages/admin-member-matches.js',
+                    ],
+                ]
+            );
+        } catch (
+            PageNotFoundException $exception
+        ) {
+            throw $exception;
+        } catch (
+            DomainException $exception
+        ) {
+            throw PageNotFoundException
+                ::forPageNotFound();
+        } catch (Throwable $exception) {
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
+                'error',
+                AdminErrorContext::forOperation(
+                    operation: 'admin_member_activity',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'target_member_user_id' =>
+                        $userId,
+
+                        'activity_type' =>
+                        $activityType,
+                    ]
+                )
+            );
+
+            throw PageNotFoundException
+                ::forPageNotFound();
+        }
+    }
+
+    /**
      * Calculate a read-only directional Match Score diagnostic.
      *
      * This endpoint exists only for authenticated administrators.

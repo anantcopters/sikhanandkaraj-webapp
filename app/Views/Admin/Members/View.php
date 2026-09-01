@@ -1218,6 +1218,26 @@ $this->section('content');
             $profileReference,
         ]
     ) ?>
+
+    <!-- Member interaction activity -->
+    <?= view(
+        'Admin/Members/Partials/Activity',
+        [
+            'memberId' =>
+            $resolvedMemberId,
+
+            'activityStats' =>
+            isset(
+                $memberActivityStats
+            )
+                && is_array(
+                    $memberActivityStats
+                )
+                ? $memberActivityStats
+                : [],
+        ]
+    ) ?>
+
     <!--
     Match Score diagnostics.
 
@@ -1265,191 +1285,6 @@ $this->section('content');
                 : [],
         ]
     ) ?>
-    <?php
-    $interactionStats = isset(
-        $memberInteractionStats
-    )
-        && is_array(
-            $memberInteractionStats
-        )
-        ? $memberInteractionStats
-        : [];
-
-    $membersBlocked = max(
-        0,
-        (int) (
-            $interactionStats['blocked']
-            ?? 0
-        )
-    );
-
-    $interestReceived = max(
-        0,
-        (int) (
-            $interactionStats['interestReceived']
-            ?? 0
-        )
-    );
-
-    $interestSent = max(
-        0,
-        (int) (
-            $interactionStats['interestSent']
-            ?? 0
-        )
-    );
-
-    $totalProfileViews = max(
-        0,
-        (int) (
-            $interactionStats['totalProfileViews']
-            ?? 0
-        )
-    );
-
-    $uniqueProfileViewers = max(
-        0,
-        (int) (
-            $interactionStats['uniqueProfileViewers']
-            ?? 0
-        )
-    );
-    ?>
-
-    <!-- Member interaction activity -->
-    <div
-        class="card
-        border
-        border-danger
-        border-opacity-25
-        mb-4">
-
-        <div class="card-header">
-            <h5 class="card-title mb-0">
-                <i
-                    class="ri-line-chart-line me-1"
-                    aria-hidden="true">
-                </i>
-
-                Member Activity
-            </h5>
-        </div>
-
-        <div class="card-body">
-
-            <div class="row g-3">
-
-                <div class="col-6 col-lg-3">
-                    <div
-                        class="border
-                        rounded
-                        p-3
-                        text-center
-                        h-100">
-
-                        <div
-                            class="text-muted
-                            fs-12 mb-1">
-
-                            Members Blocked
-                        </div>
-
-                        <strong class="fs-22">
-                            <?= esc(
-                                (string)
-                                $membersBlocked
-                            ) ?>
-                        </strong>
-                    </div>
-                </div>
-
-                <div class="col-6 col-lg-3">
-                    <div
-                        class="border
-                        rounded
-                        p-3
-                        text-center
-                        h-100">
-
-                        <div
-                            class="text-muted
-                            fs-12 mb-1">
-
-                            Interest Received
-                        </div>
-
-                        <strong class="fs-22">
-                            <?= esc(
-                                (string)
-                                $interestReceived
-                            ) ?>
-                        </strong>
-                    </div>
-                </div>
-
-                <div class="col-6 col-lg-3">
-                    <div
-                        class="border
-                        rounded
-                        p-3
-                        text-center
-                        h-100">
-
-                        <div
-                            class="text-muted
-                            fs-12 mb-1">
-
-                            Interest Sent
-                        </div>
-
-                        <strong class="fs-22">
-                            <?= esc(
-                                (string)
-                                $interestSent
-                            ) ?>
-                        </strong>
-                    </div>
-                </div>
-
-                <div class="col-6 col-lg-3">
-                    <div
-                        class="border
-                        rounded
-                        p-3
-                        text-center
-                        h-100">
-
-                        <div
-                            class="text-muted
-                            fs-12 mb-1">
-
-                            Profile Views
-                        </div>
-
-                        <strong class="fs-22">
-                            <?= esc(
-                                (string)
-                                $totalProfileViews
-                            ) ?>
-                        </strong>
-
-                        <div
-                            class="text-muted
-                            fs-12 mt-1">
-
-                            <?= esc(
-                                (string)
-                                $uniqueProfileViewers
-                            ) ?>
-                            unique members
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-        </div>
-    </div>
-
     <!-- Profile image -->
     <div
         class="card

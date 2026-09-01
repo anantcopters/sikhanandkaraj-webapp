@@ -178,6 +178,8 @@ use App\Services\Communication\CommunicationDispatcherService;
 use App\Services\Communication\CommunicationEventService;
 use App\Services\Communication\EngagementDigestService;
 use App\Services\Communication\CommunicationOperationsService;
+use App\Models\AdminMemberActivityModel;
+use App\Services\Admin\AdminMemberActivityService;
 use App\Models\EmailQueueModel;
 use App\Models\SmsDeliveryLogModel;
 use Config\ProfilePdf;
@@ -1829,6 +1831,60 @@ final class Services extends BaseService
             ),
 
             $configuration
+        );
+    }
+
+    /**
+     * Return administrator member-activity service.
+     *
+     * Activity presentation reuses the same Partner Preference,
+     * Match Score, photo and profile-card authorities used by
+     * the existing Admin Match screen.
+     */
+    public static function adminMemberActivityService(
+        bool $getShared = true
+    ): AdminMemberActivityService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'adminMemberActivityService'
+            );
+        }
+
+        $database =
+            db_connect();
+
+        return new AdminMemberActivityService(
+            new UserModel(
+                $database
+            ),
+
+            new AdminMemberActivityModel(
+                $database
+            ),
+
+            new MemberMatchCandidateModel(
+                $database
+            ),
+
+            static::partnerPreferenceMatchService(
+                false
+            ),
+
+            static::memberMatchScoreService(
+                false
+            ),
+
+            static::memberProfilePresentationService(
+                false
+            ),
+
+            static::memberPhotoUrlService(
+                false
+            ),
+
+            static::partnerPreferencePresentationService(
+                false
+            )
         );
     }
 

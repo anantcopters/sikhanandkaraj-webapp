@@ -2196,6 +2196,23 @@ $routes->group('admin', [
                 );
 
                 /*
+                * Administrator member activity.
+                *
+                * Both ADMIN and SUPER_ADMIN may inspect the same member activity
+                * available from the Admin Member View.
+                *
+                * Parent adminAuth remains the authorization boundary.
+                */
+                $routes->get(
+                    '(:num)/activity/(:segment)',
+                    'MemberController::activity/$1/$2',
+                    [
+                        'as' =>
+                        'admin.members.activity',
+                    ]
+                );
+
+                /*
                 * Administrator Match listing for one member.
                 *
                 * Both ADMIN and SUPER_ADMIN may use this read-only diagnostic screen.
