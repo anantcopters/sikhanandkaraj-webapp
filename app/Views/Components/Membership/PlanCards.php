@@ -91,134 +91,6 @@ $currentMembershipExpiry =
     : '';
 ?>
 
-<?php if (
-    $isMemberContext
-    && $isPaid
-    && $currentMembership !== null
-): ?>
-
-    <!--
-        Current membership summary.
-
-        This is intentionally separate from the plan cards so the member can
-        immediately understand what is active before considering an upgrade
-        or future renewal.
-    -->
-    <div
-        class="
-            alert
-            alert-info
-            border
-            border-danger
-            border-opacity-25
-            mb-4
-        ">
-
-        <div
-            class="
-                d-flex
-                align-items-center
-                justify-content-between
-                flex-wrap
-                gap-3
-            ">
-
-            <div>
-
-                <div
-                    class="
-                        fs-12
-                        fw-semibold
-                        text-danger
-                        text-uppercase
-                        mb-1
-                    ">
-                    Current Membership
-                </div>
-
-                <div
-                    class="
-        d-flex
-        align-items-center
-        gap-2
-    ">
-
-                    <?= view(
-                        'Components/Membership/PlanLogo',
-                        [
-                            'planCode' =>
-                            $currentPlanCode,
-
-                            'width' =>
-                            120,
-                        ]
-                    ) ?>
-
-                </div>
-
-            </div>
-        </div>
-
-        <?php if (
-            $currentMembershipExpiry !== ''
-        ): ?>
-
-            <div class="fs-13 text-muted mt-2">
-
-                Your current membership remains active until
-
-                <strong class="text-body">
-                    <?= esc(
-                        $currentMembershipExpiry
-                    ) ?>
-                </strong>.
-
-            </div>
-
-        <?php endif; ?>
-
-        <div class="fs-12 text-muted mt-2">
-
-            An upgrade or renewal starts immediately after successful
-            payment. Remaining days and unused allowances from the current
-            membership are not carried forward.
-
-        </div>
-
-        <!--
-            Renewal is a valid commercial transition in the backend.
-
-            No renewal button is exposed yet because payment integration has
-            not been implemented. Once checkout exists, renewal should be a
-            separate explicit action rather than making the Current Plan card
-            ambiguous.
-        -->
-
-    </div>
-
-<?php elseif ($isMemberContext): ?>
-
-    <div
-        class="
-            alert
-            alert-info
-            border
-            mb-4
-        ">
-
-        <div class="fw-semibold">
-            Free Account
-        </div>
-
-        <div class="fs-13 text-muted mt-1">
-            Choose a membership when paid activation becomes available.
-        </div>
-
-    </div>
-
-<?php endif; ?>
-
-
 <?php if ($plans === []): ?>
 
     <div
@@ -787,7 +659,7 @@ $currentMembershipExpiry =
 
                                             <i
                                                 class="
-                                                    ri-checkbox-circle-line
+                                                    ri-checkbox-circle-fill
                                                     text-success
                                                     fs-18
                                                     flex-shrink-0
@@ -834,7 +706,7 @@ $currentMembershipExpiry =
                                         ">
 
                                         <i
-                                            class="ri-checkbox-circle-line"
+                                            class="ri-checkbox-circle-fill fs-18"
                                             aria-hidden="true">
                                         </i>
 
@@ -846,18 +718,18 @@ $currentMembershipExpiry =
                                         $developmentPurchaseEnabled
                                     ): ?>
 
-                                        <form
+                                        <!-- <form
                                             method="post"
-                                            action="<?= route_to(
+                                            action="<//?= route_to(
                                                         'web.membership.purchase'
                                                     ) ?>">
 
-                                            <?= csrf_field() ?>
+                                            <//?= csrf_field() ?>
 
                                             <input
                                                 type="hidden"
                                                 name="plan_code"
-                                                value="<?= esc(
+                                                value="<//?= esc(
                                                             $planCode,
                                                             'attr'
                                                         ) ?>">
@@ -866,20 +738,20 @@ $currentMembershipExpiry =
                                                 type="submit"
                                                 class="
                                                     btn
-                                                    <?= $popular
+                                                    <//?= $popular
                                                         ? 'btn-danger'
                                                         : 'btn-outline-danger' ?>
                                                     w-100
                                                 ">
 
                                                 Renew
-                                                <?= esc(
+                                                <//?= esc(
                                                     $planCode
                                                 ) ?>
 
                                             </button>
 
-                                        </form>
+                                        </form> -->
 
                                         <div
                                             class="
@@ -904,7 +776,7 @@ $currentMembershipExpiry =
 
                                             <i
                                                 class="
-                                                    ri-checkbox-circle-line
+                                                    ri-checkbox-circle-fill fs-18
                                                     me-1
                                                 "
                                                 aria-hidden="true">

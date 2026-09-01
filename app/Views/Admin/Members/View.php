@@ -196,6 +196,56 @@ $resolvedAdminMembershipPlans =
     ? $adminMembershipPlans
     : [];
 
+$resolvedAdminMembershipPlans =
+    isset($adminMembershipPlans)
+    && is_array($adminMembershipPlans)
+    ? $adminMembershipPlans
+    : [];
+
+$currentMembershipAccount =
+    isset(
+        $resolvedAdminMembershipPlans['currentAccount']
+    )
+    && is_array(
+        $resolvedAdminMembershipPlans['currentAccount']
+    )
+    ? $resolvedAdminMembershipPlans['currentAccount']
+    : [];
+
+$currentMembershipPlanCode =
+    ($currentMembershipAccount['isPaid']
+        ?? false)
+    === true
+    ? mb_strtoupper(
+        trim(
+            (string) (
+                $currentMembershipAccount['accountType']
+                ?? ''
+            )
+        )
+    )
+    : 'FREE';
+
+$currentMembership =
+    isset(
+        $currentMembershipAccount['membership']
+    )
+    && is_array(
+        $currentMembershipAccount['membership']
+    )
+    ? $currentMembershipAccount['membership']
+    : null;
+
+$currentMembershipExpiry =
+    $currentMembership !== null
+    ? trim(
+        (string) (
+            $currentMembership['expiresAtDisplay']
+            ?? ''
+        )
+    )
+    : '';
+
 $offlinePaymentValidationErrors =
     isset($offlinePaymentValidationErrors)
     && is_array($offlinePaymentValidationErrors)
@@ -999,21 +1049,86 @@ $this->section('content');
             </div>
         </div>
     </div>
-    <?php if ($isSuperAdmin): ?>
-        <button
-            type="button"
-            class="btn btn-md btn-outline-danger mb-3"
-            data-bs-toggle="modal"
-            data-bs-target="#offline-payment-modal">
+    <div
+        class="
+        d-flex
+        align-items-center
+        justify-content-end
+        flex-wrap
+        gap-3
+        mb-3
+    ">
 
-            <i
-                class="ri-bank-card-line me-1"
-                aria-hidden="true">
-            </i>
+        <div
+            class="
+            d-flex
+            align-items-center
+            gap-2
+        ">
 
-            Add Payment
-        </button>
-    <?php endif; ?>
+            <span
+                class="
+                fs-12
+                text-muted
+                text-uppercase
+                fw-semibold
+            ">
+                Membership:
+            </span>
+
+            <?= view(
+                'Components/Membership/PlanLogo',
+                [
+                    'planCode' =>
+                    $currentMembershipPlanCode,
+
+                    'width' =>
+                    180,
+                ]
+            ) ?>
+
+            <?php if (
+                $currentMembershipExpiry !== ''
+            ): ?>
+
+                <span class="fs-12 text-muted">
+                    until
+                    <strong class="text-body">
+                        <?= esc(
+                            $currentMembershipExpiry
+                        ) ?>
+                    </strong>
+                </span>
+
+            <?php endif; ?>
+
+        </div>
+
+        <?php if ($isSuperAdmin): ?>
+
+            <button
+                type="button"
+                class="
+                btn
+                btn-md
+                btn-outline-danger
+                ms-lg-auto
+            "
+                data-bs-toggle="modal"
+                data-bs-target="#offline-payment-modal">
+
+                <i
+                    class="ri-bank-card-line me-1"
+                    aria-hidden="true">
+                </i>
+
+                Add Payment
+
+            </button>
+
+        <?php endif; ?>
+
+    </div>
     <?= view(
         'Components/Alerts/FormAlert',
         [

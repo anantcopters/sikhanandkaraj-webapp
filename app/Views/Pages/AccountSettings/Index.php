@@ -1096,27 +1096,47 @@ $this->section('content');
                         <?php elseif (
                             $activeSection === 'plans'
                         ): ?>
-                            <?= view(
-                                'Pages/AccountSettings/_OfflinePaymentInstructions',
-                                [
-                                    'offlinePayment' =>
-                                    $offlinePayment
-                                        ?? [],
 
-                                    'user' =>
-                                    $user
-                                        ?? [],
-                                ]
-                            ) ?>
-                            <div class="text-center mb-4">
+                            <?php
+
+                            $resolvedMembershipPlans =
+                                isset($membershipPlans)
+                                && is_array($membershipPlans)
+                                ? $membershipPlans
+                                : [];
+
+                            $resolvedPlans =
+                                isset(
+                                    $resolvedMembershipPlans['plans']
+                                )
+                                && is_array(
+                                    $resolvedMembershipPlans['plans']
+                                )
+                                ? $resolvedMembershipPlans['plans']
+                                : [];
+
+                            $resolvedCurrentAccount =
+                                isset(
+                                    $resolvedMembershipPlans['currentAccount']
+                                )
+                                && is_array(
+                                    $resolvedMembershipPlans['currentAccount']
+                                )
+                                ? $resolvedMembershipPlans['currentAccount']
+                                : [];
+
+                            ?>
+
+                            <!-- Section heading -->
+                            <div class="mb-4">
 
                                 <p
                                     class="
-                fs-13
+                fs-12
                 fw-semibold
                 text-danger
                 text-uppercase
-                mb-2
+                mb-1
             ">
                                     Membership Plans
                                 </p>
@@ -1132,24 +1152,44 @@ $this->section('content');
 
                             </div>
 
+
+                            <!-- 1. Current membership -->
+                            <?= view(
+                                'Components/Membership/CurrentMembership',
+                                [
+                                    'currentAccount' =>
+                                    $resolvedCurrentAccount,
+                                ]
+                            ) ?>
+
+
+                            <!-- 2. Temporary offline purchase instructions -->
+                            <?= view(
+                                'Pages/AccountSettings/_OfflinePaymentInstructions',
+                                [
+                                    'offlinePayment' =>
+                                    $offlinePayment
+                                        ?? [],
+
+                                    'user' =>
+                                    $user
+                                        ?? [],
+                                ]
+                            ) ?>
+
+
+                            <!-- 3. Available membership plans -->
                             <?= view(
                                 'Components/Membership/PlanCards',
                                 [
-                                    /*
-         * All commercial values come from membership_plans.
-         */
-                                    'plans' =>
-                                    $membershipPlans['plans']
-                                        ?? [],
-
-                                    /*
-         * Current account determines Current Plan presentation.
-         */
-                                    'currentAccount' =>
-                                    $membershipPlans['currentAccount'] ?? [],
-
                                     'context' =>
                                     'member',
+
+                                    'plans' =>
+                                    $resolvedPlans,
+
+                                    'currentAccount' =>
+                                    $resolvedCurrentAccount,
                                 ]
                             ) ?>
 
