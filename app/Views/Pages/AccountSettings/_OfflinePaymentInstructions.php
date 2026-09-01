@@ -58,8 +58,7 @@ $hasUpi =
 ?>
 
 <div
-    class="card border border-danger
-        border-opacity-25 shadow-sm mb-4">
+    class="card border shadow-sm mb-4">
 
     <div class="card-body p-3 p-lg-4">
 
@@ -68,11 +67,15 @@ $hasUpi =
                 gap-3 mb-3">
 
             <div class="flex-shrink-0">
-                <i
-                    class="ri-bank-card-line
-                        fs-28 color-pink"
-                    aria-hidden="true">
-                </i>
+
+                <div class="avatar-sm flex-shrink-0" aria-hidden="true">
+
+                    <span class="avatar-title rounded-circle
+                            bg-primary-subtle
+                            text-primary fs-20">
+                        <i class="ri-bank-card-line"></i>
+                    </span>
+                </div>
             </div>
 
             <div>
@@ -98,7 +101,7 @@ $hasUpi =
                 <?php if ($hasBankDetails): ?>
                     <div class="col-12 col-lg-7">
                         <div
-                            class="border rounded p-3 h-100">
+                            class="border rounded p-3 h-100 bg-light-subtle shadow-none bg-opacity-10">
 
                             <h3
                                 class="fs-15 fw-semibold mb-3">
@@ -182,7 +185,7 @@ $hasUpi =
                 <?php if ($hasUpi): ?>
                     <div class="col-12 col-lg-5">
                         <div
-                            class="border rounded p-3 h-100">
+                            class="border rounded p-3 h-100 bg-light-subtle shadow-none bg-opacity-10">
 
                             <h3
                                 class="fs-15 fw-semibold mb-3">

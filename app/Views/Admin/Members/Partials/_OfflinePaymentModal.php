@@ -58,7 +58,7 @@ $selectedPaymentMethod =
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
 
-            <div class="modal-header">
+            <div class="modal-header bg-info-subtle py-2">
                 <div>
                     <h2
                         class="modal-title fs-18 fw-semibold"
@@ -451,7 +451,7 @@ $selectedPaymentMethod =
                     <button
                         type="submit"
                         class="btn registration-form__submit
-                            fs-14 fw-medium text-uppercase"
+                            fs-14 fw-medium text-uppercase w-25"
                         data-submit-button>
 
                         <span
@@ -459,7 +459,7 @@ $selectedPaymentMethod =
                             data-submit-idle>
 
                             <i
-                                class="mdi mdi-cloud-upload-outline fs-20"
+                                class="mdi mdi-cloud-upload-outline fs-14"
                                 aria-hidden="true">
                             </i>
 

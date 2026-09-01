@@ -947,19 +947,19 @@ $currentMembershipExpiry =
                                     $developmentPurchaseEnabled
                                 ): ?>
 
-                                    <form
+                                    <!-- <form
                                         method="post"
-                                        action="<?= route_to(
-                                                    'web.membership.purchase'
-                                                ) ?>">
+                                        action="<//?= route_to(
+                                                   // 'web.membership.purchase'
+                                                //) ?>">
 
-                                        <?= csrf_field() ?>
+                                        <//?= csrf_field() ?>
 
                                         <input
                                             type="hidden"
                                             name="plan_code"
-                                            value="<?= esc(
-                                                        $planCode,
+                                            value="<//?= esc(
+                                                        //$planCode,
                                                         'attr'
                                                     ) ?>">
 
@@ -967,19 +967,19 @@ $currentMembershipExpiry =
                                             type="submit"
                                             class="
                                                 btn
-                                                <?= $popular
+                                                <//?= $popular
                                                     ? 'btn-danger'
                                                     : 'btn-outline-danger' ?>
                                                 w-100
                                             ">
 
-                                            <?= esc(
+                                            <//?= esc(
                                                 $buttonLabel
                                             ) ?>
 
                                         </button>
 
-                                    </form>
+                                    </form> -->
 
                                     <div
                                         class="

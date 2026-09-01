@@ -999,7 +999,21 @@ $this->section('content');
             </div>
         </div>
     </div>
+    <?php if ($isSuperAdmin): ?>
+        <button
+            type="button"
+            class="btn btn-md btn-outline-danger mb-3"
+            data-bs-toggle="modal"
+            data-bs-target="#offline-payment-modal">
 
+            <i
+                class="ri-bank-card-line me-1"
+                aria-hidden="true">
+            </i>
+
+            Add Payment
+        </button>
+    <?php endif; ?>
     <?= view(
         'Components/Alerts/FormAlert',
         [
@@ -1186,21 +1200,7 @@ $this->section('content');
         )
     );
     ?>
-    <?php if ($isSuperAdmin): ?>
-        <button
-            type="button"
-            class="btn btn-sm btn-outline-danger"
-            data-bs-toggle="modal"
-            data-bs-target="#offline-payment-modal">
 
-            <i
-                class="ri-bank-card-line me-1"
-                aria-hidden="true">
-            </i>
-
-            Add Payment
-        </button>
-    <?php endif; ?>
     <!-- Member interaction activity -->
     <div
         class="card
