@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace App\Services\Communication;
 
 /**
- * Stable business-event identifiers for communication orchestration.
+ * Stable business-event identifiers used across communication channels.
  *
- * These identifiers describe business events and therefore must not
- * contain channel names such as EMAIL, SMS or WHATSAPP.
+ * Business/domain services publish these identifiers without knowing
+ * whether the eventual delivery channel is in-app, email, SMS, WhatsApp,
+ * digest or another communication mechanism.
  */
 final class CommunicationEventRegistry
 {
@@ -41,9 +42,6 @@ final class CommunicationEventRegistry
 
     public const AADHAAR_REJECTED =
     'AADHAAR_REJECTED';
-
-    public const AADHAAR_RESUBMISSION_REQUESTED =
-    'AADHAAR_RESUBMISSION_REQUESTED';
 
     public const VIDEO_APPROVED =
     'VIDEO_APPROVED';

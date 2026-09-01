@@ -11,6 +11,7 @@ use App\Services\Aws\CloudFrontService;
 use App\Services\Notification\MemberNotificationService;
 use App\Services\Profile\MemberTrustVerificationService;
 use App\Services\Profile\MemberPhotoUrlService;
+use App\Services\Communication\CommunicationEventRegistry;
 use App\Models\UserModel;
 use App\Services\Email\MemberEmailService;
 use CodeIgniter\Database\BaseConnection;
@@ -423,7 +424,7 @@ final class MemberVideoModerationService
                     $memberId,
 
                     'type' =>
-                    MemberNotificationModel::TYPE_SYSTEM,
+                    CommunicationEventRegistry::SYSTEM,
 
                     'title' =>
                     $title,

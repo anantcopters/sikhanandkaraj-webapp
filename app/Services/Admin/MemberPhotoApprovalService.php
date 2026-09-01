@@ -14,6 +14,7 @@ use App\Models\MemberNotificationModel;
 use App\Services\Notification\MemberNotificationService;
 use App\Models\UserModel;
 use App\Services\Email\MemberEmailService;
+use App\Services\Communication\CommunicationEventRegistry;
 use CodeIgniter\Database\BaseConnection;
 use App\Support\BooleanValue;
 use Config\MemberMedia;
@@ -262,6 +263,31 @@ final class MemberPhotoApprovalService
                 ]
             );
 
+            $this->notificationService
+                ->create([
+                    'recipientUserId' =>
+                    $memberId,
+
+                    'type' =>
+                    CommunicationEventRegistry
+                    ::PHOTO_APPROVED,
+
+                    'title' =>
+                    'Photo Approved',
+
+                    'message' =>
+                    'Your profile photo has been approved.',
+
+                    'entityType' =>
+                    'MEMBER_PHOTO',
+
+                    'entityId' =>
+                    $photoId,
+
+                    'targetUrl' =>
+                    '/profile/photos',
+                ]);
+
             if (
                 $this->database->transStatus() === false
             ) {
@@ -449,8 +475,8 @@ final class MemberPhotoApprovalService
                     $memberId,
 
                     'type' =>
-                    MemberNotificationModel
-                    ::TYPE_PHOTO_REJECTED,
+                    CommunicationEventRegistry
+                    ::PHOTO_REJECTED,
 
                     'title' =>
                     'Profile photo not approved',
@@ -490,9 +516,9 @@ final class MemberPhotoApprovalService
         }
 
         /*
-     * External communication is downstream
-     * from the completed moderation transaction.
-     */
+        * External communication is downstream
+        * from the completed moderation transaction.
+        */
         $member =
             $this->userModel
             ->find(

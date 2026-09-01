@@ -1120,7 +1120,9 @@ final class Services extends BaseService
 
             static::membershipEntitlementService(
                 false
-            )
+            ),
+
+            static::memberNotificationService()
         );
     }
 
