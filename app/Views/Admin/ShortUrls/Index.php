@@ -2,9 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Support\DateDisplay;
+
 /**
  * @var list<array<string, mixed>>  $shortUrls
- * @var array<string, mixed>|null  $createdShortUrl
  * @var array<string, string>      $validationErrors
  * @var array<string, string>|null $formAlert
  */
@@ -14,12 +15,6 @@ $shortUrls =
     && is_array($shortUrls)
     ? $shortUrls
     : [];
-
-$createdShortUrl =
-    isset($createdShortUrl)
-    && is_array($createdShortUrl)
-    ? $createdShortUrl
-    : null;
 
 $validationErrors =
     isset($validationErrors)
@@ -150,7 +145,7 @@ $this->section(
 
                             <?php else: ?>
 
-                                <div class="form-text">
+                                <div class="form-text color-pink">
                                     Only URLs belonging to this
                                     SikhanandKaraj environment are allowed.
                                 </div>
@@ -169,7 +164,7 @@ $this->section(
                                     registration-form__submit
                                     fs-14
                                     fw-medium
-                                    text-uppercase"
+                                    text-uppercase w-25"
                                 data-submit-button>
 
                                 <span
@@ -209,87 +204,6 @@ $this->section(
 
                 </div>
             </div>
-
-            <?php if (
-                $createdShortUrl !== null
-            ): ?>
-
-                <div class="card">
-
-                    <div class="card-header">
-                        <h5 class="card-title mb-0">
-                            Short URL
-                        </h5>
-                    </div>
-
-                    <div class="card-body">
-
-                        <div class="mb-3">
-
-                            <label
-                                for="generatedShortUrl"
-                                class="form-label">
-
-                                Short URL
-                            </label>
-
-                            <div class="input-group">
-
-                                <input
-                                    type="text"
-                                    class="form-control"
-                                    id="generatedShortUrl"
-                                    readonly
-                                    value="<?= esc(
-                                                (
-                                                    (string)
-                                                    $createdShortUrl['short_url']
-                                                ),
-                                                'attr'
-                                            ) ?>">
-
-                                <button
-                                    type="button"
-                                    class="btn
-                                        btn-outline-secondary"
-                                    data-copy-short-url
-                                    data-copy-target="#generatedShortUrl">
-
-                                    <i
-                                        class="ri-file-copy-line
-                                            me-1"
-                                        aria-hidden="true"></i>
-
-                                    Copy
-                                </button>
-
-                            </div>
-
-                        </div>
-
-                        <div>
-                            <span
-                                class="text-muted
-                                    d-block
-                                    mb-1">
-
-                                Destination
-                            </span>
-
-                            <div class="text-break">
-                                <?= esc(
-                                    (
-                                        (string)
-                                        $createdShortUrl['destination_url']
-                                    )
-                                ) ?>
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-
-            <?php endif; ?>
 
         </div>
 
@@ -355,29 +269,57 @@ $this->section(
                                         $generatedUrl =
                                             base_url(
                                                 'ISAK/'
-                                                    . (
-                                                        (string)
-                                                        $shortUrl['short_code']
-                                                    )
+                                                    . (string) $shortUrl['short_code']
+                                            );
+
+                                        $displayCreatedAt =
+                                            DateDisplay::formatUtcDateTime(
+                                                $shortUrl['created_at'] ?? null
                                             );
                                         ?>
 
                                         <tr>
 
                                             <td>
-                                                <a
-                                                    href="<?= esc(
-                                                                $generatedUrl,
-                                                                'attr'
-                                                            ) ?>"
-                                                    target="_blank"
-                                                    rel="noopener noreferrer">
+                                                <div
+                                                    class="d-flex
+            align-items-center
+            gap-2">
 
-                                                    <?= esc(
-                                                        $generatedUrl
-                                                    ) ?>
+                                                    <a
+                                                        href="<?= esc(
+                                                                    $generatedUrl,
+                                                                    'attr'
+                                                                ) ?>"
+                                                        target="_blank"
+                                                        rel="noopener noreferrer">
 
-                                                </a>
+                                                        <?= esc(
+                                                            $generatedUrl
+                                                        ) ?>
+
+                                                    </a>
+
+                                                    <button
+                                                        type="button"
+                                                        class="btn
+                btn-sm
+                btn-outline-secondary"
+                                                        data-copy-short-url
+                                                        data-copy-value="<?= esc(
+                                                                                $generatedUrl,
+                                                                                'attr'
+                                                                            ) ?>"
+                                                        title="Copy Short URL"
+                                                        aria-label="Copy Short URL">
+
+                                                        <i
+                                                            class="ri-file-copy-line"
+                                                            aria-hidden="true"></i>
+
+                                                    </button>
+
+                                                </div>
                                             </td>
 
                                             <td>
@@ -397,10 +339,7 @@ $this->section(
 
                                             <td class="text-muted">
                                                 <?= esc(
-                                                    (
-                                                        (string)
-                                                        $shortUrl['created_at']
-                                                    )
+                                                    $displayCreatedAt
                                                 ) ?>
                                             </td>
 
@@ -483,19 +422,12 @@ $this->section(
                         button.addEventListener(
                             'click',
                             async function() {
-                                const selector =
+                                const value =
                                     button.getAttribute(
-                                        'data-copy-target'
+                                        'data-copy-value'
                                     );
 
-                                const input =
-                                    selector ?
-                                    document.querySelector(
-                                        selector
-                                    ) :
-                                    null;
-
-                                if (!input) {
+                                if (!value) {
                                     return;
                                 }
 
@@ -503,26 +435,30 @@ $this->section(
                                     await navigator
                                         .clipboard
                                         .writeText(
-                                            input.value
+                                            value
                                         );
 
-                                    const original =
-                                        button.innerHTML;
+                                    const icon =
+                                        button.querySelector(
+                                            'i'
+                                        );
 
-                                    button.innerHTML =
-                                        '<i class="ri-check-line me-1" ' +
-                                        'aria-hidden="true"></i>' +
-                                        'Copied';
+                                    if (!icon) {
+                                        return;
+                                    }
+
+                                    icon.className =
+                                        'ri-check-line';
 
                                     window.setTimeout(
                                         function() {
-                                            button.innerHTML =
-                                                original;
+                                            icon.className =
+                                                'ri-file-copy-line';
                                         },
                                         1500
                                     );
                                 } catch (error) {
-                                    input.select();
+                                    return;
                                 }
                             }
                         );
