@@ -165,6 +165,28 @@ $currentMembershipExpiry =
                     )
                 );
 
+            $mrpDisplay =
+                isset(
+                    $plan['mrpDisplay']
+                )
+                ? trim(
+                    (string) $plan['mrpDisplay']
+                )
+                : '';
+
+            $discountPercentage =
+                max(
+                    0,
+                    (int) (
+                        $plan['discountPercentage']
+                        ?? 0
+                    )
+                );
+
+            $hasDiscount =
+                $mrpDisplay !== ''
+                && $discountPercentage > 0;
+
             $durationDisplay =
                 trim(
                     (string) (
@@ -393,23 +415,75 @@ $currentMembershipExpiry =
 
                         <div class="text-center py-3">
 
-                            <div class="mb-1">
+                            <?php if ($hasDiscount): ?>
+
+                                <div
+                                    class="
+                d-flex
+                align-items-center
+                justify-content-center
+                gap-2
+                flex-wrap
+                mb-1
+            ">
+
+                                    <span
+                                        class="
+                    fs-15
+                    fw-medium
+                    text-muted
+                    text-decoration-line-through
+                ">
+
+                                        MRP ₹<?= esc(
+                                                    $mrpDisplay
+                                                ) ?>
+
+                                    </span>
+
+                                    <span
+                                        class="
+                    badge
+                    bg-success-subtle
+                    text-body p-2
+                    fs-12
+                ">
+
+                                        <?= esc(
+                                            (string) $discountPercentage
+                                        ) ?>% OFF
+
+                                    </span>
+
+                                </div>
+
+                            <?php endif; ?>
+
+                            <div
+                                class="
+            d-flex
+            align-items-start
+            justify-content-center
+            mb-1
+        ">
 
                                 <span
                                     class="
-                                        fs-18
-                                        fw-semibold
-                                        align-top
-                                    ">
+                fs-18
+                fw-semibold
+                mt-1
+                me-1
+            ">
                                     ₹
                                 </span>
 
                                 <span
                                     class="
-                                        fs-36
-                                        fw-bold
-                                        ff-secondary
-                                    ">
+                fs-36
+                fw-bold
+                ff-secondary
+                lh-1
+            ">
 
                                     <?= esc(
                                         $priceDisplay
@@ -435,12 +509,12 @@ $currentMembershipExpiry =
 
                                 <p
                                     class="
-                                        fs-13
-                                        <?= $popular
-                                            ? 'text-danger fw-semibold'
-                                            : 'text-muted' ?>
-                                        mb-0
-                                    ">
+                fs-13
+                <?= $popular
+                                    ? 'text-danger fw-semibold'
+                                    : 'text-muted' ?>
+                mb-0
+            ">
 
                                     <?= esc(
                                         $monthlyDisplay

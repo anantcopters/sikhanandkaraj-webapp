@@ -51,6 +51,15 @@ final class MembershipPlanPresentationService
             'popular' =>
             false,
 
+            /*
+         * Promotional/list price used only for pricing presentation.
+         *
+         * The actual selling price remains authoritative in
+         * membership_plans and is never derived from this value.
+         */
+            'mrpRupees' =>
+            2500,
+
             'description' =>
             'A simple way to begin your search and connect '
                 . 'with verified profiles.',
@@ -63,6 +72,9 @@ final class MembershipPlanPresentationService
             'popular' =>
             true,
 
+            'mrpRupees' =>
+            4500,
+
             'description' =>
             'More time, more verified profiles and more '
                 . 'opportunities to connect.',
@@ -74,6 +86,9 @@ final class MembershipPlanPresentationService
 
             'popular' =>
             false,
+
+            'mrpRupees' =>
+            16500,
 
             'description' =>
             'For members and families who want personalised '
@@ -291,6 +306,7 @@ final class MembershipPlanPresentationService
             ?? [
                 'image' => '',
                 'popular' => false,
+                'mrpRupees' => 0,
                 'description' => '',
             ];
 
@@ -314,6 +330,27 @@ final class MembershipPlanPresentationService
 
         $priceRupees =
             $pricePaise / 100;
+
+        $mrpRupees =
+            max(
+                0,
+                (int) (
+                    $presentation['mrpRupees']
+                    ?? 0
+                )
+            );
+
+        $discountPercentage =
+            $mrpRupees > 0
+            && $priceRupees > 0
+            && $priceRupees < $mrpRupees
+            ? (int) round(
+                (
+                    ($mrpRupees - $priceRupees)
+                    / $mrpRupees
+                ) * 100
+            )
+            : 0;
 
         $monthlyRupees =
             $durationMonths > 0
@@ -368,6 +405,25 @@ final class MembershipPlanPresentationService
                 '.',
                 ','
             ),
+
+            /*
+            * Promotional presentation values.
+            *
+            * MRP does not participate in membership activation,
+            * payment validation or entitlement calculation.
+            */
+            'mrpDisplay' =>
+            $mrpRupees > 0
+                ? number_format(
+                    $mrpRupees,
+                    0,
+                    '.',
+                    ','
+                )
+                : null,
+
+            'discountPercentage' =>
+            $discountPercentage,
 
             'durationMonths' =>
             $durationMonths,
