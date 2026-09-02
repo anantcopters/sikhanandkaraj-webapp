@@ -1977,7 +1977,7 @@ $this->section('content');
                                         gap-1 fs-12">
 
                                                             <i
-                                                                class="ri-checkbox-circle-fill"
+                                                                class="ri-checkbox-circle-fill fs-18"
                                                                 aria-hidden="true">
                                                             </i>
 
@@ -2022,7 +2022,7 @@ $this->section('content');
                                         gap-1">
 
                                                                 <i
-                                                                    class="ri-checkbox-circle-fill"
+                                                                    class="ri-checkbox-circle-fill fs-18"
                                                                     aria-hidden="true">
                                                                 </i>
 
@@ -2102,7 +2102,7 @@ $this->section('content');
                                         gap-1 fs-12">
 
                                                             <i
-                                                                class="ri-checkbox-circle-fill"
+                                                                class="ri-checkbox-circle-fill fs-18"
                                                                 aria-hidden="true">
                                                             </i>
 
@@ -2167,7 +2167,7 @@ $this->section('content');
                                 fs-13">
 
                                                         <i
-                                                            class="ri-checkbox-circle-fill"
+                                                            class="ri-checkbox-circle-fill fs-18"
                                                             aria-hidden="true">
                                                         </i>
 
@@ -2236,7 +2236,7 @@ $this->section('content');
 
                                                             <i
                                                                 class="
-                                ri-checkbox-circle-fill"
+                                ri-checkbox-circle-fill fs-18"
                                                                 aria-hidden="true">
                                                             </i>
 
@@ -2326,7 +2326,7 @@ $this->section('content');
                                                 ) ?>
 
                                                 <i
-                                                    class="ri-checkbox-circle-fill
+                                                    class="ri-checkbox-circle-fill fs-18
                                         text-success"
                                                     aria-label="Aadhaar name verified">
                                                 </i>
@@ -2356,7 +2356,7 @@ $this->section('content');
                                                 ) ?>
 
                                                 <i
-                                                    class="ri-checkbox-circle-fill
+                                                    class="ri-checkbox-circle-fill fs-18
                                         text-success"
                                                     aria-label="Aadhaar date of birth verified">
                                                 </i>
@@ -2499,7 +2499,7 @@ $this->section('content');
                                 </p>
                             </div>
 
-                            <span class="badge bg-primary p-2 text-body fs-12">
+                            <span class="badge bg-primary p-2 text-white fs-12">
                                 <?= esc(
                                     (string) count($galleryPhotos)
                                 ) ?>
