@@ -166,7 +166,7 @@ $location = implode(
                         </h3>
 
                         <?php if ($percentage < 100): ?>
-                            <span class="badge bg-primary p-2">
+                            <span class="badge bg-primary p-2 text-white">
                                 <?= esc(
                                     (string) $remainingFields
                                 ) ?>

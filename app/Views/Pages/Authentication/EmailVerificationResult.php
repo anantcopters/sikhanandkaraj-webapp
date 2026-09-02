@@ -13,7 +13,7 @@ $this->section('content');
 
 <section class="email-verification-result">
     <div class="container">
-        <div class="email-verification-result__card">
+        <div class="email-verification-result__card border border-danger border-opacity-25">
 
             <div
                 class="email-verification-result__icon
