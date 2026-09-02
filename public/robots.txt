@@ -1,25 +1,10 @@
 User-agent: *
+
 Disallow: /admin/
 Disallow: /api/
 Disallow: /field-officer/
-Disallow: /prelaunch/
 Disallow: /development/
 Disallow: /_preview/
 Disallow: /ISAK/
-Disallow: /login
-Disallow: /register/
-Disallow: /forgot-password/
-Disallow: /dashboard
-Disallow: /matches
-Disallow: /interests
-Disallow: /messages
-Disallow: /notifications
-Disallow: /members/
-Disallow: /search
-Disallow: /profile/
-Disallow: /partner-preference/
-Disallow: /account-settings
-Disallow: /membership/
-Disallow: /email/
 
 Sitemap: https://sikhanandkaraj.com/sitemap.xml

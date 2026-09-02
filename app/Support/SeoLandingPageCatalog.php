@@ -113,10 +113,30 @@ final class SeoLandingPageCatalog
             ],
             breadcrumbs: self::breadcrumbs('Sikh Matrimony', 'web.seo.sikh-matrimony'),
             relatedLinks: [
-                self::link('How SikhanandKaraj Works', 'web.seo.how-it-works'),
-                self::link('Verification and Safety', 'web.seo.verification-safety'),
-                self::link('Membership Plans', 'web.information.membership-plans'),
-                self::link('Sikh Matrimony in Canada', 'web.seo.location.canada'),
+                self::link(
+                    'How SikhanandKaraj Works',
+                    'web.seo.how-it-works'
+                ),
+                self::link(
+                    'Verification and Safety',
+                    'web.seo.verification-safety'
+                ),
+                self::link(
+                    'Membership Plans',
+                    'web.information.membership-plans'
+                ),
+                self::link(
+                    'Sikh Matrimony in Punjab',
+                    'web.seo.location.punjab'
+                ),
+                self::link(
+                    'Sikh Matrimony in Delhi',
+                    'web.seo.location.delhi'
+                ),
+                self::link(
+                    'Sikh Matrimony in Chandigarh',
+                    'web.seo.location.chandigarh'
+                ),
             ]
         );
     }
