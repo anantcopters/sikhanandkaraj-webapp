@@ -1097,22 +1097,6 @@ form[aria-busy="true"] {
 }
 
 /**
- * Temporary member avatar used until profile-image storage is connected.
- */
-.dashboard-avatar {
-    width: 104px;
-    height: 104px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    background-color: rgba(174, 21, 54, 0.08);
-    color: var(--sak-primary);
-    font-size: 3rem;
-    object-fit: cover;
-}
-
-/**
  * Align the profile-completion shortcut icons consistently.
  */
 .dashboard-shortcut-icon {
@@ -1139,19 +1123,6 @@ form[aria-busy="true"] {
     overscroll-behavior-inline: contain;
     scroll-snap-type: inline proximity;
     scrollbar-width: thin;
-}
-
-/**
- * Online/offline indicator positioned over the profile placeholder.
- */
-.dashboard-online-status {
-    position: absolute;
-    right: calc(50% - 45px);
-    bottom: 3px;
-    width: 14px;
-    height: 14px;
-    border: 2px solid var(--sak-white);
-    border-radius: 50%;
 }
 
 /* ==========================================================================
