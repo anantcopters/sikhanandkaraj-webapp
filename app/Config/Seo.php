@@ -43,6 +43,10 @@ final class Seo extends BaseConfig
         'sikh-matrimony/delhi',
         'sikh-matrimony/punjab',
         'sikh-matrimony/chandigarh',
+        'sikh-matrimony/madhya-pradesh',
+        'sikh-matrimony/jaipur',
+        'sikh-matrimony/indore',
+        'sikh-matrimony/kota',
     ];
 
     /**
@@ -69,6 +73,10 @@ final class Seo extends BaseConfig
         'web.seo.location.delhi',
         'web.seo.location.punjab',
         'web.seo.location.chandigarh',
+        'web.seo.location.madhya-pradesh',
+        'web.seo.location.jaipur',
+        'web.seo.location.indore',
+        'web.seo.location.kota',
     ];
 
     public function __construct()

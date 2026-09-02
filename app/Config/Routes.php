@@ -362,6 +362,38 @@ $routes->group(
                 'as' => 'web.seo.location.chandigarh',
             ]
         );
+
+        $routes->get(
+            'sikh-matrimony/madhya-pradesh',
+            'SeoLandingPageController::madhyaPradesh',
+            [
+                'as' => 'web.seo.location.madhya-pradesh',
+            ]
+        );
+
+        $routes->get(
+            'sikh-matrimony/jaipur',
+            'SeoLandingPageController::jaipur',
+            [
+                'as' => 'web.seo.location.jaipur',
+            ]
+        );
+
+        $routes->get(
+            'sikh-matrimony/indore',
+            'SeoLandingPageController::indore',
+            [
+                'as' => 'web.seo.location.indore',
+            ]
+        );
+
+        $routes->get(
+            'sikh-matrimony/kota',
+            'SeoLandingPageController::kota',
+            [
+                'as' => 'web.seo.location.kota',
+            ]
+        );
     }
 );
 

@@ -49,6 +49,26 @@ final class SeoLandingPageController extends BaseController
         return $this->renderPage('chandigarh');
     }
 
+    public function madhyaPradesh(): string
+    {
+        return $this->renderPage('madhya-pradesh');
+    }
+
+    public function jaipur(): string
+    {
+        return $this->renderPage('jaipur');
+    }
+
+    public function indore(): string
+    {
+        return $this->renderPage('indore');
+    }
+
+    public function kota(): string
+    {
+        return $this->renderPage('kota');
+    }
+
     // public function canada(): string
     // {
     //     return $this->renderPage('canada');

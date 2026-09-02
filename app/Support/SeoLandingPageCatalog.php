@@ -25,6 +25,10 @@ final class SeoLandingPageCatalog
             'delhi' => self::delhi(),
             'punjab' => self::punjab(),
             'chandigarh' => self::chandigarh(),
+            'madhya-pradesh' => self::madhyaPradesh(),
+            'jaipur' => self::jaipur(),
+            'indore' => self::indore(),
+            'kota' => self::kota(),
             default => null,
         };
     }
@@ -569,6 +573,296 @@ final class SeoLandingPageCatalog
                 self::link('Sikh Matrimony in Punjab', 'web.seo.location.punjab'),
                 self::link('Sikh Matrimony in Delhi', 'web.seo.location.delhi'),
                 self::link('Membership Plans', 'web.information.membership-plans'),
+            ]
+        );
+    }
+
+    /** @return array<string, mixed> */
+    private static function madhyaPradesh(): array
+    {
+        return self::page(
+            routeName: 'web.seo.location.madhya-pradesh',
+            title: 'Sikh Matrimony in Madhya Pradesh | SikhanandKaraj',
+            description: 'Explore Sikh matrimony in Madhya Pradesh with '
+                . 'SikhanandKaraj, a privacy-focused matrimonial platform '
+                . 'for Sikh individuals and families seeking meaningful matches.',
+            eyebrow: 'Sikh matrimony in Madhya Pradesh',
+            heading: 'Meaningful Sikh matrimonial connections in Madhya Pradesh',
+            introduction: 'SikhanandKaraj provides Sikh individuals and families '
+                . 'in Madhya Pradesh with a structured, marriage-focused platform '
+                . 'for discovering compatible matrimonial connections.',
+            sections: [
+                self::section(
+                    'Finding Sikh matrimonial matches in Madhya Pradesh',
+                    [
+                        'Madhya Pradesh is home to Sikh families across cities '
+                            . 'including Indore, Bhopal, Gwalior, Jabalpur and '
+                            . 'other communities. Matrimonial preferences may '
+                            . 'include location, education, profession, family '
+                            . 'background and plans for the future.',
+                        'SikhanandKaraj helps members present these details through '
+                            . 'structured profiles and partner preferences while '
+                            . 'keeping the purpose focused on marriage.',
+                    ]
+                ),
+                self::section(
+                    'Privacy-conscious matrimonial introductions',
+                    [
+                        'Matrimonial information can include sensitive personal '
+                            . 'and family details. Member profiles therefore remain '
+                            . 'inside protected application flows rather than being '
+                            . 'published as public search-engine pages.',
+                    ],
+                    [
+                        'Member profiles are not public SEO pages.',
+                        'Profile access follows application privacy rules.',
+                        'Personal information is shared through controlled flows.',
+                        'Members should independently verify important information.',
+                    ]
+                ),
+            ],
+            faqs: [
+                self::faqItem(
+                    'Can I search for Sikh matrimonial matches in Madhya Pradesh?',
+                    'Yes. Members can use the available search and matching '
+                        . 'features according to their account eligibility and '
+                        . 'current application rules.'
+                ),
+                self::faqItem(
+                    'Are Madhya Pradesh member profiles visible publicly?',
+                    'No. This page provides general matrimonial information. '
+                        . 'Individual member profiles remain within protected '
+                        . 'application routes.'
+                ),
+            ],
+            breadcrumbs: self::breadcrumbs(
+                'Sikh Matrimony in Madhya Pradesh',
+                'web.seo.location.madhya-pradesh'
+            ),
+            relatedLinks: [
+                self::link(
+                    'Sikh Matrimony',
+                    'web.seo.sikh-matrimony'
+                ),
+                self::link(
+                    'Sikh Matrimony in Indore',
+                    'web.seo.location.indore'
+                ),
+                self::link(
+                    'How SikhanandKaraj Works',
+                    'web.seo.how-it-works'
+                ),
+            ]
+        );
+    }
+
+    /** @return array<string, mixed> */
+    private static function jaipur(): array
+    {
+        return self::page(
+            routeName: 'web.seo.location.jaipur',
+            title: 'Sikh Matrimony in Jaipur | SikhanandKaraj',
+            description: 'Discover Sikh matrimonial connections in Jaipur '
+                . 'through SikhanandKaraj, with structured profiles, partner '
+                . 'preferences and privacy-focused profile access.',
+            eyebrow: 'Sikh matrimony in Jaipur',
+            heading: 'Sikh matrimonial connections in Jaipur',
+            introduction: 'SikhanandKaraj helps Sikh individuals and families '
+                . 'in Jaipur begin a focused matrimonial search while considering '
+                . 'compatibility, family expectations and personal preferences.',
+            sections: [
+                self::section(
+                    'A marriage-focused search for Sikh families in Jaipur',
+                    [
+                        'For Sikh individuals and families in Jaipur, finding a '
+                            . 'compatible life partner can involve considerations '
+                            . 'such as education, profession, family background, '
+                            . 'location, values and future plans.',
+                        'SikhanandKaraj provides structured matrimonial profiles '
+                            . 'and preference-based discovery to support this '
+                            . 'process without turning it into casual social networking.',
+                    ]
+                ),
+                self::section(
+                    'Approach matrimonial introductions carefully',
+                    [
+                        'Online matrimonial discovery should be the beginning of '
+                            . 'a careful conversation rather than a substitute for '
+                            . 'personal and family judgement. Important information '
+                            . 'should be confirmed independently as a relationship progresses.',
+                    ]
+                ),
+            ],
+            faqs: [
+                self::faqItem(
+                    'Is SikhanandKaraj available for Sikh matrimony in Jaipur?',
+                    'Yes. Sikh individuals and families in Jaipur can register '
+                        . 'and use the matrimonial features available to their account.'
+                ),
+                self::faqItem(
+                    'Are Jaipur matrimonial profiles published on Google?',
+                    'No. Public location pages contain general information only. '
+                        . 'Member profiles remain protected within the application.'
+                ),
+            ],
+            breadcrumbs: self::breadcrumbs(
+                'Sikh Matrimony in Jaipur',
+                'web.seo.location.jaipur'
+            ),
+            relatedLinks: [
+                self::link(
+                    'Sikh Matrimony',
+                    'web.seo.sikh-matrimony'
+                ),
+                self::link(
+                    'Verification and Safety',
+                    'web.seo.verification-safety'
+                ),
+                self::link(
+                    'Membership Plans',
+                    'web.information.membership-plans'
+                ),
+            ]
+        );
+    }
+
+    /** @return array<string, mixed> */
+    private static function indore(): array
+    {
+        return self::page(
+            routeName: 'web.seo.location.indore',
+            title: 'Sikh Matrimony in Indore | SikhanandKaraj',
+            description: 'Explore Sikh matrimony in Indore with SikhanandKaraj, '
+                . 'a marriage-focused platform designed around meaningful '
+                . 'connections, preferences and controlled profile access.',
+            eyebrow: 'Sikh matrimony in Indore',
+            heading: 'Find meaningful Sikh matrimonial connections in Indore',
+            introduction: 'SikhanandKaraj provides Sikh individuals and families '
+                . 'in Indore with a structured way to explore matrimonial '
+                . 'connections based on relevant preferences and shared expectations.',
+            sections: [
+                self::section(
+                    'Sikh matrimonial search in Indore',
+                    [
+                        'A matrimonial search often involves more than location '
+                            . 'alone. Education, profession, family background, '
+                            . 'personal values and future plans can all contribute '
+                            . 'to compatibility between two individuals and families.',
+                        'Structured profiles and partner preferences help members '
+                            . 'consider these factors before deciding whether to '
+                            . 'take an introduction forward.',
+                    ]
+                ),
+                self::section(
+                    'Privacy and trust throughout the process',
+                    [
+                        'SikhanandKaraj keeps member profiles within protected '
+                            . 'application routes. Public location pages do not '
+                            . 'publish personal matrimonial profiles or contact information.',
+                    ]
+                ),
+            ],
+            faqs: [
+                self::faqItem(
+                    'Can families use SikhanandKaraj for Sikh matrimony in Indore?',
+                    'Yes. A parent or authorised family member may assist when '
+                        . 'the member has consented and the information submitted '
+                        . 'on the profile is accurate.'
+                ),
+                self::faqItem(
+                    'Can anyone see Indore member profiles from Google?',
+                    'No. Member profiles are not public SEO pages and remain '
+                        . 'subject to the application profile-access rules.'
+                ),
+            ],
+            breadcrumbs: self::breadcrumbs(
+                'Sikh Matrimony in Indore',
+                'web.seo.location.indore'
+            ),
+            relatedLinks: [
+                self::link(
+                    'Sikh Matrimony in Madhya Pradesh',
+                    'web.seo.location.madhya-pradesh'
+                ),
+                self::link(
+                    'Sikh Matrimony',
+                    'web.seo.sikh-matrimony'
+                ),
+                self::link(
+                    'Verification and Safety',
+                    'web.seo.verification-safety'
+                ),
+            ]
+        );
+    }
+
+    /** @return array<string, mixed> */
+    private static function kota(): array
+    {
+        return self::page(
+            routeName: 'web.seo.location.kota',
+            title: 'Sikh Matrimony in Kota | SikhanandKaraj',
+            description: 'Find Sikh matrimonial connections in Kota through '
+                . 'SikhanandKaraj, with structured profiles, meaningful partner '
+                . 'preferences and privacy-focused access.',
+            eyebrow: 'Sikh matrimony in Kota',
+            heading: 'A thoughtful Sikh matrimonial search in Kota',
+            introduction: 'SikhanandKaraj helps Sikh individuals and families '
+                . 'in Kota explore marriage-focused connections through structured '
+                . 'profiles, preferences and controlled access to personal information.',
+            sections: [
+                self::section(
+                    'Finding a compatible Sikh match in Kota',
+                    [
+                        'Marriage decisions can involve personal values, education, '
+                            . 'profession, family expectations, location and plans '
+                            . 'for the future. A structured matrimonial profile '
+                            . 'helps these considerations become clearer before '
+                            . 'families begin detailed conversations.',
+                        'SikhanandKaraj supports a deliberate matrimonial process '
+                            . 'rather than casual social discovery.',
+                    ]
+                ),
+                self::section(
+                    'Keep verification and personal judgement together',
+                    [
+                        'Platform verification can provide useful trust signals, '
+                            . 'but members and families should still independently '
+                            . 'confirm important information and communicate gradually '
+                            . 'before making matrimonial decisions.',
+                    ]
+                ),
+            ],
+            faqs: [
+                self::faqItem(
+                    'Can I use SikhanandKaraj for Sikh matrimony in Kota?',
+                    'Yes. Members in Kota can register and use the search, '
+                        . 'matching and interest features available according '
+                        . 'to current account and application rules.'
+                ),
+                self::faqItem(
+                    'Does the Kota page expose member information?',
+                    'No. The public Kota page contains general matrimonial '
+                        . 'information only. Member profiles remain protected.'
+                ),
+            ],
+            breadcrumbs: self::breadcrumbs(
+                'Sikh Matrimony in Kota',
+                'web.seo.location.kota'
+            ),
+            relatedLinks: [
+                self::link(
+                    'Sikh Matrimony',
+                    'web.seo.sikh-matrimony'
+                ),
+                self::link(
+                    'How SikhanandKaraj Works',
+                    'web.seo.how-it-works'
+                ),
+                self::link(
+                    'Verification and Safety',
+                    'web.seo.verification-safety'
+                ),
             ]
         );
     }
