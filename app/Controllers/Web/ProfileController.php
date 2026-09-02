@@ -15,12 +15,11 @@ use App\Services\Profile\LifestyleService;
 use App\Validation\Profile\LifestyleValidation;
 use App\Services\Profile\AboutMeService;
 use App\Validation\Profile\AboutMeValidation;
-use App\Services\Profile\MemberPhotoService;
+use App\Support\MobileNumberMasker;
 use App\Services\Profile\MemberProfileSummaryService;
 use App\Services\Profile\MemberPhotoUrlService;
 use App\Support\ProfileErrorContext;
 use App\Services\Profile\MemberTrustVerificationService;
-use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\RedirectResponse;
 use CodeIgniter\HTTP\ResponseInterface;
 use App\Support\BooleanValue;
@@ -193,6 +192,72 @@ final class ProfileController extends BaseController
             ? $trustVerification['email']
             : [];
 
+        $user = isset($profileSummary['user'])
+            && is_array($profileSummary['user'])
+            ? $profileSummary['user']
+            : [];
+
+        $familyDetails = isset($profileSummary['familyDetails'])
+            && is_array($profileSummary['familyDetails'])
+            ? $profileSummary['familyDetails']
+            : [];
+
+        $gender = mb_strtoupper(
+            trim(
+                (string) (
+                    $user['gender']
+                    ?? ''
+                )
+            )
+        );
+
+        $isFemale = in_array(
+            $gender,
+            [
+                'F',
+                'FEMALE',
+            ],
+            true
+        );
+
+        $memberMobileNumber = trim(
+            (string) (
+                $mobile['value']
+                ?? ''
+            )
+        );
+
+        $parentContactNumber = trim(
+            (string) (
+                $familyDetails['parent_contact_number']
+                ?? ''
+            )
+        );
+
+        $isMemberMobileVerified =
+            BooleanValue::fromDatabase(
+                $mobile['isVerified']
+                    ?? false
+            );
+
+        $displayMobileNumber =
+            $isFemale
+            ? $parentContactNumber
+            : $memberMobileNumber;
+
+        $displayMobileLabel =
+            $isFemale
+            ? 'Parents Mobile Number'
+            : 'Mobile Number';
+
+        $maskedMemberMobile =
+            $isFemale
+            && $memberMobileNumber !== ''
+            ? MobileNumberMasker::lastThree(
+                $memberMobileNumber
+            )
+            : '';
+
         $videoIntroductionState = service(
             'memberVideoIntroductionService'
         )->profileState(
@@ -218,28 +283,26 @@ final class ProfileController extends BaseController
                     ),
 
                     'viewedMobile' =>
-                    (string) (
-                        $mobile['value']
-                        ?? ''
-                    ),
+                    $displayMobileNumber,
 
                     'viewedMobileLabel' =>
-                    'Mobile Number',
+                    $displayMobileLabel,
 
                     'isViewedMobileVerified' =>
-                    BooleanValue::fromDatabase(
-                        $mobile['isVerified']
-                            ?? false
-                    ),
+                    !$isFemale
+                        && $isMemberMobileVerified,
 
                     'isViewedParentMobile' =>
-                    false,
+                    $isFemale
+                        && $parentContactNumber !== '',
 
                     'viewedMaskedMemberMobile' =>
-                    '',
+                    $maskedMemberMobile,
 
                     'isViewedMaskedMobileVerified' =>
-                    false,
+                    $isFemale
+                        && $maskedMemberMobile !== ''
+                        && $isMemberMobileVerified,
 
                     'viewedEmail' =>
                     (string) (

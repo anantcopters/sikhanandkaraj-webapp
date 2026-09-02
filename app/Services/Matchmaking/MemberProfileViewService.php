@@ -222,26 +222,28 @@ final class MemberProfileViewService
         );
 
         /*
-        * Female contact presentation:
+        * Female contact privacy:
         *
-        * When a parent contact exists:
+        * A female member's primary mobile number must never be exposed
+        * as the full contact number on a member-facing profile.
         *
-        * - show the female member's mobile in masked form;
-        * - retain the verified badge when her primary mobile is OTP-verified;
-        * - show the full parent contact beneath it.
+        * Female profile:
         *
-        * When a parent contact does not exist:
+        * - parent mobile is the primary displayed contact when available;
+        * - member mobile is displayed only in masked form;
+        * - absence of a parent mobile must never fall back to the
+        *   female member's full mobile number.
         *
-        * - display the female member's full primary mobile.
+        * Male profile:
         *
-        * Male profiles continue displaying their normal primary mobile.
+        * - primary member mobile continues to be displayed normally.
         */
         $hasParentContact =
             $isFemale
             && $parentContactNumber !== '';
 
         $maskedMemberMobile =
-            $hasParentContact
+            $isFemale
             && $memberMobileNumber !== ''
             ? MobileNumberMasker::lastThree(
                 $memberMobileNumber
@@ -249,24 +251,23 @@ final class MemberProfileViewService
             : '';
 
         $displayMobileNumber =
-            $hasParentContact
+            $isFemale
             ? $parentContactNumber
             : $memberMobileNumber;
 
         $displayMobileLabel =
-            $hasParentContact
+            $isFemale
             ? 'Parents Mobile Number'
             : 'Mobile Number';
 
         /*
-        * The displayed full number is verified only when it is the
-        * member's primary mobile.
+        * Verification belongs to the member's primary mobile.
         *
-        * When a parent contact is displayed, the separate masked member
-        * number carries the member-mobile verification state.
+        * Parent mobile is not represented as OTP-verified unless a
+        * separate parent-contact verification mechanism exists.
         */
         $isDisplayMobileVerified =
-            !$hasParentContact
+            !$isFemale
             && $isMemberMobileVerified;
 
         /*
@@ -504,7 +505,7 @@ final class MemberProfileViewService
                 $maskedMemberMobile,
 
                 'isViewedMaskedMobileVerified' =>
-                $hasParentContact
+                $isFemale
                     && $maskedMemberMobile !== ''
                     && $isMemberMobileVerified,
 
@@ -519,7 +520,8 @@ final class MemberProfileViewService
                 $isDisplayMobileVerified,
 
                 'isViewedParentMobile' =>
-                $hasParentContact,
+                $isFemale
+                    && $parentContactNumber !== '',
 
                 'isShortlisted' =>
                 $this

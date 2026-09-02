@@ -343,16 +343,32 @@ final class MemberAadhaarSubmissionModel extends Model
     }
 
     /**
+     * Return complete Aadhaar submission history required by
+     * administrator member profile presentation.
+     *
+     * Sensitive storage details such as object key, checksum and
+     * permanent document URLs are deliberately excluded.
+     *
      * @return list<array<string, mixed>>
      */
     public function historyForMember(int $memberId): array
     {
         return $this
             ->select([
+                'member_aadhaar_submissions.upload_reference',
                 'member_aadhaar_submissions.status',
+
+                'member_aadhaar_submissions.aadhaar_name',
+                'member_aadhaar_submissions.aadhaar_date_of_birth',
+
+                'member_aadhaar_submissions.mime_type',
+                'member_aadhaar_submissions.file_size_bytes',
+
+                'member_aadhaar_submissions.rejection_reason',
+
                 'member_aadhaar_submissions.uploaded_at',
                 'member_aadhaar_submissions.reviewed_at',
-                'member_aadhaar_submissions.rejection_reason',
+
                 'admin_users.full_name AS reviewer_name',
             ])
             ->join(
@@ -360,9 +376,18 @@ final class MemberAadhaarSubmissionModel extends Model
                 'admin_users.id = member_aadhaar_submissions.reviewed_by_admin_id',
                 'left'
             )
-            ->where('member_aadhaar_submissions.member_id', $memberId)
-            ->orderBy('member_aadhaar_submissions.uploaded_at', 'DESC')
-            ->orderBy('member_aadhaar_submissions.id', 'DESC')
+            ->where(
+                'member_aadhaar_submissions.member_id',
+                $memberId
+            )
+            ->orderBy(
+                'member_aadhaar_submissions.uploaded_at',
+                'DESC'
+            )
+            ->orderBy(
+                'member_aadhaar_submissions.id',
+                'DESC'
+            )
             ->findAll();
     }
 }
