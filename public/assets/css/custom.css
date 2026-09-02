@@ -2211,12 +2211,12 @@ form[aria-busy="true"] {
 .text-gurmukhi {
     color: #ae1536;
     line-height: 1.1;
-    text-shadow: 0 2px 20px rgba(0,0,0,0.4);
+    text-shadow: 0 2px 20px rgba(0, 0, 0, 0.4);
     font-weight: 700;
 }
 
 .w-35 {
-  width: 35% !important;
+    width: 35% !important;
 }
 
 /* Preserve the standard footer layout above the mobile breakpoint. */
@@ -2232,4 +2232,8 @@ form[aria-busy="true"] {
         max-width: 18rem;
         margin-inline: auto;
     }
+}
+
+.text-color-footer {
+    color: #f2f2f7;
 }

@@ -358,26 +358,26 @@ $currentYear = date('Y');
 
         <div
             class="
-                d-flex
-                flex-column
-                flex-md-row
-                align-items-md-center
-                justify-content-between
-                gap-2
-                border-top
-                border-secondary
-                py-3
-            ">
+        d-flex
+        flex-column
+        flex-md-row
+        align-items-md-center
+        justify-content-between
+        gap-2
+        border-top
+        border-secondary
+        py-3
+    ">
 
             <div
                 class="
-                    d-flex
-                    flex-column
-                    flex-sm-row
-                    align-items-start
-                    align-items-sm-center
-                    gap-2
-                ">
+            d-flex
+            flex-column
+            flex-sm-row
+            align-items-start
+            align-items-sm-center
+            gap-2
+        ">
 
                 <p class="fs-13 mb-0">
                     &copy;
@@ -391,6 +391,10 @@ $currentYear = date('Y');
                     'Components/ReleaseVersion'
                 ) ?>
             </div>
+
+            <p class="fs-13 mb-0 text-color-footer">
+                For Love, Ashwinder
+            </p>
 
             <p class="fs-13 mb-0">
                 United by Faith, Bound by Values.
