@@ -808,7 +808,7 @@ $this->section('content');
                                                             ): ?>
                                                                 <span
                                                                     class="badge
-                                                                        text-body p-2 bg-primary">
+                                                                        text-white p-2 bg-primary">
 
                                                                     <i
                                                                         class="ri-star-fill
