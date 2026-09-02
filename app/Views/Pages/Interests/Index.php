@@ -164,7 +164,7 @@ $interestActionNotice =
             </div>
 
             <span
-                class="badge bg-primary text-white border p-2 fs-12">
+                class="badge bg-primary text-body border p-2 fs-12">
 
                 <?= esc(
                     (string)
@@ -243,7 +243,7 @@ $interestActionNotice =
                                     </span>
 
                                     <span
-                                        class="badge bg-light text-body border">
+                                        class="badge bg-light text-body border p-2">
 
                                         <?= esc(
                                             (string) (
@@ -314,7 +314,7 @@ $interestActionNotice =
                                     </span>
 
                                     <span
-                                        class="badge bg-light text-body border">
+                                        class="badge bg-light text-body border p-2">
 
                                         <?= esc(
                                             (string) (

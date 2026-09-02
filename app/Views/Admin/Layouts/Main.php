@@ -19,6 +19,8 @@ $pageScripts = $pageScripts ?? [];
         name="viewport"
         content="width=device-width, initial-scale=1">
 
+    <meta name="robots" content="noindex, nofollow, noarchive">
+
     <title>
         <?= esc($pageTitle) ?> | Sikhanandkaraj
     </title>
@@ -110,6 +112,27 @@ $pageScripts = $pageScripts ?? [];
                 'admin/match-score'
             );
 
+        $emailPreviewActive =
+            str_starts_with(
+                $currentPath,
+                'admin/email-preview'
+            );
+
+        $communicationOperationsActive =
+            str_starts_with(
+                $currentPath,
+                'admin/communication-operations'
+            )
+            || str_starts_with(
+                $currentPath,
+                'admin/communication-operations'
+            );
+        $shortUrlsActive =
+            str_starts_with(
+                $currentPath,
+                'admin/short-urls'
+            );
+
         $sakVolunteersActive =
             str_starts_with(
                 $currentPath,
@@ -131,7 +154,10 @@ $pageScripts = $pageScripts ?? [];
 
         $administrationGroupActive =
             $administratorsActive
-            || $matchScoreActive;
+            || $matchScoreActive
+            || $emailPreviewActive
+            || $communicationOperationsActive
+            || $shortUrlsActive;
 
         $profileReportsActive =
             str_starts_with(
@@ -202,7 +228,7 @@ $pageScripts = $pageScripts ?? [];
                         <img
                             src="<?= base_url(
                                         'assets/images/'
-                                            . 'logo_sak_bgremove_final.png'
+                                            . 'logo_sak_header.png'
                                     ) ?>"
                             alt="Sikhanandkaraj"
                             class="public-navbar__logo">
@@ -645,6 +671,79 @@ $pageScripts = $pageScripts ?? [];
                                                     aria-hidden="true"></i>
 
                                                 Match Score
+                                            </a>
+                                        </li>
+
+                                        <li>
+                                            <a
+                                                href="<?= route_to(
+                                                            'admin.email-preview.index'
+                                                        ) ?>"
+                                                class="dropdown-item
+            d-flex
+            align-items-center
+            gap-2
+            <?= $emailPreviewActive
+                                    ? 'active'
+                                    : '' ?>"
+                                                <?= $emailPreviewActive
+                                                    ? 'aria-current="page"'
+                                                    : '' ?>>
+
+                                                <i
+                                                    class="ri-mail-settings-line"
+                                                    aria-hidden="true">
+                                                </i>
+
+                                                Email Preview Centre
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a
+                                                href="<?= route_to(
+                                                            'admin.communication-operations.index'
+                                                        ) ?>"
+                                                class="dropdown-item
+        d-flex
+        align-items-center
+        gap-2
+        <?= $communicationOperationsActive
+                                    ? 'active'
+                                    : '' ?>"
+                                                <?= $communicationOperationsActive
+                                                    ? 'aria-current="page"'
+                                                    : '' ?>>
+
+                                                <i
+                                                    class="ri-mail-check-line"
+                                                    aria-hidden="true">
+                                                </i>
+
+                                                Communication Operations
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a
+                                                href="<?= route_to(
+                                                            'admin.short-urls.index'
+                                                        ) ?>"
+                                                class="dropdown-item
+            d-flex
+            align-items-center
+            gap-2
+            <?= $shortUrlsActive
+                                    ? 'active'
+                                    : '' ?>"
+                                                <?= $shortUrlsActive
+                                                    ? 'aria-current="page"'
+                                                    : '' ?>>
+
+                                                <i
+                                                    class="ri-links-line"
+                                                    aria-hidden="true">
+                                                </i>
+
+                                                Short URLs
                                             </a>
                                         </li>
                                     </ul>

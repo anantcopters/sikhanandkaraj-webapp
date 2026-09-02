@@ -6,7 +6,7 @@ namespace App\Services\FieldOfficer;
 
 use App\Models\FieldOfficerLoginOtpModel;
 use App\Models\FieldOfficerModel;
-use App\Services\Sms\SmsMessage;
+use App\Services\Sms\SmsMessageFactory;
 use App\Services\Sms\SmsProviderInterface;
 use App\Support\IndianMobileNormalizer;
 use App\Support\OtpGenerator;
@@ -576,32 +576,12 @@ final class FieldOfficerLoginService
 
         try {
             $smsResult =
-                $this->smsProvider
+                $this
+                ->smsProvider
                 ->send(
-                    new SmsMessage(
-                        mobileNumber: $normalizedMobile,
-
-                        message: 'Your Sikhanandkaraj SAK Volunteer '
-                            . 'login OTP is '
-                            . $otp
-                            . '. It is valid for '
-                            . self::OTP_EXPIRY_MINUTES
-                            . ' minutes.',
-
-                        templateId: trim(
-                            (string) env(
-                                'sms.fieldOfficerLoginOtpTemplateId'
-                            )
-                        ) ?: null,
-
-                        variables: [
-                            'otp' =>
-                            $otp,
-
-                            'expiry_minutes' =>
-                            (string)
-                            self::OTP_EXPIRY_MINUTES,
-                        ]
+                    SmsMessageFactory::otp(
+                        $normalizedMobile,
+                        $otp
                     )
                 );
         } catch (Throwable $exception) {

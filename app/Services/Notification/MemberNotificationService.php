@@ -5,52 +5,88 @@ declare(strict_types=1);
 namespace App\Services\Notification;
 
 use App\Models\MemberNotificationModel;
+use App\Services\Communication\CommunicationEventRegistry;
 use InvalidArgumentException;
 use RuntimeException;
 
-/**
- * Provides the reusable member-notification workflow.
- *
- * Other features such as messaging, interests and profile views should call
- * this service instead of inserting directly into member_notifications.
- */
 final class MemberNotificationService
 {
     private const HEADER_NOTIFICATION_LIMIT = 5;
 
+    /**
+     * In-app notification types currently supported by the application.
+     *
+     * Business-event identifiers live in CommunicationEventRegistry.
+     * The notification service only decides which of those events are
+     * valid for the in-app notification channel.
+     */
+    private const ALLOWED_NOTIFICATION_TYPES = [
+        CommunicationEventRegistry::MESSAGE,
+
+        CommunicationEventRegistry::INTEREST_RECEIVED,
+        CommunicationEventRegistry::INTEREST_ACCEPTED,
+        CommunicationEventRegistry::INTEREST_DECLINED,
+
+        CommunicationEventRegistry::PROFILE_VIEWED,
+        CommunicationEventRegistry::PROFILE_SHORTLISTED,
+
+        CommunicationEventRegistry::PHOTO_APPROVED,
+        CommunicationEventRegistry::PHOTO_REJECTED,
+
+        CommunicationEventRegistry::AADHAAR_APPROVED,
+        CommunicationEventRegistry::AADHAAR_REJECTED,
+
+        CommunicationEventRegistry::VIDEO_APPROVED,
+        CommunicationEventRegistry::VIDEO_REJECTED,
+        CommunicationEventRegistry::VIDEO_RESUBMISSION_REQUESTED,
+
+        CommunicationEventRegistry::SUPPORT_RECEIVED,
+        CommunicationEventRegistry::SUPPORT_RESOLVED,
+
+        CommunicationEventRegistry::MEMBERSHIP_ACTIVATED,
+        CommunicationEventRegistry::MEMBERSHIP_EXPIRING_SOON,
+        CommunicationEventRegistry::MEMBERSHIP_EXPIRED,
+
+        CommunicationEventRegistry::SYSTEM,
+    ];
+
     public function __construct(
-        private readonly MemberNotificationModel $notificationModel
+        private readonly MemberNotificationModel
+        $notificationModel
     ) {}
 
     /**
-     * Return notification information required by the member header.
-     *
      * @return array{
      *     unreadNotificationCount:int,
      *     unreadMessageCount:int,
-     *     recentNotifications:list<array<string, mixed>>
+     *     recentNotifications:list<array<string,mixed>>
      * }
      */
     public function getHeaderData(
         int $memberUserId
     ): array {
-        $this->assertValidMemberId($memberUserId);
+        $this->assertValidMemberId(
+            $memberUserId
+        );
 
         return [
             'unreadNotificationCount' =>
-            $this->notificationModel
+            $this
+                ->notificationModel
                 ->countUnreadForMember(
                     $memberUserId
                 ),
 
             'unreadMessageCount' =>
-            $this->notificationModel
+            $this
+                ->notificationModel
                 ->countUnreadMessagesForMember(
                     $memberUserId
                 ),
 
             'recentNotifications' =>
-            $this->notificationModel
+            $this
+                ->notificationModel
                 ->findRecentForMember(
                     $memberUserId,
                     self::HEADER_NOTIFICATION_LIMIT
@@ -59,22 +95,23 @@ final class MemberNotificationService
     }
 
     /**
-     * Return notifications for the full notification screen.
-     *
-     * @return list<array<string, mixed>>
+     * @return list<array<string,mixed>>
      */
     public function getMemberNotifications(
         int $memberUserId
     ): array {
-        $this->assertValidMemberId($memberUserId);
+        $this->assertValidMemberId(
+            $memberUserId
+        );
 
-        return $this->notificationModel
-            ->findAllForMember($memberUserId);
+        return $this
+            ->notificationModel
+            ->findAllForMember(
+                $memberUserId
+            );
     }
 
     /**
-     * Create a new notification.
-     *
      * @param array{
      *     recipientUserId:int,
      *     actorUserId?:int|null,
@@ -89,48 +126,62 @@ final class MemberNotificationService
     public function create(
         array $input
     ): int {
-        $recipientUserId = (int) (
-            $input['recipientUserId'] ?? 0
-        );
+        $recipientUserId =
+            (int) (
+                $input['recipientUserId']
+                ?? 0
+            );
 
         $this->assertValidMemberId(
             $recipientUserId
         );
 
-        $type = strtoupper(
-            trim((string) ($input['type'] ?? ''))
-        );
+        $type =
+            strtoupper(
+                trim(
+                    (string) (
+                        $input['type']
+                        ?? ''
+                    )
+                )
+            );
 
-        $allowedTypes = [
-            MemberNotificationModel::TYPE_MESSAGE,
-            MemberNotificationModel::TYPE_INTEREST_RECEIVED,
-            MemberNotificationModel::TYPE_INTEREST_ACCEPTED,
-            MemberNotificationModel::TYPE_INTEREST_REJECTED,
-            MemberNotificationModel::TYPE_PROFILE_VIEW,
-            MemberNotificationModel::TYPE_SHORTLISTED,
-            MemberNotificationModel::TYPE_PHOTO_REJECTED,
-            MemberNotificationModel::TYPE_SYSTEM,
-        ];
-
-        if (! in_array($type, $allowedTypes, true)) {
+        if (
+            !in_array(
+                $type,
+                self::ALLOWED_NOTIFICATION_TYPES,
+                true
+            )
+        ) {
             throw new InvalidArgumentException(
                 'Unsupported notification type.'
             );
         }
 
-        $title = trim(
-            (string) ($input['title'] ?? '')
-        );
+        $title =
+            trim(
+                (string) (
+                    $input['title']
+                    ?? ''
+                )
+            );
 
-        $message = trim(
-            (string) ($input['message'] ?? '')
-        );
-
-        if ($title === '' || mb_strlen($title) > 150) {
+        if (
+            $title === ''
+            || mb_strlen($title) > 150
+        ) {
             throw new InvalidArgumentException(
                 'Notification title is invalid.'
             );
         }
+
+        $message =
+            trim(
+                (string) (
+                    $input['message']
+                    ?? ''
+                )
+            );
 
         if (
             $message === ''
@@ -141,45 +192,53 @@ final class MemberNotificationService
             );
         }
 
-        $targetUrl = $this->sanitizeTargetUrl(
-            $input['targetUrl'] ?? null
-        );
-
         $notificationId =
-            $this->notificationModel->insert(
+            $this
+            ->notificationModel
+            ->insert(
                 [
                     'recipient_user_id' =>
                     $recipientUserId,
 
                     'actor_user_id' =>
                     $this->nullablePositiveInteger(
-                        $input['actorUserId'] ?? null
+                        $input['actorUserId']
+                            ?? null
                     ),
 
-                    'notification_type' => $type,
+                    'notification_type' =>
+                    $type,
 
-                    'title' => $title,
+                    'title' =>
+                    $title,
 
-                    'message' => $message,
+                    'message' =>
+                    $message,
 
                     'entity_type' =>
                     $this->nullableString(
-                        $input['entityType'] ?? null,
+                        $input['entityType']
+                            ?? null,
                         40
                     ),
 
                     'entity_id' =>
                     $this->nullablePositiveInteger(
-                        $input['entityId'] ?? null
+                        $input['entityId']
+                            ?? null
                     ),
 
-                    'target_url' => $targetUrl,
+                    'target_url' =>
+                    $this->sanitizeTargetUrl(
+                        $input['targetUrl']
+                            ?? null
+                    ),
                 ],
                 true
             );
 
         if (
-            ! is_numeric($notificationId)
+            !is_numeric($notificationId)
             || (int) $notificationId <= 0
         ) {
             throw new RuntimeException(
@@ -190,14 +249,13 @@ final class MemberNotificationService
         return (int) $notificationId;
     }
 
-    /**
-     * Mark one notification as read and return its safe target URL.
-     */
     public function read(
         int $notificationId,
         int $memberUserId
     ): ?string {
-        $this->assertValidMemberId($memberUserId);
+        $this->assertValidMemberId(
+            $memberUserId
+        );
 
         if ($notificationId <= 0) {
             throw new InvalidArgumentException(
@@ -206,18 +264,21 @@ final class MemberNotificationService
         }
 
         $notification =
-            $this->notificationModel->findForMember(
+            $this
+            ->notificationModel
+            ->findForMember(
                 $notificationId,
                 $memberUserId
             );
 
-        if (! is_array($notification)) {
+        if (!is_array($notification)) {
             return null;
         }
 
         if (
             empty($notification['read_at'])
-            && ! $this->notificationModel
+            && !$this
+                ->notificationModel
                 ->markAsReadForMember(
                     $notificationId,
                     $memberUserId
@@ -229,20 +290,21 @@ final class MemberNotificationService
         }
 
         return $this->sanitizeTargetUrl(
-            $notification['target_url'] ?? null
+            $notification['target_url']
+                ?? null
         );
     }
 
-    /**
-     * Mark all notifications as read.
-     */
     public function readAll(
         int $memberUserId
     ): void {
-        $this->assertValidMemberId($memberUserId);
+        $this->assertValidMemberId(
+            $memberUserId
+        );
 
         if (
-            ! $this->notificationModel
+            !$this
+                ->notificationModel
                 ->markAllAsReadForMember(
                     $memberUserId
                 )
@@ -263,26 +325,24 @@ final class MemberNotificationService
         }
     }
 
-    /**
-     * Permit only internal application paths.
-     */
     private function sanitizeTargetUrl(
         mixed $targetUrl
     ): ?string {
-        if (! is_scalar($targetUrl)) {
+        if (!is_scalar($targetUrl)) {
             return null;
         }
 
-        $resolvedTargetUrl = trim(
-            (string) $targetUrl
-        );
+        $resolvedTargetUrl =
+            trim(
+                (string) $targetUrl
+            );
 
         if ($resolvedTargetUrl === '') {
             return null;
         }
 
         /*
-         * Block absolute, protocol-relative and JavaScript URLs.
+         * Prevent absolute/external URLs.
          */
         if (
             str_starts_with(
@@ -297,10 +357,12 @@ final class MemberNotificationService
             return null;
         }
 
-        if (! str_starts_with(
-            $resolvedTargetUrl,
-            '/'
-        )) {
+        if (
+            !str_starts_with(
+                $resolvedTargetUrl,
+                '/'
+            )
+        ) {
             $resolvedTargetUrl =
                 '/' . $resolvedTargetUrl;
         }
@@ -318,12 +380,13 @@ final class MemberNotificationService
         if (
             $value === null
             || $value === ''
-            || ! is_numeric($value)
+            || !is_numeric($value)
         ) {
             return null;
         }
 
-        $resolvedValue = (int) $value;
+        $resolvedValue =
+            (int) $value;
 
         return $resolvedValue > 0
             ? $resolvedValue
@@ -334,13 +397,14 @@ final class MemberNotificationService
         mixed $value,
         int $maximumLength
     ): ?string {
-        if (! is_scalar($value)) {
+        if (!is_scalar($value)) {
             return null;
         }
 
-        $resolvedValue = trim(
-            (string) $value
-        );
+        $resolvedValue =
+            trim(
+                (string) $value
+            );
 
         if ($resolvedValue === '') {
             return null;

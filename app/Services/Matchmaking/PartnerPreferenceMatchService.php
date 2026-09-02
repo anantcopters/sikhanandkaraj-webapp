@@ -22,7 +22,7 @@ use App\Support\BooleanValue;
 use DateTimeImmutable;
 
 /**
- * SikhAnandKaraj preference matching algorithm.
+ * SikhanandKaraj preference matching algorithm.
  *
  * Keep scoring decisions encapsulated in this service.
  */

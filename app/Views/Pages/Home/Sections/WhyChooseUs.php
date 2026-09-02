@@ -109,7 +109,7 @@ declare(strict_types=1);
                         </div>
 
                         <small class="text-muted fs-14">
-                            AI powered better matches
+                            Preference-based compatible matches
                         </small>
 
                     </div>
@@ -140,7 +140,7 @@ declare(strict_types=1);
                         </div>
 
                         <small class="text-muted fs-14">
-                            100% verified for trust
+                            Profile verification for greater trust
                         </small>
 
                     </div>

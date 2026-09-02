@@ -12,6 +12,7 @@ The goals are to:
 - keep safety features available regardless of plan;
 - keep interests unrestricted;
 - make Verified Profile and Live Introduction usage fair, concurrency-safe, and auditable;
+- keep identity verification, including Aadhaar Verification, available independently of commercial membership;
 - keep matching relevant rather than allowing payment alone to dominate results;
 - provide a fast, scalable, maintainable search and ranking architecture;
 - centralize entitlement rules so UI and controllers do not independently invent membership logic;
@@ -47,9 +48,13 @@ For membership access and pricing, a **Verified Profile** is a candidate profile
 
 Verification is independent of membership plan. A Verified Profile may belong to a Free, Go, Plus, or Pro member.
 
+Mobile, Email and Aadhaar Verification are available to both Free and Paid members. Live Introduction remains subject to its applicable membership entitlement.
+
 A profile does not need all four credentials to qualify. One valid credential is sufficient.
 
-Because normal member registration verifies Mobile, a normal Free member can qualify as a Verified Profile. The purpose of this rule is not to restrict profile access to Paid candidates; it is to ensure Paid members use their profile allowance only on candidates having at least one trust credential.
+Because normal member registration verifies Mobile, and Aadhaar Verification is also available independently of commercial membership, a Free member can qualify as a Verified Profile through the same authoritative verification model used for Paid members.
+
+The purpose of the Verified Profile rule is not to restrict profile access to Paid candidates. It ensures that Paid members consume their Verified Profile allowance only when accessing candidates having at least one currently valid trust credential.
 
 ### 2.2 Meaning of the 50 / 100 / 300 allowance
 
@@ -94,14 +99,16 @@ FREE < GO < PLUS < PRO
 
 ## 4. Product Principle
 
-- **Free:** Discovery + Intent + Safety
-- **Paid:** Discovery + Intent + Safety + Access + Trust Features
+- **Free:** Discovery + Intent + Safety + Identity Verification
+- **Paid:** Discovery + Intent + Safety + Identity Verification + Deeper Access
 
-Free membership must remain useful enough to discover relevant candidates, send/receive interests, and evaluate platform value.
+Free membership must remain useful enough to discover relevant candidates, send/receive interests, verify identity, and evaluate platform value.
 
-Paid membership unlocks deeper access, advanced discovery, trust features, and controlled access to Verified Profiles and Live Introductions.
+Identity verification is not treated as a commercial upgrade. Mobile, Email and Aadhaar Verification are available to Free as well as Paid members and use the same authoritative verification and moderation workflows.
 
-Safety functionality must never require payment.
+Paid membership unlocks deeper profile access, advanced discovery, Shortlist, Live Introduction creation/viewing, and controlled access to Verified Profiles subject to the applicable plan limits.
+
+Safety and core identity-verification functionality must never require payment.
 
 ---
 
@@ -126,7 +133,7 @@ Safety functionality must never require payment.
 | Accept/Decline Interest | Yes | Yes | Yes | Yes |
 | Full Profile of Verified candidate | Locked | Limited | Limited | Limited |
 | Full Profile of completely unverified candidate | No | No | No | No |
-| Aadhaar | Locked | Yes | Yes | Yes |
+| Aadhaar Verification | Yes | Yes | Yes | Yes |
 | Create Live Introduction | Locked | Yes | Yes | Yes |
 | Watch Live Introduction | Locked | Limited | Limited | Limited |
 | Report Profile | Yes | Yes | Yes | Yes |
@@ -141,12 +148,37 @@ Full Profile access remains subject to verification eligibility, gender/interest
 
 ## 6. Locked Feature UX
 
-Paid-only features remain discoverable to Free members where useful instead of disappearing completely. Examples include Advanced Search, Aadhaar, Live Introduction, Shortlist, and Full Profile View.
+Paid-only features remain discoverable to Free members where useful instead of disappearing completely. Examples include Advanced Search, Live Introduction, Shortlist, and Full Profile View.
+
+Aadhaar Verification is not a Paid-only feature. Free, Go, Plus and Pro members may submit Aadhaar for verification subject to the same upload validation, workflow-state restrictions, privacy controls and administrator moderation process.
 
 A Free member reaching a Paid-only feature receives a consistent upgrade message. UI locks are presentation only; protected endpoints require server-side enforcement.
 
+A member must never receive an upgrade message merely because they are attempting Aadhaar Verification. Aadhaar upload availability depends on the current Aadhaar workflow state rather than commercial membership.
+
 A Paid member blocked by a non-payment rule must receive the correct reason. Report and Block are safety features and must never be Paid-only.
 
+### 6.1 Aadhaar Verification
+
+Aadhaar Verification is available to Free, Go, Plus and Pro members.
+
+Commercial membership must not be used as a condition for starting or re-submitting Aadhaar Verification.
+
+The existing Aadhaar workflow remains authoritative:
+
+```text
+NOT_ADDED
+    -> upload permitted
+
+UNDER_REVIEW
+    -> another upload is not permitted
+
+REJECTED
+    -> re-upload permitted
+
+APPROVED
+    -> another upload is not permitted
+```
 ---
 
 ## 7. Interests

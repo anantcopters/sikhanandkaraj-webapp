@@ -6,6 +6,11 @@ namespace App\Services\Sms;
 
 /**
  * Immutable SMS message passed to an SMS provider.
+ *
+ * messageType is operational metadata only.
+ *
+ * It identifies the class of SMS without requiring the delivery log to
+ * persist or inspect the SMS body.
  */
 final readonly class SmsMessage
 {
@@ -16,7 +21,7 @@ final readonly class SmsMessage
         public string $mobileNumber,
         public string $message,
         public ?string $templateId = null,
-        public array $variables = []
-    ) {
-    }
+        public array $variables = [],
+        public string $messageType = 'GENERAL'
+    ) {}
 }

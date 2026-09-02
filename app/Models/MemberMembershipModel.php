@@ -456,6 +456,100 @@ final class MemberMembershipModel extends Model
     }
 
     /**
+     * Return ACTIVE memberships expiring inside one UTC window.
+     *
+     * This method is used only for lifecycle communication.
+     *
+     * IMPORTANT:
+     *
+     * Runtime membership authorization continues to use activeForUser()
+     * and therefore remains independent from reminder processing.
+     *
+     * The caller converts the required member-facing calendar day into
+     * UTC boundaries before calling this method.
+     *
+     * Pagination uses the immutable membership ID so a large reminder
+     * batch can be processed without loading every membership into memory.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function expiringActiveMemberships(
+        string $startsAtUtc,
+        string $endsAtUtc,
+        int $limit = 500,
+        int $afterMembershipId = 0
+    ): array {
+        $startsAtUtc =
+            trim(
+                $startsAtUtc
+            );
+
+        $endsAtUtc =
+            trim(
+                $endsAtUtc
+            );
+
+        if (
+            $startsAtUtc === ''
+            || $endsAtUtc === ''
+        ) {
+            return [];
+        }
+
+        $limit =
+            max(
+                1,
+                min(
+                    1000,
+                    $limit
+                )
+            );
+
+        $builder =
+            $this
+            ->where(
+                'status',
+                self::STATUS_ACTIVE
+            )
+            ->where(
+                'expires_at >=',
+                $startsAtUtc
+            )
+            ->where(
+                'expires_at <',
+                $endsAtUtc
+            );
+
+        /*
+     * Cursor pagination prevents the same rows from being loaded
+     * repeatedly while a large reminder run is processed.
+     */
+        if ($afterMembershipId > 0) {
+            $builder->where(
+                'id >',
+                $afterMembershipId
+            );
+        }
+
+        $rows =
+            $builder
+            ->orderBy(
+                'id',
+                'ASC'
+            )
+            ->findAll(
+                $limit
+            );
+
+        return array_values(
+            array_filter(
+                $rows,
+                'is_array'
+            )
+        );
+    }
+
+    /**
      * Return ACTIVE rows whose commercial validity has ended.
      *
      * This is intentionally used only by lifecycle housekeeping.

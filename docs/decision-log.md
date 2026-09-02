@@ -113,3 +113,13 @@ _Last reconciled with `development` HEAD `f2b16aa1a3ce7c53278b3b68d20524d3970fca
 **Decision:** CloudFront private signing material is provisioned outside the repository with least-privilege filesystem access. Every web/CLI process that instantiates the signer must be explicitly authorized to read it; do not make keys world-readable to fix CLI failures.
 
 **Reason:** Web and CLI PHP may run as different Linux users even in the same environment.
+
+## ADR-040: Public SEO pages use one privacy-safe content catalog
+
+**Decision:** Core and location SEO pages use named routes, the existing public
+layout, `SeoLandingPageController`, `SeoLandingPageCatalog` and the SEO-1
+metadata/indexing allowlist. They never query or expose member records.
+
+**Reason:** Unique public content and internal linking are required for organic
+search, but matrimonial profiles and private media must remain outside the
+search-engine architecture.

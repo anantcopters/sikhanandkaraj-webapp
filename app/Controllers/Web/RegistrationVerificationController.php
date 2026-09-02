@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers\Web;
 
 use App\Controllers\BaseController;
+use App\Models\UserContactModel;
 use App\Models\UserModel;
 use App\Services\Registration\RegistrationOtpService;
 use App\Support\OtpInputNormalizer;
@@ -216,6 +217,101 @@ final class RegistrationVerificationController extends BaseController
             if (!is_array($user)) {
                 throw new RuntimeException(
                     'Verified registration user could not be loaded.'
+                );
+            }
+
+            /*
+ * The new-profile notification is generated only after successful
+ * mobile verification.
+ *
+ * An unverified PENDING registration is intentionally not treated as
+ * a completed profile because cancelled/incomplete registrations remain
+ * in the database for OTP-limit and audit purposes.
+ */
+            $mobileContactModel =
+                new UserContactModel();
+
+            $mobileContact =
+                $mobileContactModel->findForUser(
+                    $pending['mobileContactId'],
+                    $pending['userId'],
+                    UserContactModel::TYPE_MOBILE
+                );
+
+            if (!is_array($mobileContact)) {
+                throw new RuntimeException(
+                    'Verified registration mobile contact could not be loaded.'
+                );
+            }
+
+            $verifiedMobile =
+                trim(
+                    (string) (
+                        $mobileContact['contact_value']
+                        ?? $mobileContact['normalized_value']
+                        ?? ''
+                    )
+                );
+
+            if ($verifiedMobile === '') {
+                throw new RuntimeException(
+                    'Verified registration mobile number is unavailable.'
+                );
+            }
+
+            /*
+ * Email is a downstream operational notification.
+ *
+ * Failure to queue this email must never roll back or make an already
+ * verified registration appear unsuccessful to the member.
+ */
+            try {
+                service(
+                    'adminEmailService'
+                )->queueNewProfileCreated(
+                    fullName: (string) (
+                        $user['full_name']
+                        ?? ''
+                    ),
+
+                    gender: (string) (
+                        $user['gender']
+                        ?? ''
+                    ),
+
+                    mobileNumber: $verifiedMobile,
+
+                    profileReference: (string) (
+                        $user['profile_ref_number']
+                        ?? ''
+                    ),
+
+                    source: 'REGISTRATION',
+
+                    referenceId: $pending['userId']
+                );
+            } catch (Throwable $notificationException) {
+                service(
+                    'applicationErrorLogger'
+                )->exception(
+                    $notificationException,
+                    'error',
+                    [
+                        'operation' =>
+                        'registration_new_profile_email',
+
+                        'controller' =>
+                        self::class,
+
+                        'method' =>
+                        __FUNCTION__,
+
+                        'member_user_id' =>
+                        $pending['userId'],
+
+                        'mobile_contact_id' =>
+                        $pending['mobileContactId'],
+                    ]
                 );
             }
 

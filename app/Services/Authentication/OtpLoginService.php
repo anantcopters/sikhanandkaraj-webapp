@@ -7,7 +7,7 @@ namespace App\Services\Authentication;
 use App\Models\ContactVerificationModel;
 use App\Models\UserContactModel;
 use App\Models\UserModel;
-use App\Services\Sms\SmsMessage;
+use App\Services\Sms\SmsMessageFactory;
 use App\Services\Sms\SmsProviderInterface;
 use App\Support\BooleanValue;
 use App\Support\IndianMobileNormalizer;
@@ -687,35 +687,15 @@ final class OtpLoginService
         }
 
         try {
-            $smsResult = $this->smsProvider->send(
-                new SmsMessage(
-                    mobileNumber: $normalizedMobile,
-
-                    message: 'Your Sikhanandkaraj login OTP is '
-                        . $otp
-                        . '. It is valid for '
-                        . self::OTP_EXPIRY_MINUTES
-                        . ' minutes.',
-
-                    /*
-                 * Add this environment key for providers that require a
-                 * pre-approved DLT or SMS template.
-                 */
-                    templateId: trim(
-                        (string) env(
-                            'sms.loginOtpTemplateId'
-                        )
-                    ) ?: null,
-
-                    variables: [
-                        'otp' =>
-                        $otp,
-
-                        'expiry_minutes' =>
-                        (string) self::OTP_EXPIRY_MINUTES,
-                    ]
-                )
-            );
+            $smsResult =
+                $this
+                ->smsProvider
+                ->send(
+                    SmsMessageFactory::otp(
+                        $normalizedMobile,
+                        $otp
+                    )
+                );
         } catch (Throwable $exception) {
             $this->markOtpDeliveryFailed(
                 (int) $verificationId

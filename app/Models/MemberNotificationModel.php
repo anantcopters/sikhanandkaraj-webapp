@@ -15,29 +15,6 @@ use CodeIgniter\Model;
  */
 final class MemberNotificationModel extends Model
 {
-    public const TYPE_MESSAGE = 'MESSAGE';
-
-    public const TYPE_INTEREST_RECEIVED =
-    'INTEREST_RECEIVED';
-
-    public const TYPE_INTEREST_ACCEPTED =
-    'INTEREST_ACCEPTED';
-
-    public const TYPE_INTEREST_REJECTED =
-    'INTEREST_REJECTED';
-
-    public const TYPE_PROFILE_VIEW =
-    'PROFILE_VIEW';
-
-    public const TYPE_SHORTLISTED =
-    'SHORTLISTED';
-
-    public const TYPE_PHOTO_REJECTED =
-    'PHOTO_REJECTED';
-
-    public const TYPE_SYSTEM =
-    'SYSTEM';
-
     protected $table = 'member_notifications';
 
     protected $primaryKey = 'id';
@@ -101,7 +78,7 @@ final class MemberNotificationModel extends Model
             )
             ->where(
                 'notification_type',
-                self::TYPE_MESSAGE
+                'MESSAGE'
             )
             ->where('read_at', null)
             ->countAllResults();

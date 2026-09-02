@@ -835,7 +835,7 @@ $formAction = url_to(
                             <span
                                 class="badge
                                     bg-success-subtle
-                                    text-success ms-2">
+                                    text-body p-2 ms-2">
 
                                 Recommended
                             </span>
@@ -863,7 +863,7 @@ $formAction = url_to(
                             <span
                                 class="badge
                                     bg-danger-subtle
-                                    text-danger ms-2">
+                                    text-body p-2 ms-2">
 
                                 Strict Match
                             </span>

@@ -8,6 +8,7 @@ $currentYear = date('Y');
 <footer class="section py-3 border-top border-secondary-subtle">
     <div class="container">
         <div class="row g-4 pb-4">
+
             <!-- Brand and platform information -->
             <div class="col-12 col-lg-4">
                 <a
@@ -24,9 +25,11 @@ $currentYear = date('Y');
 
                     <img
                         src="<?= base_url(
-                                    'assets/images/logo_sak_bgremove_final.png'
+                                    'assets/images/logo_sak_header.png'
                                 ) ?>"
                         alt="Sikhanandkaraj"
+                        width="500"
+                        height="88"
                         class="public-navbar__logo w-75">
                 </a>
 
@@ -40,6 +43,69 @@ $currentYear = date('Y');
                     This website is strictly for matrimonial purposes
                     only and is not a dating website.
                 </p>
+
+                <!-- Popular SEO locations -->
+                <h2 class="fs-15 fw-semibold mb-2">
+                    Popular Locations
+                </h2>
+
+                <div class="d-flex flex-wrap gap-3">
+                    <a
+                        href="<?= url_to(
+                                    'web.seo.location.delhi'
+                                ) ?>"
+                        class="text-decoration-none">
+                        Delhi
+                    </a>
+
+                    <a
+                        href="<?= url_to(
+                                    'web.seo.location.punjab'
+                                ) ?>"
+                        class="text-decoration-none">
+                        Punjab
+                    </a>
+
+                    <a
+                        href="<?= url_to(
+                                    'web.seo.location.chandigarh'
+                                ) ?>"
+                        class="text-decoration-none">
+                        Chandigarh
+                    </a>
+
+                    <a
+                        href="<?= url_to(
+                                    'web.seo.location.madhya-pradesh'
+                                ) ?>"
+                        class="text-decoration-none">
+                        Madhya Pradesh
+                    </a>
+
+                    <a
+                        href="<?= url_to(
+                                    'web.seo.location.jaipur'
+                                ) ?>"
+                        class="text-decoration-none">
+                        Jaipur
+                    </a>
+
+                    <a
+                        href="<?= url_to(
+                                    'web.seo.location.indore'
+                                ) ?>"
+                        class="text-decoration-none">
+                        Indore
+                    </a>
+
+                    <a
+                        href="<?= url_to(
+                                    'web.seo.location.kota'
+                                ) ?>"
+                        class="text-decoration-none">
+                        Kota
+                    </a>
+                </div>
             </div>
 
             <!-- Explore -->
@@ -51,14 +117,6 @@ $currentYear = date('Y');
                 <ul class="list-unstyled mb-0">
                     <li class="mb-2">
                         <a
-                            href="<?= site_url('/') ?>"
-                            class="text-decoration-none">
-                            Home
-                        </a>
-                    </li>
-
-                    <li class="mb-2">
-                        <a
                             href="<?= site_url('login') ?>"
                             class="text-decoration-none">
                             Login
@@ -67,9 +125,21 @@ $currentYear = date('Y');
 
                     <li class="mb-2">
                         <a
-                            href="<?= site_url('/') ?>#how-it-works"
+                            href="<?= url_to(
+                                        'web.seo.how-it-works'
+                                    ) ?>"
                             class="text-decoration-none">
                             How It Works
+                        </a>
+                    </li>
+
+                    <li class="mb-2">
+                        <a
+                            href="<?= url_to(
+                                        'web.seo.verification-safety'
+                                    ) ?>"
+                            class="text-decoration-none">
+                            Verification &amp; Safety
                         </a>
                     </li>
 
@@ -85,7 +155,9 @@ $currentYear = date('Y');
 
                     <li>
                         <a
-                            href="<?= site_url('/') ?>#faqs"
+                            href="<?= url_to(
+                                        'web.seo.faq'
+                                    ) ?>"
                             class="text-decoration-none">
                             FAQs
                         </a>
@@ -171,9 +243,7 @@ $currentYear = date('Y');
 
                     <li class="mb-2">
                         <a
-                            href="<?= site_url(
-                                        '/'
-                                    ) ?>"
+                            href="<?= site_url('/') ?>"
                             class="text-decoration-none">
                             Register Free
                         </a>
@@ -300,12 +370,14 @@ $currentYear = date('Y');
     ">
 
             <div
-                class="d-flex
-        flex-column
-        flex-sm-row
-        align-items-start
-        align-items-sm-center
-        gap-2">
+                class="
+            d-flex
+            flex-column
+            flex-sm-row
+            align-items-start
+            align-items-sm-center
+            gap-2
+        ">
 
                 <p class="fs-13 mb-0">
                     &copy;
@@ -318,13 +390,15 @@ $currentYear = date('Y');
                 <?= view(
                     'Components/ReleaseVersion'
                 ) ?>
-
             </div>
+
+            <p class="fs-13 mb-0 text-color-footer">
+                For Love, Ashwinder
+            </p>
 
             <p class="fs-13 mb-0">
                 United by Faith, Bound by Values.
             </p>
-
         </div>
     </div>
 </footer>

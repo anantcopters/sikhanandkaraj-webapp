@@ -192,11 +192,12 @@ final class MemberManagementService
                 'adminPhotos' =>
                 $adminPhotos,
 
-                'memberInteractionStats' =>
-                $this->interactionService
-                    ->statsForMember(
-                        $userId
-                    ),
+                'memberActivityStats' =>
+                service(
+                    'adminMemberActivityService'
+                )->countsForMember(
+                    $userId
+                ),
 
                 'partnerPreferenceSections' =>
                 $this->partnerPreferenceSections(

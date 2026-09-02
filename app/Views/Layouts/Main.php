@@ -1,3 +1,48 @@
+<?php
+
+declare(strict_types=1);
+
+/**
+ * @var string|null                    $pageTitle
+ * @var array<string, mixed>|null      $seo
+ * @var bool|null                      $minimalPublicPage
+ * @var array<int, string>|null        $pageScripts
+ */
+
+$seoData = is_array($seo ?? null)
+    ? $seo
+    : [];
+
+$documentTitle = trim(
+    (string) ($seoData['title'] ?? $pageTitle ?? 'SikhanandKaraj')
+);
+
+$metaDescription = trim(
+    (string) ($seoData['description'] ?? '')
+);
+
+$canonicalUrl = trim(
+    (string) ($seoData['canonical'] ?? '')
+);
+
+$robotsDirective = trim(
+    (string) ($seoData['robots'] ?? 'noindex,nofollow,noarchive')
+);
+
+$openGraphType = trim(
+    (string) ($seoData['ogType'] ?? 'website')
+);
+
+$openGraphImage = trim(
+    (string) ($seoData['ogImage'] ?? '')
+);
+
+$structuredData = is_array($seoData['structuredData'] ?? null)
+    ? $seoData['structuredData']
+    : [];
+
+$useMinimalPublicAssets = ($minimalPublicPage ?? false) === true;
+?>
 <!doctype html>
 <html lang="en" dir="ltr">
 
@@ -12,9 +57,89 @@
         name="viewport"
         content="width=device-width, initial-scale=1">
 
+    <meta
+        name="robots"
+        content="<?= esc($robotsDirective, 'attr') ?>">
+
+    <?php if ($metaDescription !== ''): ?>
+        <meta
+            name="description"
+            content="<?= esc($metaDescription, 'attr') ?>">
+    <?php endif; ?>
+
+    <?php if ($canonicalUrl !== ''): ?>
+        <link
+            rel="canonical"
+            href="<?= esc($canonicalUrl, 'attr') ?>">
+
+        <meta
+            property="og:url"
+            content="<?= esc($canonicalUrl, 'attr') ?>">
+    <?php endif; ?>
+
+    <meta
+        property="og:type"
+        content="<?= esc($openGraphType, 'attr') ?>">
+
+    <meta
+        property="og:site_name"
+        content="SikhanandKaraj">
+
+    <meta
+        property="og:title"
+        content="<?= esc($documentTitle, 'attr') ?>">
+
+    <?php if ($metaDescription !== ''): ?>
+        <meta
+            property="og:description"
+            content="<?= esc($metaDescription, 'attr') ?>">
+    <?php endif; ?>
+
+    <?php if ($openGraphImage !== ''): ?>
+        <meta
+            property="og:image"
+            content="<?= esc($openGraphImage, 'attr') ?>">
+    <?php endif; ?>
+
+    <meta
+        name="twitter:card"
+        content="summary">
+
+    <meta
+        name="twitter:title"
+        content="<?= esc($documentTitle, 'attr') ?>">
+
+    <?php if ($metaDescription !== ''): ?>
+        <meta
+            name="twitter:description"
+            content="<?= esc($metaDescription, 'attr') ?>">
+    <?php endif; ?>
+
+    <?php if ($openGraphImage !== ''): ?>
+        <meta
+            name="twitter:image"
+            content="<?= esc($openGraphImage, 'attr') ?>">
+    <?php endif; ?>
+
     <title>
-        <?= esc($pageTitle ?? 'Sikhanandkaraj') ?>
+        <?= esc($documentTitle) ?>
     </title>
+
+    <?php foreach ($structuredData as $schema): ?>
+        <?php if (is_array($schema) && $schema !== []): ?>
+            <script type="application/ld+json">
+                <?= json_encode(
+                    $schema,
+                    JSON_UNESCAPED_SLASHES
+                        | JSON_UNESCAPED_UNICODE
+                        | JSON_HEX_TAG
+                        | JSON_HEX_AMP
+                        | JSON_HEX_APOS
+                        | JSON_HEX_QUOT
+                ) ?>
+            </script>
+        <?php endif; ?>
+    <?php endforeach; ?>
 
     <link
         rel="stylesheet"
@@ -64,26 +189,28 @@
 
     <?= view('Components/ConfirmationModal') ?>
 
-    <script src="<?= base_url('assets/js/jquery.js') ?>"></script>
     <script src="<?= base_url('assets/js/bootstrap.bundle.min.js') ?>"></script>
-    <script src="<?= base_url('assets/js/choices.min.js') ?>"></script>
-
-    <script src="<?= base_url(
-                        'assets/js/components/select-choice.js'
-                    ) ?>"></script>
-    <script src="<?= base_url(
-                        'assets/js/components/form-validator.js'
-                    ) ?>"></script>
     <script src="<?= base_url('assets/js/app.js') ?>"></script>
     <script src="<?= base_url('assets/js/components/feedback-modal.js') ?>"></script>
-    <script src="<?= base_url(
-                        'assets/js/components/video-introduction-modal.js'
-                    ) ?>"></script>
     <script
         src="<?= base_url(
                     'assets/js/components/confirmation-modal.js'
                 ) ?>">
     </script>
+
+    <?php if (!$useMinimalPublicAssets): ?>
+        <script src="<?= base_url('assets/js/choices.min.js') ?>"></script>
+
+        <script src="<?= base_url(
+                            'assets/js/components/select-choice.js'
+                        ) ?>"></script>
+        <script src="<?= base_url(
+                            'assets/js/components/form-validator.js'
+                        ) ?>"></script>
+        <script src="<?= base_url(
+                            'assets/js/components/video-introduction-modal.js'
+                        ) ?>"></script>
+    <?php endif; ?>
     <?php
     /**
      * Load JavaScript required only by the current page.

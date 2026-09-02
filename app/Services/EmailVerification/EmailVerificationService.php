@@ -8,7 +8,7 @@ use App\Models\EmailVerificationTokenModel;
 use App\Models\UserContactModel;
 use App\Models\UserModel;
 use App\Support\BooleanValue;
-use App\Services\Email\EmailQueueService;
+use App\Services\Email\MemberEmailService;
 use RuntimeException;
 use Throwable;
 
@@ -26,13 +26,13 @@ final class EmailVerificationService
 
     private EmailVerificationTokenModel $tokenModel;
 
-    private EmailQueueService $emailQueueService;
+    private MemberEmailService $memberEmailService;
 
     public function __construct(
         ?UserModel $userModel = null,
         ?UserContactModel $contactModel = null,
         ?EmailVerificationTokenModel $tokenModel = null,
-        ?EmailQueueService $emailQueueService = null
+        ?MemberEmailService $memberEmailService = null
     ) {
         $this->userModel =
             $userModel ?? new UserModel();
@@ -43,8 +43,11 @@ final class EmailVerificationService
         $this->tokenModel =
             $tokenModel ?? new EmailVerificationTokenModel();
 
-        $this->emailQueueService =
-            $emailQueueService ?? new EmailQueueService();
+        $this->memberEmailService =
+            $memberEmailService
+            ?? service(
+                'memberEmailService'
+            );
     }
 
     /**
@@ -253,8 +256,8 @@ final class EmailVerificationService
                 $rawToken
             );
 
-            $this->emailQueueService
-                ->enqueue(
+            $this->memberEmailService
+                ->queueEmailVerification(
                     recipientEmail: $emailAddress,
 
                     recipientName: trim(
@@ -264,41 +267,16 @@ final class EmailVerificationService
                         )
                     ),
 
-                    subject: 'Verify your Sikhanandkaraj email',
+                    verificationUrl: $verificationUrl,
 
-                    viewName: 'Emails/Authentication/VerifyEmail',
+                    expiresInHours: self::TOKEN_LIFETIME_HOURS,
 
-                    viewData: [
-                        'userName' =>
-                        trim(
-                            (string) (
-                                $user['full_name']
-                                ?? 'Member'
-                            )
-                        ),
+                    isReplacement: (
+                        $contact['replaces_contact_id']
+                        ?? null
+                    ) !== null,
 
-                        'emailAddress' =>
-                        $emailAddress,
-
-                        'verificationUrl' =>
-                        $verificationUrl,
-
-                        'expiresInHours' =>
-                        self::TOKEN_LIFETIME_HOURS,
-
-                        'isReplacement' => (
-                            $contact['replaces_contact_id']
-                            ?? null
-                        ) !== null,
-                    ],
-
-                    priority: 10,
-
-                    maxAttempts: 3,
-
-                    referenceType: 'EMAIL_VERIFICATION_TOKEN',
-
-                    referenceId: (int) $tokenId
+                    verificationTokenId: (int) $tokenId
                 );
 
             if (!$database->transStatus()) {

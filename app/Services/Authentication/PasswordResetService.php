@@ -7,11 +7,12 @@ namespace App\Services\Authentication;
 use App\Models\ContactVerificationModel;
 use App\Models\UserContactModel;
 use App\Models\UserModel;
-use App\Services\Sms\SmsMessage;
+use App\Services\Sms\SmsMessageFactory;
 use App\Services\Sms\SmsProviderInterface;
 use App\Support\IndianMobileNormalizer;
 use App\Support\BooleanValue;
 use App\Support\OtpGenerator;
+use App\Services\Email\MemberEmailService;
 use CodeIgniter\Database\BaseConnection;
 use DateInterval;
 use DateTimeImmutable;
@@ -65,9 +66,16 @@ final class PasswordResetService
     public function __construct(
         private readonly UserModel $userModel,
         private readonly UserContactModel $contactModel,
-        private readonly ContactVerificationModel $verificationModel,
+        private readonly ContactVerificationModel
+        $verificationModel,
         private readonly BaseConnection $database,
-        private readonly SmsProviderInterface $smsProvider
+        private readonly SmsProviderInterface $smsProvider,
+
+        /*
+        * Password security email is a post-commit side effect.
+        */
+        private readonly MemberEmailService
+        $memberEmailService
     ) {}
 
     /**
@@ -695,6 +703,24 @@ final class PasswordResetService
 
             $this->commitOrFail();
 
+            /*
+            * Password persistence and OTP consumption have now
+            * committed successfully.
+            *
+            * Queue security communication only after commit.
+            * MemberEmailService handles communication failures
+            * independently and cannot roll back the password change.
+            *
+            * This covers both:
+            *
+            * - normal forgot-password reset;
+            * - migrated prelaunch member PASSWORD_SETUP.
+            */
+            $this->memberEmailService
+                ->queuePasswordChanged(
+                    $userId
+                );
+
             return PasswordResetResult::success(
                 'Your password has been changed successfully.'
             );
@@ -922,31 +948,15 @@ final class PasswordResetService
         }
 
         try {
-            $smsResult = $this->smsProvider->send(
-                new SmsMessage(
-                    mobileNumber: $mobileNumber,
-
-                    message: 'Your Sikhanandkaraj password reset OTP is '
-                        . $otp
-                        . '. It is valid for '
-                        . self::OTP_EXPIRY_MINUTES
-                        . ' minutes.',
-
-                    templateId: trim(
-                        (string) env(
-                            'sms.passwordResetTemplateId'
-                        )
-                    ) ?: null,
-
-                    variables: [
-                        'otp' =>
-                        $otp,
-
-                        'expiry_minutes' =>
-                        (string) self::OTP_EXPIRY_MINUTES,
-                    ]
-                )
-            );
+            $smsResult =
+                $this
+                ->smsProvider
+                ->send(
+                    SmsMessageFactory::otp(
+                        $mobileNumber,
+                        $otp
+                    )
+                );
         } catch (Throwable $exception) {
             $this->markOtpDeliveryFailed(
                 (int) $verificationId
