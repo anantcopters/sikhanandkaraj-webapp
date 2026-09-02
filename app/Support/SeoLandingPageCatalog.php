@@ -25,9 +25,6 @@ final class SeoLandingPageCatalog
             'delhi' => self::delhi(),
             'punjab' => self::punjab(),
             'chandigarh' => self::chandigarh(),
-            'canada' => self::canada(),
-            'toronto' => self::toronto(),
-            'vancouver' => self::vancouver(),
             default => null,
         };
     }
@@ -557,175 +554,175 @@ final class SeoLandingPageCatalog
     }
 
     /** @return array<string, mixed> */
-    private static function canada(): array
-    {
-        return self::locationPage(
-            routeName: 'web.seo.location.canada',
-            place: 'Canada',
-            title: 'Sikh Matrimony in Canada | SikhanandKaraj',
-            description: 'Explore Sikh matrimony in Canada with practical guidance '
-                . 'on province, immigration status, career, relocation, '
-                . 'family expectations and cross-border safety.',
-            introduction: 'Sikh families in Canada may search locally, across '
-                . 'provinces or between Canada and India. Successful '
-                . 'introductions require honest discussion of residence, '
-                . 'immigration position, profession, family expectations and '
-                . 'long-term plans.',
-            regionalTitle: 'Clear information for Canadian and cross-border matches',
-            regionalParagraphs: [
-                'Canada is not one interchangeable location. Distance, time '
-                    . 'zones, licensing requirements and provincial job markets '
-                    . 'can make Toronto, Vancouver, Calgary, Edmonton and other '
-                    . 'communities materially different matrimonial choices.',
-                'Immigration status must be described accurately and should '
-                    . 'never be used to pressure another person. Marriage '
-                    . 'decisions should be based on compatibility and informed '
-                    . 'consent, not promises of visas, sponsorship or employment.',
-            ],
-            regionalItems: [
-                'State the city and province where the member actually lives.',
-                'Describe immigration or citizenship status truthfully without exaggeration.',
-                'Discuss professional licensing and career continuity before relocation.',
-                'Consider distance from family, cultural adjustment and financial independence.',
-                'Independently verify identity and important cross-border information.',
-            ],
-            faqs: [
-                self::faqItem(
-                    'Can Canadian families consider matches in India?',
-                    'Yes, if both people genuinely want a cross-border match. '
-                        . 'Residence, immigration, career, family and relocation '
-                        . 'expectations should be discussed carefully and verified '
-                        . 'independently.'
-                ),
-                self::faqItem(
-                    'Does SikhanandKaraj provide immigration advice?',
-                    'No. Members should obtain immigration or legal advice only '
-                        . 'from appropriately qualified professionals.'
-                ),
-            ],
-            related: [
-                self::link('Sikh Matrimony in Toronto', 'web.seo.location.toronto'),
-                self::link('Sikh Matrimony in Vancouver', 'web.seo.location.vancouver'),
-                self::link('Verification and Safety', 'web.seo.verification-safety'),
-            ]
-        );
-    }
+    // private static function canada(): array
+    // {
+    //     return self::locationPage(
+    //         routeName: 'web.seo.location.canada',
+    //         place: 'Canada',
+    //         title: 'Sikh Matrimony in Canada | SikhanandKaraj',
+    //         description: 'Explore Sikh matrimony in Canada with practical guidance '
+    //             . 'on province, immigration status, career, relocation, '
+    //             . 'family expectations and cross-border safety.',
+    //         introduction: 'Sikh families in Canada may search locally, across '
+    //             . 'provinces or between Canada and India. Successful '
+    //             . 'introductions require honest discussion of residence, '
+    //             . 'immigration position, profession, family expectations and '
+    //             . 'long-term plans.',
+    //         regionalTitle: 'Clear information for Canadian and cross-border matches',
+    //         regionalParagraphs: [
+    //             'Canada is not one interchangeable location. Distance, time '
+    //                 . 'zones, licensing requirements and provincial job markets '
+    //                 . 'can make Toronto, Vancouver, Calgary, Edmonton and other '
+    //                 . 'communities materially different matrimonial choices.',
+    //             'Immigration status must be described accurately and should '
+    //                 . 'never be used to pressure another person. Marriage '
+    //                 . 'decisions should be based on compatibility and informed '
+    //                 . 'consent, not promises of visas, sponsorship or employment.',
+    //         ],
+    //         regionalItems: [
+    //             'State the city and province where the member actually lives.',
+    //             'Describe immigration or citizenship status truthfully without exaggeration.',
+    //             'Discuss professional licensing and career continuity before relocation.',
+    //             'Consider distance from family, cultural adjustment and financial independence.',
+    //             'Independently verify identity and important cross-border information.',
+    //         ],
+    //         faqs: [
+    //             self::faqItem(
+    //                 'Can Canadian families consider matches in India?',
+    //                 'Yes, if both people genuinely want a cross-border match. '
+    //                     . 'Residence, immigration, career, family and relocation '
+    //                     . 'expectations should be discussed carefully and verified '
+    //                     . 'independently.'
+    //             ),
+    //             self::faqItem(
+    //                 'Does SikhanandKaraj provide immigration advice?',
+    //                 'No. Members should obtain immigration or legal advice only '
+    //                     . 'from appropriately qualified professionals.'
+    //             ),
+    //         ],
+    //         related: [
+    //             self::link('Sikh Matrimony in Toronto', 'web.seo.location.toronto'),
+    //             self::link('Sikh Matrimony in Vancouver', 'web.seo.location.vancouver'),
+    //             self::link('Verification and Safety', 'web.seo.verification-safety'),
+    //         ]
+    //     );
+    // }
 
     /** @return array<string, mixed> */
-    private static function toronto(): array
-    {
-        return self::locationPage(
-            routeName: 'web.seo.location.toronto',
-            place: 'Toronto',
-            title: 'Sikh Matrimony in Toronto | SikhanandKaraj',
-            description: 'Explore Sikh matrimony guidance for Toronto and the GTA, '
-                . 'including location, commute, career, family networks and '
-                . 'cross-border considerations.',
-            introduction: 'A Toronto matrimonial search often extends across the '
-                . 'wider Greater Toronto Area. Exact residence, commute, '
-                . 'profession and family networks can be more important than '
-                . 'the word Toronto alone.',
-            regionalTitle: 'Understanding the Greater Toronto Area',
-            regionalParagraphs: [
-                'Families may live across Toronto, Brampton, Mississauga, '
-                    . 'Scarborough, Etobicoke and other GTA communities. Travel '
-                    . 'time and work arrangements can affect whether two '
-                    . 'apparently nearby profiles have compatible daily lives.',
-                'Members who are new to Canada may also be establishing '
-                    . 'careers, completing studies or navigating professional '
-                    . 'licensing. Profiles should describe the current situation '
-                    . 'honestly instead of presenting uncertain future plans as '
-                    . 'settled facts.',
-            ],
-            regionalItems: [
-                'Use the actual GTA city in current-location information.',
-                'Discuss work location, commute and remote-work expectations.',
-                'Be transparent about study, work permit, permanent '
-                    . 'residence or citizenship status.',
-                'Clarify whether relocation within Ontario or elsewhere in Canada is realistic.',
-            ],
-            faqs: [
-                self::faqItem(
-                    'Does Toronto mean every GTA city?',
-                    'No. Toronto and neighbouring GTA cities have distinct '
-                        . 'locations and travel considerations. Members should '
-                        . 'provide their actual current city.'
-                ),
-                self::faqItem(
-                    'Are Toronto member details visible publicly?',
-                    'No. This page contains regional guidance only and does not '
-                        . 'publish member profile information.'
-                ),
-            ],
-            related: [
-                self::link('Sikh Matrimony in Canada', 'web.seo.location.canada'),
-                self::link('Sikh Matrimony in Vancouver', 'web.seo.location.vancouver'),
-                self::link('Frequently Asked Questions', 'web.seo.faq'),
-            ],
-            parentBreadcrumb: self::link(
-                'Canada',
-                'web.seo.location.canada'
-            )
-        );
-    }
+    // private static function toronto(): array
+    // {
+    //     return self::locationPage(
+    //         routeName: 'web.seo.location.toronto',
+    //         place: 'Toronto',
+    //         title: 'Sikh Matrimony in Toronto | SikhanandKaraj',
+    //         description: 'Explore Sikh matrimony guidance for Toronto and the GTA, '
+    //             . 'including location, commute, career, family networks and '
+    //             . 'cross-border considerations.',
+    //         introduction: 'A Toronto matrimonial search often extends across the '
+    //             . 'wider Greater Toronto Area. Exact residence, commute, '
+    //             . 'profession and family networks can be more important than '
+    //             . 'the word Toronto alone.',
+    //         regionalTitle: 'Understanding the Greater Toronto Area',
+    //         regionalParagraphs: [
+    //             'Families may live across Toronto, Brampton, Mississauga, '
+    //                 . 'Scarborough, Etobicoke and other GTA communities. Travel '
+    //                 . 'time and work arrangements can affect whether two '
+    //                 . 'apparently nearby profiles have compatible daily lives.',
+    //             'Members who are new to Canada may also be establishing '
+    //                 . 'careers, completing studies or navigating professional '
+    //                 . 'licensing. Profiles should describe the current situation '
+    //                 . 'honestly instead of presenting uncertain future plans as '
+    //                 . 'settled facts.',
+    //         ],
+    //         regionalItems: [
+    //             'Use the actual GTA city in current-location information.',
+    //             'Discuss work location, commute and remote-work expectations.',
+    //             'Be transparent about study, work permit, permanent '
+    //                 . 'residence or citizenship status.',
+    //             'Clarify whether relocation within Ontario or elsewhere in Canada is realistic.',
+    //         ],
+    //         faqs: [
+    //             self::faqItem(
+    //                 'Does Toronto mean every GTA city?',
+    //                 'No. Toronto and neighbouring GTA cities have distinct '
+    //                     . 'locations and travel considerations. Members should '
+    //                     . 'provide their actual current city.'
+    //             ),
+    //             self::faqItem(
+    //                 'Are Toronto member details visible publicly?',
+    //                 'No. This page contains regional guidance only and does not '
+    //                     . 'publish member profile information.'
+    //             ),
+    //         ],
+    //         related: [
+    //             self::link('Sikh Matrimony in Canada', 'web.seo.location.canada'),
+    //             self::link('Sikh Matrimony in Vancouver', 'web.seo.location.vancouver'),
+    //             self::link('Frequently Asked Questions', 'web.seo.faq'),
+    //         ],
+    //         parentBreadcrumb: self::link(
+    //             'Canada',
+    //             'web.seo.location.canada'
+    //         )
+    //     );
+    // }
 
     /** @return array<string, mixed> */
-    private static function vancouver(): array
-    {
-        return self::locationPage(
-            routeName: 'web.seo.location.vancouver',
-            place: 'Vancouver',
-            title: 'Sikh Matrimony in Vancouver | SikhanandKaraj',
-            description: 'Explore Sikh matrimony guidance for Vancouver and the '
-                . 'Lower Mainland, including exact location, career, family '
-                . 'ties and relocation planning.',
-            introduction: 'Sikh matrimonial searches around Vancouver frequently '
-                . 'include Surrey, Delta, Burnaby, Richmond, Abbotsford and '
-                . 'other Lower Mainland communities. Exact location and '
-                . 'future plans should be clear from the beginning.',
-            regionalTitle: 'Matrimonial planning across the Lower Mainland',
-            regionalParagraphs: [
-                'Housing, commute, profession and closeness to extended '
-                    . 'family can strongly influence long-term plans in British '
-                    . 'Columbia. A broad Vancouver label may hide meaningful '
-                    . 'differences between communities.',
-                'Some families also consider matches elsewhere in Canada, '
-                    . 'India or the wider Sikh diaspora. Long-distance '
-                    . 'introductions need additional patience, independent '
-                    . 'verification and realistic discussion about who could '
-                    . 'relocate.',
-            ],
-            regionalItems: [
-                'State the actual Lower Mainland municipality.',
-                'Discuss housing and family-living expectations without assumptions.',
-                'Explain work location and professional mobility accurately.',
-                'Treat interprovincial or international relocation as a joint decision.',
-            ],
-            faqs: [
-                self::faqItem(
-                    'Does Vancouver include Surrey and nearby cities?',
-                    'The landing page discusses the wider region, but member '
-                        . 'profiles should use their actual city so location '
-                        . 'preferences remain meaningful.'
-                ),
-                self::faqItem(
-                    'Can Vancouver members consider Toronto or India matches?',
-                    'Yes, when both people are open to distance and relocation. '
-                        . 'Practical and immigration implications should be discussed '
-                        . 'and independently checked.'
-                ),
-            ],
-            related: [
-                self::link('Sikh Matrimony in Canada', 'web.seo.location.canada'),
-                self::link('Sikh Matrimony in Toronto', 'web.seo.location.toronto'),
-                self::link('How It Works', 'web.seo.how-it-works'),
-            ],
-            parentBreadcrumb: self::link(
-                'Canada',
-                'web.seo.location.canada'
-            )
-        );
-    }
+    // private static function vancouver(): array
+    // {
+    //     return self::locationPage(
+    //         routeName: 'web.seo.location.vancouver',
+    //         place: 'Vancouver',
+    //         title: 'Sikh Matrimony in Vancouver | SikhanandKaraj',
+    //         description: 'Explore Sikh matrimony guidance for Vancouver and the '
+    //             . 'Lower Mainland, including exact location, career, family '
+    //             . 'ties and relocation planning.',
+    //         introduction: 'Sikh matrimonial searches around Vancouver frequently '
+    //             . 'include Surrey, Delta, Burnaby, Richmond, Abbotsford and '
+    //             . 'other Lower Mainland communities. Exact location and '
+    //             . 'future plans should be clear from the beginning.',
+    //         regionalTitle: 'Matrimonial planning across the Lower Mainland',
+    //         regionalParagraphs: [
+    //             'Housing, commute, profession and closeness to extended '
+    //                 . 'family can strongly influence long-term plans in British '
+    //                 . 'Columbia. A broad Vancouver label may hide meaningful '
+    //                 . 'differences between communities.',
+    //             'Some families also consider matches elsewhere in Canada, '
+    //                 . 'India or the wider Sikh diaspora. Long-distance '
+    //                 . 'introductions need additional patience, independent '
+    //                 . 'verification and realistic discussion about who could '
+    //                 . 'relocate.',
+    //         ],
+    //         regionalItems: [
+    //             'State the actual Lower Mainland municipality.',
+    //             'Discuss housing and family-living expectations without assumptions.',
+    //             'Explain work location and professional mobility accurately.',
+    //             'Treat interprovincial or international relocation as a joint decision.',
+    //         ],
+    //         faqs: [
+    //             self::faqItem(
+    //                 'Does Vancouver include Surrey and nearby cities?',
+    //                 'The landing page discusses the wider region, but member '
+    //                     . 'profiles should use their actual city so location '
+    //                     . 'preferences remain meaningful.'
+    //             ),
+    //             self::faqItem(
+    //                 'Can Vancouver members consider Toronto or India matches?',
+    //                 'Yes, when both people are open to distance and relocation. '
+    //                     . 'Practical and immigration implications should be discussed '
+    //                     . 'and independently checked.'
+    //             ),
+    //         ],
+    //         related: [
+    //             self::link('Sikh Matrimony in Canada', 'web.seo.location.canada'),
+    //             self::link('Sikh Matrimony in Toronto', 'web.seo.location.toronto'),
+    //             self::link('How It Works', 'web.seo.how-it-works'),
+    //         ],
+    //         parentBreadcrumb: self::link(
+    //             'Canada',
+    //             'web.seo.location.canada'
+    //         )
+    //     );
+    // }
 
     /**
      * @param list<array<string, mixed>> $sections

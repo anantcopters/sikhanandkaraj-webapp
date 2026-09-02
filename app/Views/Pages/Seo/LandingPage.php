@@ -42,41 +42,6 @@ $this->section('content');
 <!-- Public SEO landing-page header and breadcrumb navigation. -->
 <section class="section py-5 light-yellowish">
     <div class="container">
-        <nav aria-label="Breadcrumb" class="mb-4">
-            <ol class="breadcrumb mb-0">
-                <?php foreach ($breadcrumbs as $position => $breadcrumb): ?>
-                    <?php
-                    $breadcrumbLabel = trim(
-                        (string) ($breadcrumb['label'] ?? '')
-                    );
-                    $breadcrumbRoute = trim(
-                        (string) ($breadcrumb['routeName'] ?? '')
-                    );
-                    $isCurrentBreadcrumb = $position === array_key_last(
-                        $breadcrumbs
-                    );
-                    ?>
-                    <li
-                        class="breadcrumb-item<?= $isCurrentBreadcrumb
-                                                    ? ' active'
-                                                    : '' ?>"
-                        <?= $isCurrentBreadcrumb
-                            ? 'aria-current="page"'
-                            : '' ?>>
-                        <?php if (!$isCurrentBreadcrumb): ?>
-                            <a href="<?= esc(
-                                            url_to($breadcrumbRoute),
-                                            'attr'
-                                        ) ?>">
-                                <?= esc($breadcrumbLabel) ?>
-                            </a>
-                        <?php else: ?>
-                            <?= esc($breadcrumbLabel) ?>
-                        <?php endif; ?>
-                    </li>
-                <?php endforeach; ?>
-            </ol>
-        </nav>
 
         <div class="row justify-content-center">
             <div class="col-12 col-xl-10 text-center">
@@ -97,7 +62,7 @@ $this->section('content');
 </section>
 
 <!-- Unique informational sections supplied by the page catalog. -->
-<section class="section py-5">
+<section class="section py-0 light-yellowish">
     <div class="container">
         <div class="row justify-content-center">
             <div class="col-12 col-xl-10">
@@ -153,7 +118,8 @@ $this->section('content');
 
                 <?php if ($faqs !== []): ?>
                     <!-- Visible FAQs match the FAQPage structured data. -->
-                    <section class="card border shadow-sm mb-4" aria-labelledby="page-faq-title">
+                    <section class="card border border-danger border-opacity-25
+                            shadow-sm mb-4" aria-labelledby="page-faq-title">
                         <div class="card-body p-4 p-lg-5">
                             <h2 id="page-faq-title" class="fs-24 fw-semibold mb-4">
                                 Frequently asked questions
@@ -190,7 +156,7 @@ $this->section('content');
                                                                                     : '' ?>"
                                             aria-labelledby="<?= esc($faqHeadingId, 'attr') ?>"
                                             data-bs-parent="#seo-page-faq">
-                                            <div class="accordion-body lh-lg">
+                                            <div class="accordion-body lh-lg text-body">
                                                 <?= esc((string) ($faq['answer'] ?? '')) ?>
                                             </div>
                                         </div>
@@ -204,7 +170,7 @@ $this->section('content');
                 <!-- Contextual links connect core and location content. -->
                 <?php if ($relatedLinks !== []): ?>
                     <section
-                        class="card border-0 bg-light mb-4"
+                        class="card bg-light border border-danger border-opacity-25"
                         aria-labelledby="related-pages-title">
                         <div class="card-body p-4 p-lg-5">
                             <h2 id="related-pages-title" class="fs-22 fw-semibold mb-3">

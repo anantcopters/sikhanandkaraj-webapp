@@ -49,20 +49,20 @@ final class SeoLandingPageController extends BaseController
         return $this->renderPage('chandigarh');
     }
 
-    public function canada(): string
-    {
-        return $this->renderPage('canada');
-    }
+    // public function canada(): string
+    // {
+    //     return $this->renderPage('canada');
+    // }
 
-    public function toronto(): string
-    {
-        return $this->renderPage('toronto');
-    }
+    // public function toronto(): string
+    // {
+    //     return $this->renderPage('toronto');
+    // }
 
-    public function vancouver(): string
-    {
-        return $this->renderPage('vancouver');
-    }
+    // public function vancouver(): string
+    // {
+    //     return $this->renderPage('vancouver');
+    // }
 
     private function renderPage(string $pageKey): string
     {
