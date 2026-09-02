@@ -559,6 +559,129 @@ final class MemberProfileViewService
     }
 
     /**
+     * Return one Full-Profile-authorized medium gallery photo URL.
+     *
+     * SECURITY:
+     *
+     * A medium gallery image is Full Profile detail media.
+     *
+     * Therefore a direct request for:
+     *
+     *     /members/{ref}/photos/{photoId}/medium-url
+     *
+     * must pass through the same authorization boundary as the Full Profile
+     * itself. The endpoint must never become an alternate path around:
+     *
+     * - paid membership entitlement;
+     * - Verified Profile requirement;
+     * - male -> female accepted-Interest privacy;
+     * - member-to-member blocking;
+     * - administrator global-hide moderation;
+     * - Full Profile membership quota;
+     * - daily Full Profile quota.
+     *
+     * ProfileAccessPolicy remains the single authority for those rules.
+     *
+     * MembershipProfileUsageService treats an already-consumed target as a
+     * repeat opening, so loading a medium image from an already-open Full
+     * Profile does not consume another Full Profile allowance.
+     */
+    public function galleryMediumUrlForViewer(
+        int $viewerUserId,
+        string $profileReference,
+        int $photoId
+    ): string {
+        if ($photoId <= 0) {
+            throw PageNotFoundException
+                ::forPageNotFound();
+        }
+
+        /*
+         * Resolve the target from the public profile reference.
+         *
+         * This also applies:
+         *
+         * - active-member validation;
+         * - self-access protection;
+         * - bidirectional block protection;
+         * - administrator global-hide protection.
+         *
+         * Never accept another member's numeric database ID from the request.
+         */
+        $target = $this
+            ->resolveVisibleTarget(
+                $viewerUserId,
+                $profileReference
+            );
+
+        $targetUserId = max(
+            0,
+            (int) (
+                $target['id']
+                ?? 0
+            )
+        );
+
+        if ($targetUserId <= 0) {
+            throw PageNotFoundException
+                ::forPageNotFound();
+        }
+
+        /*
+         * SECURITY BOUNDARY
+         * ------------------------------------------------------------------
+         *
+         * Medium gallery media belongs to the protected Full Profile.
+         *
+         * Do not replace this with targetForAction() authorization.
+         * targetForAction() intentionally permits interactions such as
+         * Show Interest without requiring Full Profile access.
+         *
+         * authorizeFullProfile() centrally enforces the commercial and
+         * matrimonial privacy rules before any medium image URL is created.
+         */
+        $this
+            ->profileAccessPolicy
+            ->authorizeFullProfile(
+                $viewerUserId,
+                $targetUserId
+            );
+
+        /*
+         * Photo visibility remains an additional restriction.
+         *
+         * Full Profile authorization answers:
+         *
+         *     "May this viewer access this member's Full Profile?"
+         *
+         * Photo visibility independently answers:
+         *
+         *     "May this particular approved photo be shown to this viewer?"
+         *
+         * PUBLIC
+         *     -> visible after Full Profile authorization.
+         *
+         * INTERESTED_MEMBERS
+         *     -> additionally requires an Interest relationship.
+         */
+        $hasInterestRelationship = $this
+            ->interactionService
+            ->hasInterestBetween(
+                $viewerUserId,
+                $targetUserId
+            );
+
+        return $this
+            ->photoUrlService
+            ->getApprovedGalleryMediumUrlForViewer(
+                memberId: $targetUserId,
+                viewerUserId: $viewerUserId,
+                photoId: $photoId,
+                hasInterestRelationship: $hasInterestRelationship
+            );
+    }
+
+    /**
      * Resolve an active member which remains visible to this viewer.
      *
      * A generic 404 is intentional when the pair is blocked. Do not reveal

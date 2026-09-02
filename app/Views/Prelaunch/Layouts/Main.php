@@ -30,7 +30,7 @@ $documentTitle = $resolvedPageTitle
 $homeUrl = site_url('/prelaunch/profile');
 
 $logoUrl = base_url(
-    'assets/images/logo_sak_bgremove_final.png'
+    'assets/images/logo_sak_header.png'
 );
 
 /*
@@ -80,6 +80,8 @@ $phoneUrl = 'tel:' . $phoneDialValue;
     <meta
         name="viewport"
         content="width=device-width, initial-scale=1">
+
+    <meta name="robots" content="noindex, nofollow, noarchive">
 
     <title>
         <?= esc($documentTitle) ?>

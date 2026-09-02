@@ -93,17 +93,6 @@ $menuItems = [
 
         'icon' =>
         'ri-fingerprint-line',
-
-        /*
-     * Keep the section accessible so members can review existing Aadhaar
-     * verification status/history. Only new paid operations are restricted
-     * inside the section by the backend-resolved capability.
-     */
-        'paidFeature' =>
-        !(
-            $membershipCapabilities['aadhaar']
-            ?? false
-        ),
     ],
     'video-introduction' => [
         'label' =>
@@ -145,6 +134,13 @@ $menuItems = [
 
         'icon' =>
         'ri-history-line',
+    ],
+    'communication-preferences' => [
+        'label' =>
+        'Communication Preferences',
+
+        'icon' =>
+        'ri-notification-3-line',
     ],
     'contact' => [
         'label' => 'Contact Us',
@@ -686,7 +682,7 @@ $this->section('content');
                                             <span
                                                 class="badge
                                                     bg-success-subtle
-                                                    text-success p-2">
+                                                    text-body p-2">
 
                                                 Verified
                                             </span>
@@ -694,7 +690,7 @@ $this->section('content');
                                             <span
                                                 class="badge
                                                     bg-warning-subtle
-                                                    text-warning p-2">
+                                                    text-body p-2">
 
                                                 Verification pending
                                             </span>
@@ -1011,16 +1007,16 @@ $this->section('content');
 
                                                 $statusClass = match ($status) {
                                                     'DISMISSED' =>
-                                                    'bg-secondary-subtle text-secondary',
+                                                    'bg-secondary-subtle text-body',
 
                                                     'ACTION_TAKEN' =>
-                                                    'bg-danger-subtle text-danger',
+                                                    'bg-danger-subtle text-body',
 
                                                     'REVIEWED' =>
-                                                    'bg-success-subtle text-success',
+                                                    'bg-success-subtle text-body',
 
                                                     default =>
-                                                    'bg-warning-subtle text-dark',
+                                                    'bg-warning-subtle text-body',
                                                 };
 
                                                 $reportedAt =
@@ -1041,7 +1037,7 @@ $this->section('content');
                                                         <span
                                                             class="badge
                                         bg-primary-subtle
-                                        text-primary
+                                        text-body
                                         p-2">
 
                                                             <?= esc(
@@ -1101,15 +1097,46 @@ $this->section('content');
                             $activeSection === 'plans'
                         ): ?>
 
-                            <div class="text-center mb-4">
+                            <?php
+
+                            $resolvedMembershipPlans =
+                                isset($membershipPlans)
+                                && is_array($membershipPlans)
+                                ? $membershipPlans
+                                : [];
+
+                            $resolvedPlans =
+                                isset(
+                                    $resolvedMembershipPlans['plans']
+                                )
+                                && is_array(
+                                    $resolvedMembershipPlans['plans']
+                                )
+                                ? $resolvedMembershipPlans['plans']
+                                : [];
+
+                            $resolvedCurrentAccount =
+                                isset(
+                                    $resolvedMembershipPlans['currentAccount']
+                                )
+                                && is_array(
+                                    $resolvedMembershipPlans['currentAccount']
+                                )
+                                ? $resolvedMembershipPlans['currentAccount']
+                                : [];
+
+                            ?>
+
+                            <!-- Section heading -->
+                            <div class="mb-4">
 
                                 <p
                                     class="
-                fs-13
+                fs-12
                 fw-semibold
                 text-danger
                 text-uppercase
-                mb-2
+                mb-1
             ">
                                     Membership Plans
                                 </p>
@@ -1125,24 +1152,44 @@ $this->section('content');
 
                             </div>
 
+
+                            <!-- 1. Current membership -->
+                            <?= view(
+                                'Components/Membership/CurrentMembership',
+                                [
+                                    'currentAccount' =>
+                                    $resolvedCurrentAccount,
+                                ]
+                            ) ?>
+
+
+                            <!-- 2. Temporary offline purchase instructions -->
+                            <?= view(
+                                'Pages/AccountSettings/_OfflinePaymentInstructions',
+                                [
+                                    'offlinePayment' =>
+                                    $offlinePayment
+                                        ?? [],
+
+                                    'user' =>
+                                    $user
+                                        ?? [],
+                                ]
+                            ) ?>
+
+
+                            <!-- 3. Available membership plans -->
                             <?= view(
                                 'Components/Membership/PlanCards',
                                 [
-                                    /*
-         * All commercial values come from membership_plans.
-         */
-                                    'plans' =>
-                                    $membershipPlans['plans']
-                                        ?? [],
-
-                                    /*
-         * Current account determines Current Plan presentation.
-         */
-                                    'currentAccount' =>
-                                    $membershipPlans['currentAccount'] ?? [],
-
                                     'context' =>
                                     'member',
+
+                                    'plans' =>
+                                    $resolvedPlans,
+
+                                    'currentAccount' =>
+                                    $resolvedCurrentAccount,
                                 ]
                             ) ?>
 
@@ -1185,6 +1232,20 @@ $this->section('content');
                                 [
                                     'membershipHistory' =>
                                     $membershipHistory
+                                        ?? [],
+                                ]
+                            ) ?>
+
+                        <?php elseif (
+                            $activeSection ===
+                            'communication-preferences'
+                        ): ?>
+
+                            <?= view(
+                                'Pages/AccountSettings/CommunicationPreferences',
+                                [
+                                    'communicationPreferences' =>
+                                    $communicationPreferences
                                         ?? [],
                                 ]
                             ) ?>
@@ -1325,7 +1386,7 @@ $this->section('content');
                                                         <span
                                                             class="badge
                                         bg-primary-subtle
-                                        text-primary
+                                        text-body
                                         p-2">
 
                                                             <?= esc(
@@ -1345,8 +1406,8 @@ $this->section('content');
                                                         <span
                                                             class="badge
                                         <?= $isResolved
-                                                    ? 'bg-success-subtle text-success'
-                                                    : 'bg-warning-subtle text-dark' ?>
+                                                    ? 'bg-success-subtle text-body'
+                                                    : 'bg-warning-subtle text-body' ?>
                                         p-2">
 
                                                             <?= $isResolved

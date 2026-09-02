@@ -394,7 +394,7 @@ $displayItems =
                                     <span
                                         class="badge
                                             bg-danger-subtle
-                                            text-danger
+                                            text-body p-2
                                             mt-1">
 
                                         Must Match

@@ -8,7 +8,7 @@ use App\Models\ContactVerificationModel;
 use App\Models\UserContactModel;
 use App\Models\UserModel;
 use CodeIgniter\Database\BaseConnection;
-use App\Services\Sms\SmsMessage;
+use App\Services\Sms\SmsMessageFactory;
 use App\Services\Sms\SmsProviderInterface;
 use App\Support\BooleanValue;
 use App\Support\OtpGenerator;
@@ -156,33 +156,21 @@ final class RegistrationOtpService
             $this->commitOrFail();
 
             /**
-             * Send the SMS only after the OTP record has been committed.
+             * All OTP workflows use the same approved SMS text.
              *
-             * This prevents sending an OTP that does not exist in the database.
+             * SmsMessageFactory owns that text so Registration cannot drift from
+             * Login, Password Reset or SAK Volunteer OTP messages.
              */
-            $smsResult = $this->smsProvider->send(
-                new SmsMessage(
-                    mobileNumber: (string) $contact['normalized_value'],
-
-                    message: 'Your Sikhanandkaraj verification OTP is '
-                        . $otp
-                        . '. It is valid for '
-                        . OTP_EXPIRY_MINUTES
-                        . ' minutes.',
-
-                    templateId: trim(
-                        (string) env(
-                            'sms.registrationTemplateId'
-                        )
-                    ) ?: null,
-
-                    variables: [
-                        'otp' => $otp,
-                        'expiry_minutes' =>
-                        (string) OTP_EXPIRY_MINUTES,
-                    ]
-                )
-            );
+            $smsResult =
+                $this
+                ->smsProvider
+                ->send(
+                    SmsMessageFactory::otp(
+                        (string)
+                        $contact['normalized_value'],
+                        $otp
+                    )
+                );
 
             if (!$smsResult->successful) {
                 /**

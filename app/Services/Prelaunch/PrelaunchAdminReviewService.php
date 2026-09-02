@@ -9,6 +9,7 @@ use App\Models\Prelaunch\PrelaunchProfileModel;
 use App\Services\Admin\Audit\AdminAuditEvent;
 use App\Services\Admin\Audit\AdminAuditService;
 use App\Services\Admin\Audit\AdminAuditAction;
+use App\Services\Email\MemberEmailService;
 use CodeIgniter\Database\BaseConnection;
 use RuntimeException;
 use Throwable;
@@ -23,8 +24,17 @@ final class PrelaunchAdminReviewService
         private readonly PrelaunchPhotoModel $photoModel,
         private readonly AdminAuditService $auditService,
         private readonly BaseConnection $database,
-        private readonly PrelaunchContactAvailabilityService $contactAvailabilityService,
-        private readonly PrelaunchMemberMigrationService $migrationService
+        private readonly PrelaunchContactAvailabilityService
+        $contactAvailabilityService,
+        private readonly PrelaunchMemberMigrationService
+        $migrationService,
+
+        /*
+        * Email is downstream from the authoritative
+        * prelaunch-to-member migration.
+        */
+        private readonly MemberEmailService
+        $memberEmailService
     ) {}
 
     /**
@@ -209,6 +219,9 @@ final class PrelaunchAdminReviewService
     /**
      * Save final contact values, validate approval rules and migrate the profile.
      *
+     * Email notification is deliberately downstream from successful migration.
+     * A communication failure must never roll back or invalidate the Member.
+     *
      * @param array<string, mixed> $contactInput
      *
      * @return array{
@@ -251,10 +264,17 @@ final class PrelaunchAdminReviewService
             )
         );
 
-        $email = $normalizedEmail !== ''
+        $email =
+            $normalizedEmail !== ''
             ? $normalizedEmail
             : null;
 
+        /*
+        * Preserve the existing approval rule.
+        *
+        * The server remains authoritative even if the Admin
+        * UI were bypassed and this endpoint were called directly.
+        */
         if (
             $this->photoModel
             ->countApprovedByProfile(
@@ -267,6 +287,10 @@ final class PrelaunchAdminReviewService
             );
         }
 
+        /*
+        * Preserve existing server-side contact collision
+        * validation before migration.
+        */
         $this->contactAvailabilityService
             ->assertAvailable(
                 $profileId,
@@ -276,44 +300,83 @@ final class PrelaunchAdminReviewService
             );
 
         /*
-     * Save the final administrator-corrected contact before migration.
-     */
+        * Save the final administrator-corrected contact
+        * before migration.
+        */
         $this->updateContact(
             $profileId,
             [
                 'country_code' =>
                 $countryCode,
+
                 'mobile_number' =>
                 $mobileNumber,
+
                 'email' =>
                 $email,
             ],
             $adminUserId
         );
 
-        $result = $this->migrationService
+        /*
+        * PrelaunchMemberMigrationService remains the
+        * authoritative migration boundary.
+        *
+        * It completes the database migration before returning
+        * the newly-created Member ID.
+        */
+        $result =
+            $this->migrationService
             ->migrate(
                 $profileId,
                 $adminUserId
             );
 
+        /*
+        * Preserve the existing Admin audit trail.
+        */
         $this->recordAudit(
-            AdminAuditAction::PRELAUNCH_PROFILE_APPROVED,
+            AdminAuditAction
+            ::PRELAUNCH_PROFILE_APPROVED,
+
             $profileId,
+
             (string) $profile['profile_reference'],
+
             [
                 'status' =>
                 $profile['status'],
             ],
+
             [
                 'status' =>
                 PrelaunchProfileModel
                 ::STATUS_APPROVED,
+
                 'migrated_user_id' =>
                 $result['memberId'],
             ],
+
             'The prelaunch profile was approved and migrated.'
         );
+
+        /*
+        * Queue the transactional notification only after
+        * successful migration.
+        *
+        * MemberEmailService itself is best-effort and catches
+        * communication failures, therefore SMTP/queue problems
+        * cannot invalidate the completed profile migration.
+        *
+        * If the migrated profile did not provide a verified
+        * email, MemberEmailRecipientService returns no recipient
+        * and no email is queued.
+        */
+        $this->memberEmailService
+            ->queuePrelaunchProfileApproved(
+                (int) $result['memberId'],
+                $profileId
+            );
 
         return $result;
     }

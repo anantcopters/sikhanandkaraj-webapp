@@ -9,6 +9,32 @@ use CodeIgniter\Router\RouteCollection;
  */
 
 // -----------------------------------------------------------------------------
+// Public SikhanandKaraj short URLs
+// -----------------------------------------------------------------------------
+//
+// DLT/SMS-safe short links.
+//
+// Example:
+//
+// /ISAK/A7B2K9
+//      -> /field-officer/login
+//
+// Resolution is intentionally public. Creation and management are restricted
+// separately to SUPER_ADMIN.
+//
+$routes->get(
+    'ISAK/(:alphanum)',
+    'ShortUrlController::redirect/$1',
+    [
+        'namespace' =>
+        'App\Controllers\Web',
+
+        'as' =>
+        'web.short-url.redirect',
+    ]
+);
+
+// -----------------------------------------------------------------------------
 // Public legal pages
 // -----------------------------------------------------------------------------
 //
@@ -217,6 +243,14 @@ $routes->group(
         RouteCollection $routes
     ): void {
         $routes->get(
+            'sitemap.xml',
+            'SitemapController::index',
+            [
+                'as' => 'web.sitemap',
+            ]
+        );
+
+        $routes->get(
             'terms-and-conditions',
             'LegalController::termsAndConditions',
             [
@@ -274,6 +308,105 @@ $routes->group(
         RouteCollection $routes
     ): void {
         $routes->get(
+            'sikh-matrimony',
+            'SeoLandingPageController::sikhMatrimony',
+            [
+                'as' => 'web.seo.sikh-matrimony',
+            ]
+        );
+
+        $routes->get(
+            'how-it-works',
+            'SeoLandingPageController::howItWorks',
+            [
+                'as' => 'web.seo.how-it-works',
+            ]
+        );
+
+        $routes->get(
+            'verification-and-safety',
+            'SeoLandingPageController::verificationAndSafety',
+            [
+                'as' => 'web.seo.verification-safety',
+            ]
+        );
+
+        $routes->get(
+            'faq',
+            'SeoLandingPageController::faq',
+            [
+                'as' => 'web.seo.faq',
+            ]
+        );
+
+        $routes->get(
+            'sikh-matrimony/delhi',
+            'SeoLandingPageController::delhi',
+            [
+                'as' => 'web.seo.location.delhi',
+            ]
+        );
+
+        $routes->get(
+            'sikh-matrimony/punjab',
+            'SeoLandingPageController::punjab',
+            [
+                'as' => 'web.seo.location.punjab',
+            ]
+        );
+
+        $routes->get(
+            'sikh-matrimony/chandigarh',
+            'SeoLandingPageController::chandigarh',
+            [
+                'as' => 'web.seo.location.chandigarh',
+            ]
+        );
+
+        $routes->get(
+            'sikh-matrimony/madhya-pradesh',
+            'SeoLandingPageController::madhyaPradesh',
+            [
+                'as' => 'web.seo.location.madhya-pradesh',
+            ]
+        );
+
+        $routes->get(
+            'sikh-matrimony/jaipur',
+            'SeoLandingPageController::jaipur',
+            [
+                'as' => 'web.seo.location.jaipur',
+            ]
+        );
+
+        $routes->get(
+            'sikh-matrimony/indore',
+            'SeoLandingPageController::indore',
+            [
+                'as' => 'web.seo.location.indore',
+            ]
+        );
+
+        $routes->get(
+            'sikh-matrimony/kota',
+            'SeoLandingPageController::kota',
+            [
+                'as' => 'web.seo.location.kota',
+            ]
+        );
+    }
+);
+
+
+$routes->group(
+    '',
+    [
+        'namespace' => 'App\Controllers\Web',
+    ],
+    static function (
+        RouteCollection $routes
+    ): void {
+        $routes->get(
             'about-us',
             'InformationController::aboutUs',
             [
@@ -319,372 +452,344 @@ $routes->group(
 // Member web routes
 // -----------------------------------------------------------------------------
 
-if (env('APP_DEPLOYMENT', 'development') === 'production') {
 
-    $prelaunchRedirect = static function () {
-        return redirect()->to(
-            site_url('prelaunch/profile')
-        );
-    };
 
+$routes->group('', [
+    'namespace' => 'App\Controllers\Web',
+], static function (
+    RouteCollection $routes
+): void {
     $routes->get(
         '/',
-        $prelaunchRedirect,
+        'HomeController::index',
         [
             'as' => 'web.home',
         ]
     );
 
+    $routes->post(
+        'register',
+        'RegistrationController::create',
+        [
+            'as' => 'web.register.create',
+        ]
+    );
+
+    $routes->get(
+        'register/verify-otp',
+        'RegistrationVerificationController::index',
+        [
+            'as' => 'web.registration.verify',
+        ]
+    );
+
+    $routes->post(
+        'register/verify-otp',
+        'RegistrationVerificationController::verify',
+        [
+            'as' => 'web.registration.verify.submit',
+        ]
+    );
+
+    $routes->post(
+        'register/resend-otp',
+        'RegistrationVerificationController::resend',
+        [
+            'as' => 'web.registration.otp.resend',
+        ]
+    );
+
+    $routes->post(
+        'register/cancel',
+        'RegistrationVerificationController::cancel',
+        [
+            'as' => 'web.registration.cancel',
+        ]
+    );
+
+    /*
+ * Member login method selection.
+ */
     $routes->get(
         'login',
-        $prelaunchRedirect,
+        'AuthenticationController::index',
         [
             'as' => 'web.login',
         ]
     );
 
-    $routes->get(
-        'register',
-        $prelaunchRedirect
-    );
-} else {
-
-    $routes->group('', [
-        'namespace' => 'App\Controllers\Web',
-    ], static function (
-        RouteCollection $routes
-    ): void {
-        $routes->get(
-            '/',
-            'HomeController::index',
-            [
-                'as' => 'web.home',
-            ]
-        );
-
-        $routes->post(
-            'register',
-            'RegistrationController::create',
-            [
-                'as' => 'web.register.create',
-            ]
-        );
-
-        $routes->get(
-            'register/verify-otp',
-            'RegistrationVerificationController::index',
-            [
-                'as' => 'web.registration.verify',
-            ]
-        );
-
-        $routes->post(
-            'register/verify-otp',
-            'RegistrationVerificationController::verify',
-            [
-                'as' => 'web.registration.verify.submit',
-            ]
-        );
-
-        $routes->post(
-            'register/resend-otp',
-            'RegistrationVerificationController::resend',
-            [
-                'as' => 'web.registration.otp.resend',
-            ]
-        );
-
-        $routes->post(
-            'register/cancel',
-            'RegistrationVerificationController::cancel',
-            [
-                'as' => 'web.registration.cancel',
-            ]
-        );
-
-        /*
- * Member login method selection.
- */
-        $routes->get(
-            'login',
-            'AuthenticationController::index',
-            [
-                'as' => 'web.login',
-            ]
-        );
-
-        /*
+    /*
  * Existing password login.
  */
-        $routes->get(
-            'login/password',
-            'AuthenticationController::password',
-            [
-                'as' =>
-                'web.login.password',
-            ]
-        );
+    $routes->get(
+        'login/password',
+        'AuthenticationController::password',
+        [
+            'as' =>
+            'web.login.password',
+        ]
+    );
 
-        $routes->post(
-            'login/password',
-            'AuthenticationController::login',
-            [
-                'as' =>
-                'web.login.submit',
-            ]
-        );
+    $routes->post(
+        'login/password',
+        'AuthenticationController::login',
+        [
+            'as' =>
+            'web.login.submit',
+        ]
+    );
 
-        /*
+    /*
  * Passwordless login through a verified mobile OTP.
  */
-        $routes->get(
-            'login/otp',
-            'OtpLoginController::index',
-            [
-                'as' =>
-                'web.login.otp',
-            ]
-        );
+    $routes->get(
+        'login/otp',
+        'OtpLoginController::index',
+        [
+            'as' =>
+            'web.login.otp',
+        ]
+    );
 
-        $routes->post(
-            'login/otp/send',
-            'OtpLoginController::sendOtp',
-            [
-                'as' =>
-                'web.login.otp.send',
-            ]
-        );
+    $routes->post(
+        'login/otp/send',
+        'OtpLoginController::sendOtp',
+        [
+            'as' =>
+            'web.login.otp.send',
+        ]
+    );
 
-        $routes->get(
-            'login/otp/verify',
-            'OtpLoginController::verifyPage',
-            [
-                'as' =>
-                'web.login.otp.verify',
-            ]
-        );
+    $routes->get(
+        'login/otp/verify',
+        'OtpLoginController::verifyPage',
+        [
+            'as' =>
+            'web.login.otp.verify',
+        ]
+    );
 
-        $routes->post(
-            'login/otp/verify',
-            'OtpLoginController::verifyOtp',
-            [
-                'as' =>
-                'web.login.otp.verify.submit',
-            ]
-        );
+    $routes->post(
+        'login/otp/verify',
+        'OtpLoginController::verifyOtp',
+        [
+            'as' =>
+            'web.login.otp.verify.submit',
+        ]
+    );
 
-        $routes->post(
-            'login/otp/resend',
-            'OtpLoginController::resendOtp',
-            [
-                'as' =>
-                'web.login.otp.resend',
-            ]
-        );
+    $routes->post(
+        'login/otp/resend',
+        'OtpLoginController::resendOtp',
+        [
+            'as' =>
+            'web.login.otp.resend',
+        ]
+    );
 
-        $routes->post(
-            'login/otp/cancel',
-            'OtpLoginController::cancel',
-            [
-                'as' =>
-                'web.login.otp.cancel',
-            ]
-        );
+    $routes->post(
+        'login/otp/cancel',
+        'OtpLoginController::cancel',
+        [
+            'as' =>
+            'web.login.otp.cancel',
+        ]
+    );
 
-        $routes->group(
-            'forgot-password',
-            [
-                'namespace' => 'App\Controllers\Web',
-            ],
-            static function ($routes): void {
-                $routes->get(
-                    '',
-                    'ForgotPasswordController::index',
-                    [
-                        'as' => 'web.forgot-password',
-                    ]
-                );
+    $routes->group(
+        'forgot-password',
+        [
+            'namespace' => 'App\Controllers\Web',
+        ],
+        static function ($routes): void {
+            $routes->get(
+                '',
+                'ForgotPasswordController::index',
+                [
+                    'as' => 'web.forgot-password',
+                ]
+            );
 
-                $routes->post(
-                    'send-otp',
-                    'ForgotPasswordController::sendOtp',
-                    [
-                        'as' => 'web.forgot-password.send-otp',
-                    ]
-                );
+            $routes->post(
+                'send-otp',
+                'ForgotPasswordController::sendOtp',
+                [
+                    'as' => 'web.forgot-password.send-otp',
+                ]
+            );
 
-                $routes->get(
-                    'verify',
-                    'ForgotPasswordController::verifyPage',
-                    [
-                        'as' => 'web.forgot-password.verify',
-                    ]
-                );
+            $routes->get(
+                'verify',
+                'ForgotPasswordController::verifyPage',
+                [
+                    'as' => 'web.forgot-password.verify',
+                ]
+            );
 
-                $routes->post(
-                    'verify',
-                    'ForgotPasswordController::verifyOtp',
-                    [
-                        'as' => 'web.forgot-password.verify.submit',
-                    ]
-                );
+            $routes->post(
+                'verify',
+                'ForgotPasswordController::verifyOtp',
+                [
+                    'as' => 'web.forgot-password.verify.submit',
+                ]
+            );
 
-                $routes->post(
-                    'resend',
-                    'ForgotPasswordController::resendOtp',
-                    [
-                        'as' => 'web.forgot-password.resend',
-                    ]
-                );
+            $routes->post(
+                'resend',
+                'ForgotPasswordController::resendOtp',
+                [
+                    'as' => 'web.forgot-password.resend',
+                ]
+            );
 
-                $routes->get(
-                    'password',
-                    'ForgotPasswordController::passwordPage',
-                    [
-                        'as' => 'web.forgot-password.password',
-                    ]
-                );
+            $routes->get(
+                'password',
+                'ForgotPasswordController::passwordPage',
+                [
+                    'as' => 'web.forgot-password.password',
+                ]
+            );
 
-                $routes->post(
-                    'password',
-                    'ForgotPasswordController::updatePassword',
-                    [
-                        'as' => 'web.forgot-password.password.update',
-                    ]
-                );
+            $routes->post(
+                'password',
+                'ForgotPasswordController::updatePassword',
+                [
+                    'as' => 'web.forgot-password.password.update',
+                ]
+            );
 
-                $routes->post(
-                    'cancel',
-                    'ForgotPasswordController::cancel',
-                    [
-                        'as' => 'web.forgot-password.cancel',
-                    ]
-                );
-            }
-        );
+            $routes->post(
+                'cancel',
+                'ForgotPasswordController::cancel',
+                [
+                    'as' => 'web.forgot-password.cancel',
+                ]
+            );
+        }
+    );
 
-        /*
+    /*
         * Logout must remain accessible even when the authenticated session
         * has already expired.
         *
         * AuthenticationController::logout() safely destroys any remaining
         * session state, so this route must not be protected by webAuth.
         */
-        $routes->post(
-            'logout',
-            'AuthenticationController::logout',
-            [
-                'as' => 'web.logout',
-            ]
-        );
+    $routes->post(
+        'logout',
+        'AuthenticationController::logout',
+        [
+            'as' => 'web.logout',
+        ]
+    );
 
-        $routes->get(
-            'dashboard',
-            'DashboardController::index',
-            [
-                'as' => 'web.dashboard',
-                'filter' => 'webAuth',
-            ]
-        );
+    $routes->get(
+        'dashboard',
+        'DashboardController::index',
+        [
+            'as' => 'web.dashboard',
+            'filter' => 'webAuth',
+        ]
+    );
 
-        $routes->post(
-            'member/aadhaar',
-            'MemberAadhaarController::upload',
-            [
-                'as' => 'web.member.aadhaar.upload',
-                'filter' => 'webAuth',
-            ]
-        );
+    $routes->post(
+        'member/aadhaar',
+        'MemberAadhaarController::upload',
+        [
+            'as' => 'web.member.aadhaar.upload',
+            'filter' => 'webAuth',
+        ]
+    );
 
-        /*
+    /*
  * Authenticated member navigation.
  */
-        $routes->group(
-            '',
-            [
-                'filter' => 'webAuth',
-            ],
-            static function (
-                RouteCollection $routes
-            ): void {
-                $routes->get(
-                    'matches',
-                    'MemberNavigationController::matches',
-                    [
-                        'as' => 'web.matches',
-                    ]
-                );
+    $routes->group(
+        '',
+        [
+            'filter' => 'webAuth',
+        ],
+        static function (
+            RouteCollection $routes
+        ): void {
+            $routes->get(
+                'matches',
+                'MemberNavigationController::matches',
+                [
+                    'as' => 'web.matches',
+                ]
+            );
 
-                $routes->get(
-                    'interests',
-                    'InterestController::index',
-                    [
-                        'as' => 'web.interests',
-                    ]
-                );
+            $routes->get(
+                'interests',
+                'InterestController::index',
+                [
+                    'as' => 'web.interests',
+                ]
+            );
 
-                $routes->post(
-                    'interests/received/(:segment)/accept',
-                    'InterestController::accept/$1',
-                    [
-                        'as' =>
-                        'web.interests.received.accept',
-                    ]
-                );
+            $routes->post(
+                'interests/received/(:segment)/accept',
+                'InterestController::accept/$1',
+                [
+                    'as' =>
+                    'web.interests.received.accept',
+                ]
+            );
 
-                $routes->post(
-                    'interests/received/(:segment)/decline',
-                    'InterestController::decline/$1',
-                    [
-                        'as' =>
-                        'web.interests.received.decline',
-                    ]
-                );
+            $routes->post(
+                'interests/received/(:segment)/decline',
+                'InterestController::decline/$1',
+                [
+                    'as' =>
+                    'web.interests.received.decline',
+                ]
+            );
 
-                $routes->get(
-                    'messages',
-                    'MemberNavigationController::messages',
-                    [
-                        'as' => 'web.messages',
-                    ]
-                );
+            $routes->get(
+                'messages',
+                'MemberNavigationController::messages',
+                [
+                    'as' => 'web.messages',
+                ]
+            );
 
-                $routes->get(
-                    'notifications',
-                    'NotificationController::index',
-                    [
-                        'as' => 'web.notifications',
-                    ]
-                );
+            $routes->get(
+                'notifications',
+                'NotificationController::index',
+                [
+                    'as' => 'web.notifications',
+                ]
+            );
 
-                $routes->post(
-                    'notifications/read-all',
-                    'NotificationController::readAll',
-                    [
-                        'as' =>
-                        'web.notifications.read-all',
-                    ]
-                );
+            $routes->post(
+                'notifications/read-all',
+                'NotificationController::readAll',
+                [
+                    'as' =>
+                    'web.notifications.read-all',
+                ]
+            );
 
-                $routes->get(
-                    'notifications/(:num)/open',
-                    'NotificationController::open/$1',
-                    [
-                        'as' =>
-                        'web.notifications.open',
-                    ]
-                );
+            $routes->get(
+                'notifications/(:num)/open',
+                'NotificationController::open/$1',
+                [
+                    'as' =>
+                    'web.notifications.open',
+                ]
+            );
 
-                $routes->get(
-                    'members/(:segment)',
-                    'MemberProfileController::view/$1',
-                    [
-                        'as' =>
-                        'web.members.view',
-                    ]
-                );
+            $routes->get(
+                'members/(:segment)',
+                'MemberProfileController::view/$1',
+                [
+                    'as' =>
+                    'web.members.view',
+                ]
+            );
 
-                /*
+            /*
                 * Protected PDF representation of another member's Full Profile.
                 *
                 * Authorization is performed again server-side by
@@ -694,53 +799,53 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
                 * Never rely on the fact that the browser previously loaded the Full
                 * Profile.
                 */
-                $routes->post(
-                    'members/(:segment)/pdf',
-                    'MemberProfilePdfController::member/$1',
-                    [
-                        'as' =>
-                        'web.members.pdf',
-                    ]
-                );
+            $routes->post(
+                'members/(:segment)/pdf',
+                'MemberProfilePdfController::member/$1',
+                [
+                    'as' =>
+                    'web.members.pdf',
+                ]
+            );
 
-                $routes->post(
-                    'members/(:segment)/interest',
-                    'MemberProfileController::showInterest/$1',
-                    [
-                        'as' =>
-                        'web.members.interest',
-                    ]
-                );
+            $routes->post(
+                'members/(:segment)/interest',
+                'MemberProfileController::showInterest/$1',
+                [
+                    'as' =>
+                    'web.members.interest',
+                ]
+            );
 
-                $routes->post(
-                    'members/(:segment)/interest/accept',
-                    'MemberProfileController::acceptInterest/$1',
-                    [
-                        'as' =>
-                        'web.members.interest.accept',
-                    ]
-                );
+            $routes->post(
+                'members/(:segment)/interest/accept',
+                'MemberProfileController::acceptInterest/$1',
+                [
+                    'as' =>
+                    'web.members.interest.accept',
+                ]
+            );
 
-                $routes->post(
-                    'members/(:segment)/interest/decline',
-                    'MemberProfileController::declineInterest/$1',
-                    [
-                        'as' =>
-                        'web.members.interest.decline',
-                    ]
-                );
+            $routes->post(
+                'members/(:segment)/interest/decline',
+                'MemberProfileController::declineInterest/$1',
+                [
+                    'as' =>
+                    'web.members.interest.decline',
+                ]
+            );
 
-                $routes->post(
-                    'members/(:segment)/shortlist',
-                    'MemberProfileController'
-                        . '::toggleShortlist/$1',
-                    [
-                        'as' =>
-                        'web.members.shortlist',
-                    ]
-                );
+            $routes->post(
+                'members/(:segment)/shortlist',
+                'MemberProfileController'
+                    . '::toggleShortlist/$1',
+                [
+                    'as' =>
+                    'web.members.shortlist',
+                ]
+            );
 
-                /*
+            /*
                 * Report another profile.
                 *
                 * Report is available to both Free and Paid members.
@@ -748,33 +853,33 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
                 * The public profile reference remains part of the route so the browser never
                 * submits another member's numeric database user ID.
                 */
-                $routes->post(
-                    'members/(:segment)/report',
-                    'MemberProfileController::report/$1',
-                    [
-                        'as' =>
-                        'web.members.report',
-                    ]
-                );
+            $routes->post(
+                'members/(:segment)/report',
+                'MemberProfileController::report/$1',
+                [
+                    'as' =>
+                    'web.members.report',
+                ]
+            );
 
-                $routes->post(
-                    'members/(:segment)/block',
-                    'MemberProfileController::block/$1',
-                    [
-                        'as' =>
-                        'web.members.block',
-                    ]
-                );
+            $routes->post(
+                'members/(:segment)/block',
+                'MemberProfileController::block/$1',
+                [
+                    'as' =>
+                    'web.members.block',
+                ]
+            );
 
-                $routes->get(
-                    'members/(:segment)/photos/(:num)/medium-url',
-                    'MemberProfileController::photoMediumUrl/$1/$2',
-                    [
-                        'as' => 'web.members.photos.medium-url',
-                    ]
-                );
+            $routes->get(
+                'members/(:segment)/photos/(:num)/medium-url',
+                'MemberProfileController::photoMediumUrl/$1/$2',
+                [
+                    'as' => 'web.members.photos.medium-url',
+                ]
+            );
 
-                /*
+            /*
                 * --------------------------------------------------------------------------
                 * Member Search
                 * --------------------------------------------------------------------------
@@ -794,566 +899,600 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
                 *     Dependent active-city master endpoint.
                 */
 
-                $routes->get(
-                    'search',
-                    'SearchController::index',
-                    [
-                        'as' =>
-                        'web.search',
-                    ]
-                );
+            $routes->get(
+                'search',
+                'SearchController::index',
+                [
+                    'as' =>
+                    'web.search',
+                ]
+            );
 
-                $routes->get(
-                    'search/results',
-                    'SearchController::results',
-                    [
-                        'as' =>
-                        'web.search.results',
-                    ]
-                );
+            $routes->get(
+                'search/results',
+                'SearchController::results',
+                [
+                    'as' =>
+                    'web.search.results',
+                ]
+            );
 
-                $routes->get(
-                    'search/profile',
-                    'SearchController::profile',
-                    [
-                        'as' =>
-                        'web.search.profile',
-                    ]
-                );
+            $routes->get(
+                'search/profile',
+                'SearchController::profile',
+                [
+                    'as' =>
+                    'web.search.profile',
+                ]
+            );
 
-                $routes->get(
-                    'search/states',
-                    'SearchController::states',
-                    [
-                        'as' =>
-                        'web.search.states',
-                    ]
-                );
+            $routes->get(
+                'search/states',
+                'SearchController::states',
+                [
+                    'as' =>
+                    'web.search.states',
+                ]
+            );
 
-                $routes->get(
-                    'search/cities',
-                    'SearchController::cities',
-                    [
-                        'as' =>
-                        'web.search.cities',
-                    ]
-                );
-            }
-        );
+            $routes->get(
+                'search/cities',
+                'SearchController::cities',
+                [
+                    'as' =>
+                    'web.search.cities',
+                ]
+            );
+        }
+    );
 
-        $routes->get(
-            'profile/edit',
-            'ProfileController::edit',
-            [
-                'as' => 'web.profile.edit',
-                'filter' => 'webAuth',
-            ]
-        );
+    $routes->get(
+        'profile/edit',
+        'ProfileController::edit',
+        [
+            'as' => 'web.profile.edit',
+            'filter' => 'webAuth',
+        ]
+    );
 
-        /*
+    /*
  * Authenticated member Partner Preference routes.
  */
-        $routes->group(
-            'partner-preference',
-            [
-                'filter' => 'webAuth',
-            ],
-            static function (
-                RouteCollection $routes
-            ): void {
-                $routes->get(
-                    '',
-                    'PartnerPreferenceController::index',
-                    [
-                        'as' =>
-                        'web.partner-preference',
-                    ]
-                );
+    $routes->group(
+        'partner-preference',
+        [
+            'filter' => 'webAuth',
+        ],
+        static function (
+            RouteCollection $routes
+        ): void {
+            $routes->get(
+                '',
+                'PartnerPreferenceController::index',
+                [
+                    'as' =>
+                    'web.partner-preference',
+                ]
+            );
 
-                /*
+            /*
          * Existing Basic preference item routes.
          */
-                $routes->get(
-                    'basic/(:segment)',
-                    'PartnerPreferenceController'
-                        . '::editBasicItem/$1',
-                    [
-                        'as' =>
-                        'web.partner-preference.basic.edit',
-                    ]
-                );
+            $routes->get(
+                'basic/(:segment)',
+                'PartnerPreferenceController'
+                    . '::editBasicItem/$1',
+                [
+                    'as' =>
+                    'web.partner-preference.basic.edit',
+                ]
+            );
 
-                $routes->post(
-                    'basic/(:segment)',
-                    'PartnerPreferenceController'
-                        . '::updateBasicItem/$1',
-                    [
-                        'as' =>
-                        'web.partner-preference.basic.update',
-                    ]
-                );
+            $routes->post(
+                'basic/(:segment)',
+                'PartnerPreferenceController'
+                    . '::updateBasicItem/$1',
+                [
+                    'as' =>
+                    'web.partner-preference.basic.update',
+                ]
+            );
 
-                /*
+            /*
  * Lifestyle Partner Preference.
  *
  * Each active Lifestyle category is edited independently.
  */
-                $routes->get(
-                    'lifestyle/(:num)',
-                    'PartnerPreferenceController'
-                        . '::editLifestyleCategory/$1',
-                    [
-                        'as' =>
-                        'web.partner-preference.lifestyle.edit',
-                    ]
-                );
+            $routes->get(
+                'lifestyle/(:num)',
+                'PartnerPreferenceController'
+                    . '::editLifestyleCategory/$1',
+                [
+                    'as' =>
+                    'web.partner-preference.lifestyle.edit',
+                ]
+            );
 
-                $routes->post(
-                    'lifestyle/(:num)',
-                    'PartnerPreferenceController'
-                        . '::updateLifestyleCategory/$1',
-                    [
-                        'as' =>
-                        'web.partner-preference.lifestyle.update',
-                    ]
-                );
+            $routes->post(
+                'lifestyle/(:num)',
+                'PartnerPreferenceController'
+                    . '::updateLifestyleCategory/$1',
+                [
+                    'as' =>
+                    'web.partner-preference.lifestyle.update',
+                ]
+            );
 
-                /*
+            /*
          * Religious, Professional, Location and Special Request.
          */
-                $routes->get(
-                    'item/(:segment)',
-                    'PartnerPreferenceController'
-                        . '::editItem/$1',
-                    [
-                        'as' =>
-                        'web.partner-preference.item.edit',
-                    ]
-                );
+            $routes->get(
+                'item/(:segment)',
+                'PartnerPreferenceController'
+                    . '::editItem/$1',
+                [
+                    'as' =>
+                    'web.partner-preference.item.edit',
+                ]
+            );
 
-                $routes->post(
-                    'item/(:segment)',
-                    'PartnerPreferenceController'
-                        . '::updateItem/$1',
-                    [
-                        'as' =>
-                        'web.partner-preference.item.update',
-                    ]
-                );
+            $routes->post(
+                'item/(:segment)',
+                'PartnerPreferenceController'
+                    . '::updateItem/$1',
+                [
+                    'as' =>
+                    'web.partner-preference.item.update',
+                ]
+            );
 
-                /*
+            /*
                 * Return active cities for one or more selected states.
                 *
                 * Example:
                 * GET /partner-preference/master/cities?state_ids=1,2,3
                 */
-                $routes->get(
-                    'master/cities',
-                    'PartnerPreferenceController::cities',
-                    [
-                        'as' =>
-                        'web.partner-preference.master.cities',
-                    ]
-                );
-            }
-        );
+            $routes->get(
+                'master/cities',
+                'PartnerPreferenceController::cities',
+                [
+                    'as' =>
+                    'web.partner-preference.master.cities',
+                ]
+            );
+        }
+    );
 
-        /*
+    /*
         * Authenticated member profile preview.
         *
         * This page shows the logged-in member how the approved profile
         * information will appear to other members.
         */
-        $routes->get(
-            'profile/view',
-            'ProfileController::view',
-            [
-                'as' => 'web.profile.view',
-                'filter' => 'webAuth',
-            ]
-        );
+    $routes->get(
+        'profile/view',
+        'ProfileController::view',
+        [
+            'as' => 'web.profile.view',
+            'filter' => 'webAuth',
+        ]
+    );
 
-        $routes->post(
-            'profile/pdf',
-            'MemberProfilePdfController::own',
-            [
-                'as' =>
-                'web.profile.pdf',
+    $routes->post(
+        'profile/pdf',
+        'MemberProfilePdfController::own',
+        [
+            'as' =>
+            'web.profile.pdf',
 
-                'filter' =>
-                'webAuth',
-            ]
-        );
+            'filter' =>
+            'webAuth',
+        ]
+    );
 
-        $routes->get(
-            'profile/pdf/preview',
-            'MemberProfilePdfController::preview',
-            [
-                'as' =>
-                'web.profile.pdf.preview',
-            ]
-        );
+    $routes->get(
+        'profile/pdf/preview',
+        'MemberProfilePdfController::preview',
+        [
+            'as' =>
+            'web.profile.pdf.preview',
+        ]
+    );
 
-        /*
+    /*
         * Lazily return the medium URL for one approved,
         * member-owned photo.
         *
         * Original member photographs are deliberately never
         * exposed through member-facing gallery endpoints.
         */
-        $routes->get(
-            'profile/photos/(:num)/medium-url',
-            'ProfilePhotoController::mediumUrl/$1',
-            [
-                'as' =>
-                'web.profile.photos.medium-url',
+    $routes->get(
+        'profile/photos/(:num)/medium-url',
+        'ProfilePhotoController::mediumUrl/$1',
+        [
+            'as' =>
+            'web.profile.photos.medium-url',
 
-                'filter' =>
-                'webAuth',
-            ]
-        );
+            'filter' =>
+            'webAuth',
+        ]
+    );
 
-        /*
+    /*
         * Basic Details.
         */
-        $routes->get(
-            'profile/basic-details',
-            'ProfileController::basicDetails',
-            [
-                'as' => 'web.profile.basic-details',
-                'filter' => 'webAuth',
-            ]
-        );
+    $routes->get(
+        'profile/basic-details',
+        'ProfileController::basicDetails',
+        [
+            'as' => 'web.profile.basic-details',
+            'filter' => 'webAuth',
+        ]
+    );
 
-        $routes->post(
-            'profile/basic-details',
-            'ProfileController::updateBasicDetails',
-            [
-                'as' => 'web.profile.basic-details.update',
-                'filter' => 'webAuth',
-            ]
-        );
+    $routes->post(
+        'profile/basic-details',
+        'ProfileController::updateBasicDetails',
+        [
+            'as' => 'web.profile.basic-details.update',
+            'filter' => 'webAuth',
+        ]
+    );
 
-        /*
+    /*
     * Education & Profession.
     */
-        $routes->get(
-            'profile/education-profession',
-            'ProfileController::educationProfession',
-            [
-                'as' => 'web.profile.education-profession',
-                'filter' => 'webAuth',
-            ]
-        );
+    $routes->get(
+        'profile/education-profession',
+        'ProfileController::educationProfession',
+        [
+            'as' => 'web.profile.education-profession',
+            'filter' => 'webAuth',
+        ]
+    );
 
-        $routes->post(
-            'profile/education-profession',
-            'ProfileController::updateEducationProfession',
-            [
-                'as' => 'web.profile.education-profession.update',
-                'filter' => 'webAuth',
-            ]
-        );
+    $routes->post(
+        'profile/education-profession',
+        'ProfileController::updateEducationProfession',
+        [
+            'as' => 'web.profile.education-profession.update',
+            'filter' => 'webAuth',
+        ]
+    );
 
-        /*
+    /*
     * Family Details.
     */
-        $routes->get(
-            'profile/family-details',
-            'ProfileController::familyDetails',
-            [
-                'as' => 'web.profile.family-details',
-                'filter' => 'webAuth',
-            ]
-        );
+    $routes->get(
+        'profile/family-details',
+        'ProfileController::familyDetails',
+        [
+            'as' => 'web.profile.family-details',
+            'filter' => 'webAuth',
+        ]
+    );
 
-        $routes->post(
-            'profile/family-details/field-officer/verify',
-            'ProfileController::verifyFamilyFieldOfficer',
-            [
-                'as' =>
-                'web.profile.family-details.field-officer.verify',
+    $routes->post(
+        'profile/family-details/field-officer/verify',
+        'ProfileController::verifyFamilyFieldOfficer',
+        [
+            'as' =>
+            'web.profile.family-details.field-officer.verify',
 
-                'filter' =>
-                'webAuth',
-            ]
-        );
+            'filter' =>
+            'webAuth',
+        ]
+    );
 
-        $routes->post(
-            'profile/family-details',
-            'ProfileController::updateFamilyDetails',
-            [
-                'as' => 'web.profile.family-details.update',
-                'filter' => 'webAuth',
-            ]
-        );
+    $routes->post(
+        'profile/family-details',
+        'ProfileController::updateFamilyDetails',
+        [
+            'as' => 'web.profile.family-details.update',
+            'filter' => 'webAuth',
+        ]
+    );
 
-        /*
+    /*
     * Lifestyle.
     */
-        $routes->get(
-            'profile/lifestyle',
-            'ProfileController::lifestyle',
-            [
-                'as' => 'web.profile.lifestyle',
-                'filter' => 'webAuth',
-            ]
-        );
+    $routes->get(
+        'profile/lifestyle',
+        'ProfileController::lifestyle',
+        [
+            'as' => 'web.profile.lifestyle',
+            'filter' => 'webAuth',
+        ]
+    );
 
-        $routes->post(
-            'profile/lifestyle',
-            'ProfileController::updateLifestyle',
-            [
-                'as' => 'web.profile.lifestyle.update',
-                'filter' => 'webAuth',
-            ]
-        );
+    $routes->post(
+        'profile/lifestyle',
+        'ProfileController::updateLifestyle',
+        [
+            'as' => 'web.profile.lifestyle.update',
+            'filter' => 'webAuth',
+        ]
+    );
 
-        /*
+    /*
     * About Me.
     */
-        $routes->get(
-            'profile/about-me',
-            'ProfileController::aboutMe',
-            [
-                'as' => 'web.profile.about-me',
-                'filter' => 'webAuth',
-            ]
-        );
+    $routes->get(
+        'profile/about-me',
+        'ProfileController::aboutMe',
+        [
+            'as' => 'web.profile.about-me',
+            'filter' => 'webAuth',
+        ]
+    );
 
-        $routes->post(
-            'profile/about-me',
-            'ProfileController::updateAboutMe',
-            [
-                'as' => 'web.profile.about-me.update',
-                'filter' => 'webAuth',
-            ]
-        );
+    $routes->post(
+        'profile/about-me',
+        'ProfileController::updateAboutMe',
+        [
+            'as' => 'web.profile.about-me.update',
+            'filter' => 'webAuth',
+        ]
+    );
 
-        /*
+    /*
      * Member photos.
      */
-        $routes->get(
-            'profile/photos',
-            'MemberPhotoController::index',
-            [
-                'as' => 'web.profile.photos',
-                'filter' => 'webAuth',
-            ]
-        );
+    $routes->get(
+        'profile/photos',
+        'MemberPhotoController::index',
+        [
+            'as' => 'web.profile.photos',
+            'filter' => 'webAuth',
+        ]
+    );
 
-        $routes->post(
-            'profile/photos',
-            'MemberPhotoController::upload',
-            [
-                'as' => 'web.profile.photos.upload',
-                'filter' => 'webAuth',
-            ]
-        );
+    $routes->post(
+        'profile/photos',
+        'MemberPhotoController::upload',
+        [
+            'as' => 'web.profile.photos.upload',
+            'filter' => 'webAuth',
+        ]
+    );
 
-        $routes->post(
-            'profile/photos/(:num)/primary',
-            'MemberPhotoController::makePrimary/$1',
-            [
-                'as' => 'web.profile.photos.primary',
-                'filter' => 'webAuth',
-            ]
-        );
+    $routes->post(
+        'profile/photos/(:num)/primary',
+        'MemberPhotoController::makePrimary/$1',
+        [
+            'as' => 'web.profile.photos.primary',
+            'filter' => 'webAuth',
+        ]
+    );
 
-        $routes->post(
-            'profile/photos/(:num)/visibility',
-            'MemberPhotoController::updateVisibility/$1',
-            [
-                'as' => 'web.profile.photos.visibility',
-                'filter' => 'webAuth',
-            ]
-        );
+    $routes->post(
+        'profile/photos/(:num)/visibility',
+        'MemberPhotoController::updateVisibility/$1',
+        [
+            'as' => 'web.profile.photos.visibility',
+            'filter' => 'webAuth',
+        ]
+    );
 
-        $routes->post(
-            'profile/photos/(:num)/delete',
-            'MemberPhotoController::delete/$1',
-            [
-                'as' => 'web.profile.photos.delete',
-                'filter' => 'webAuth',
-            ]
-        );
+    $routes->post(
+        'profile/photos/(:num)/delete',
+        'MemberPhotoController::delete/$1',
+        [
+            'as' => 'web.profile.photos.delete',
+            'filter' => 'webAuth',
+        ]
+    );
 
-        $routes->get(
-            'profile/video-introduction/record',
-            'MemberVideoIntroductionController::record',
-            ['as' => 'web.video-introduction.record']
-        );
+    $routes->get(
+        'profile/video-introduction/record',
+        'MemberVideoIntroductionController::record',
+        [
+            'as' => 'web.video-introduction.record',
+            'filter' => 'webAuth',
+        ]
+    );
 
-        $routes->post(
-            'profile/video-introduction',
-            'MemberVideoIntroductionController::submit',
-            ['as' => 'web.video-introduction.submit']
-        );
+    $routes->post(
+        'profile/video-introduction',
+        'MemberVideoIntroductionController::submit',
+        [
+            'as' => 'web.video-introduction.submit',
+            'filter' => 'webAuth',
+        ]
+    );
 
-        $routes->post(
-            'account-settings/video-introduction/visibility',
-            'MemberVideoIntroductionController::visibility',
-            ['as' => 'web.video-introduction.visibility']
-        );
+    $routes->post(
+        'account-settings/video-introduction/visibility',
+        'MemberVideoIntroductionController::visibility',
+        [
+            'as' => 'web.video-introduction.visibility',
+            'filter' => 'webAuth',
+        ]
+    );
 
-        $routes->post(
-            'account-settings/video-introduction/delete',
-            'MemberVideoIntroductionController::delete',
-            ['as' => 'web.video-introduction.delete']
-        );
+    $routes->post(
+        'account-settings/video-introduction/delete',
+        'MemberVideoIntroductionController::delete',
+        [
+            'as' => 'web.video-introduction.delete',
+            'filter' => 'webAuth',
+        ]
+    );
 
-        $routes->get(
-            'account-settings/video-introduction/playback-url',
-            'MemberVideoIntroductionController::ownerPlayback',
-            ['as' => 'web.video-introduction.owner-playback']
-        );
+    $routes->get(
+        'account-settings/video-introduction/playback-url',
+        'MemberVideoIntroductionController::ownerPlayback',
+        [
+            'as' => 'web.video-introduction.owner-playback',
+            'filter' => 'webAuth',
+        ]
+    );
 
-        $routes->get(
-            'members/(:segment)/video-introduction/playback-url',
-            'MemberVideoIntroductionController::viewerPlayback/$1',
-            ['as' => 'web.video-introduction.viewer-playback']
-        );
+    $routes->get(
+        'members/(:segment)/video-introduction/playback-url',
+        'MemberVideoIntroductionController::viewerPlayback/$1',
+        [
+            'as' => 'web.video-introduction.viewer-playback',
+            'filter' => 'webAuth',
+        ]
+    );
 
-        $routes->get(
-            'account-settings',
-            'AccountSettingsController::index',
-            [
-                'as' =>
-                'web.account.settings',
-            ]
-        );
+    $routes->get(
+        'account-settings',
+        'AccountSettingsController::index',
+        [
+            'as' =>
+            'web.account.settings',
+            'filter' => 'webAuth',
+        ]
+    );
 
-        $routes->get(
-            'account-settings/(:segment)',
-            'AccountSettingsController::index/$1',
-            [
-                'as' =>
-                'web.account.settings.section',
-            ]
-        );
+    // $routes->post(
+    //     'account-settings/communication-preferences',
+    //     'Web\AccountSettingsController::updateCommunicationPreferences',
+    //     [
+    //         'as' =>
+    //         'web.account.settings.communication-preferences',
+    //     ]
+    // );
 
-        $routes->post(
-            'account-settings/password',
-            'AccountSettingsController::changePassword',
-            [
-                'as' =>
-                'web.account.settings.password',
-            ]
-        );
+    $routes->post(
+        'account-settings/communication-preferences',
+        'AccountSettingsController::updateCommunicationPreferences',
+        [
+            'as' =>
+            'web.account.settings.communication-preferences',
+            'filter' => 'webAuth',
+        ]
+    );
 
-        $routes->post(
-            'account-settings/password/setup',
-            'ForgotPasswordController::sendOtpForPasswordSetup',
-            [
-                'as' =>
-                'web.account.settings.password.setup',
+    $routes->get(
+        'account-settings/(:segment)',
+        'AccountSettingsController::index/$1',
+        [
+            'as' =>
+            'web.account.settings.section',
+            'filter' => 'webAuth',
+        ]
+    );
 
-                'filter' =>
-                'webAuth',
-            ]
-        );
+    $routes->post(
+        'account-settings/password',
+        'AccountSettingsController::changePassword',
+        [
+            'as' =>
+            'web.account.settings.password',
+            'filter' => 'webAuth',
+        ]
+    );
 
-        $routes->post(
-            'account-settings/email',
-            'AccountSettingsController::saveEmail',
-            [
-                'as' =>
-                'web.account.settings.email',
-            ]
-        );
+    $routes->post(
+        'account-settings/password/setup',
+        'ForgotPasswordController::sendOtpForPasswordSetup',
+        [
+            'as' =>
+            'web.account.settings.password.setup',
 
-        $routes->post(
-            'account-settings/email/resend',
-            'AccountSettingsController::resendEmail',
-            [
-                'as' =>
-                'web.account.settings.email.resend',
-            ]
-        );
+            'filter' =>
+            'webAuth',
+        ]
+    );
 
-        $routes->post(
-            'account-settings/contact',
-            'AccountSettingsController::contact',
-            [
-                'as' =>
-                'web.account.settings.contact',
-            ]
-        );
+    $routes->post(
+        'account-settings/email',
+        'AccountSettingsController::saveEmail',
+        [
+            'as' =>
+            'web.account.settings.email',
+            'filter' => 'webAuth',
+        ]
+    );
 
-        $routes->post(
-            'members/(:segment)/report',
-            'MemberProfileController::report/$1',
-            [
-                'as' =>
-                'web.members.report',
-            ]
-        );
+    $routes->post(
+        'account-settings/email/resend',
+        'AccountSettingsController::resendEmail',
+        [
+            'as' =>
+            'web.account.settings.email.resend',
+            'filter' => 'webAuth',
+        ]
+    );
 
-        $routes->post(
-            'email/verification/send',
-            'EmailVerificationController::send',
-            [
-                'as' => 'web.email.verification.send',
-                'filter' => 'webAuth',
-            ]
-        );
+    $routes->post(
+        'account-settings/contact',
+        'AccountSettingsController::contact',
+        [
+            'as' =>
+            'web.account.settings.contact',
+            'filter' => 'webAuth',
+        ]
+    );
 
-        $routes->get(
-            'profile/master/states/(:num)',
-            'ProfileMasterController::states/$1',
-            [
-                'as' => 'web.profile.master.states',
-            ]
-        );
+    $routes->post(
+        'email/verification/send',
+        'EmailVerificationController::send',
+        [
+            'as' => 'web.email.verification.send',
+            'filter' => 'webAuth',
+        ]
+    );
 
-        $routes->get(
-            'profile/master/cities/(:num)',
-            'ProfileMasterController::cities/$1',
-            [
-                'as' => 'web.profile.master.cities',
-            ]
-        );
+    $routes->get(
+        'profile/master/states/(:num)',
+        'ProfileMasterController::states/$1',
+        [
+            'as' => 'web.profile.master.states',
+        ]
+    );
 
-        $routes->get(
-            'email/verify/(:segment)',
-            'EmailVerificationController::verify/$1',
-            [
-                'as' => 'web.email.verify',
-            ]
-        );
+    $routes->get(
+        'profile/master/cities/(:num)',
+        'ProfileMasterController::cities/$1',
+        [
+            'as' => 'web.profile.master.cities',
+        ]
+    );
 
-        /*
+    $routes->get(
+        'email/verify/(:segment)',
+        'EmailVerificationController::verify/$1',
+        [
+            'as' => 'web.email.verify',
+        ]
+    );
+
+    /*
          * Membership payment lifecycle.
          *
          * Purchase is currently executable only in development.
          * MembershipPaymentController and the development simulator both
          * independently enforce that restriction.
          */
-        $routes->post(
-            'membership/purchase',
-            'MembershipPaymentController::purchase',
-            [
-                'as' =>
-                'web.membership.purchase',
+    $routes->post(
+        'membership/purchase',
+        'MembershipPaymentController::purchase',
+        [
+            'as' =>
+            'web.membership.purchase',
 
-                'filter' =>
-                'webAuth',
-            ]
-        );
+            'filter' =>
+            'webAuth',
+        ]
+    );
 
-        $routes->get(
-            'membership/payment/success/(:segment)',
-            'MembershipPaymentController::success/$1',
-            [
-                'as' =>
-                'web.membership.payment.success',
+    $routes->get(
+        'membership/payment/success/(:segment)',
+        'MembershipPaymentController::success/$1',
+        [
+            'as' =>
+            'web.membership.payment.success',
 
-                'filter' =>
-                'webAuth',
-            ]
-        );
-    });
-}
+            'filter' =>
+            'webAuth',
+        ]
+    );
+});
+
 
 // -----------------------------------------------------------------------------
 // Administrator routes
@@ -1589,6 +1728,34 @@ $routes->group('admin', [
         );
 
         /*
+        * Offline membership payment.
+        *
+        * Financial membership activation is restricted to SUPER_ADMIN.
+        *
+        * The parent adminAuth filter establishes authenticated administrator
+        * identity; superAdmin adds the required financial authorization.
+        */
+        $routes->group(
+            'members',
+            [
+                'filter' =>
+                'superAdmin',
+            ],
+            static function (
+                RouteCollection $routes
+            ): void {
+                $routes->post(
+                    '(:num)/offline-payment',
+                    'MemberController::recordOfflinePayment/$1',
+                    [
+                        'as' =>
+                        'admin.members.offline-payment',
+                    ]
+                );
+            }
+        );
+
+        /*
          * Only SUPER_ADMIN may manage other administrators.
          */
         $routes->group('users', [
@@ -1635,47 +1802,175 @@ $routes->group('admin', [
                     'as' => 'admin.users.suspend',
                 ]
             );
-
-            /*
-            * --------------------------------------------------------------------------
-            * Match Score configuration
-            * --------------------------------------------------------------------------
-            *
-            * Ranking weights affect every member's Search/Dashboard ordering and are
-            * therefore restricted to SUPER_ADMIN.
-            *
-            * Normal ADMIN users can see read-only member diagnostics through the normal
-            * admin/members/{id} profile view, but cannot change global ranking rules.
-            */
-            $routes->group(
-                'match-score',
-                [
-                    'filter' =>
-                    'superAdmin',
-                ],
-                static function (
-                    RouteCollection $routes
-                ): void {
-                    $routes->get(
-                        '',
-                        'MatchScoreConfigurationController::index',
-                        [
-                            'as' =>
-                            'admin.match-score.index',
-                        ]
-                    );
-
-                    $routes->post(
-                        '',
-                        'MatchScoreConfigurationController::update',
-                        [
-                            'as' =>
-                            'admin.match-score.update',
-                        ]
-                    );
-                }
-            );
         });
+
+        /*
+        * --------------------------------------------------------------------------
+        * Match Score configuration
+        * --------------------------------------------------------------------------
+        *
+        * Ranking weights affect every member's Search/Dashboard ordering and are
+        * therefore restricted to SUPER_ADMIN.
+        *
+        * Normal ADMIN users can see read-only member diagnostics through the normal
+        * admin/members/{id} profile view, but cannot change global ranking rules.
+        */
+        $routes->group(
+            'match-score',
+            [
+                'filter' =>
+                'superAdmin',
+            ],
+            static function (
+                RouteCollection $routes
+            ): void {
+                $routes->get(
+                    '',
+                    'MatchScoreConfigurationController::index',
+                    [
+                        'as' =>
+                        'admin.match-score.index',
+                    ]
+                );
+
+                $routes->post(
+                    '',
+                    'MatchScoreConfigurationController::update',
+                    [
+                        'as' =>
+                        'admin.match-score.update',
+                    ]
+                );
+            }
+        );
+
+        /*
+        * --------------------------------------------------------------------------
+        * Short URL Management
+        * --------------------------------------------------------------------------
+        *
+        * Short URL creation is an application-level communication tool used for
+        * DLT/SMS links.
+        *
+        * Only SUPER_ADMIN may create or view the short URL registry.
+        *
+        * Public resolution remains outside admin authentication.
+        */
+        $routes->group(
+            'short-urls',
+            [
+                'filter' =>
+                'superAdmin',
+            ],
+            static function (
+                RouteCollection $routes
+            ): void {
+                $routes->get(
+                    '',
+                    'ShortUrlController::index',
+                    [
+                        'as' =>
+                        'admin.short-urls.index',
+                    ]
+                );
+
+                $routes->post(
+                    '',
+                    'ShortUrlController::store',
+                    [
+                        'as' =>
+                        'admin.short-urls.store',
+                    ]
+                );
+            }
+        );
+
+        /*
+        * --------------------------------------------------------------------------
+        * Email Preview Centre
+        * --------------------------------------------------------------------------
+        *
+        * Email preview and test delivery are operational communication tools.
+        *
+        * Access is restricted to SUPER_ADMIN because this area:
+        *
+        * - exposes application email definitions and rendered templates;
+        * - allows test email delivery to an explicitly supplied address;
+        * - uses the real email queue, worker and configured provider.
+        *
+        * The parent adminAuth group already requires an authenticated, active,
+        * verified administrator. The additional superAdmin filter ensures that
+        * normal ADMIN users cannot access the preview or test-send endpoints,
+        * including through a direct URL/request.
+        */
+        $routes->group(
+            'email-preview',
+            [
+                'filter' =>
+                'superAdmin',
+            ],
+            static function (
+                RouteCollection $routes
+            ): void {
+                $routes->get(
+                    '',
+                    'EmailPreviewController::index',
+                    [
+                        'as' =>
+                        'admin.email-preview.index',
+                    ]
+                );
+
+                $routes->get(
+                    '(:segment)',
+                    'EmailPreviewController::preview/$1',
+                    [
+                        'as' =>
+                        'admin.email-preview.preview',
+                    ]
+                );
+
+                $routes->post(
+                    '(:segment)/send-test',
+                    'EmailPreviewController::sendTest/$1',
+                    [
+                        'as' =>
+                        'admin.email-preview.send-test',
+                    ]
+                );
+            }
+        );
+
+        /*
+        * --------------------------------------------------------------------------
+        * Communication Operations
+        * --------------------------------------------------------------------------
+        *
+        * Communication operations is an application-level operational tool rather
+        * than administrator-user management.
+        *
+        * It therefore remains protected by SUPER_ADMIN but is not nested under the
+        * /admin/users URL namespace.
+        */
+        $routes->group(
+            'communication-operations',
+            [
+                'filter' =>
+                'superAdmin',
+            ],
+            static function (
+                RouteCollection $routes
+            ): void {
+                $routes->get(
+                    '',
+                    'CommunicationOperationsController::index',
+                    [
+                        'as' =>
+                        'admin.communication-operations.index',
+                    ]
+                );
+            }
+        );
 
         /*
         * --------------------------------------------------------------------------
@@ -2020,6 +2315,23 @@ $routes->group('admin', [
                     [
                         'as' =>
                         'admin.members.unblock',
+                    ]
+                );
+
+                /*
+                * Administrator member activity.
+                *
+                * Both ADMIN and SUPER_ADMIN may inspect the same member activity
+                * available from the Admin Member View.
+                *
+                * Parent adminAuth remains the authorization boundary.
+                */
+                $routes->get(
+                    '(:num)/activity/(:segment)',
+                    'MemberController::activity/$1/$2',
+                    [
+                        'as' =>
+                        'admin.members.activity',
                     ]
                 );
 

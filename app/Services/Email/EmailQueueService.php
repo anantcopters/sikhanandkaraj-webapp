@@ -197,6 +197,54 @@ final class EmailQueueService
     }
 
     /**
+     * Determine whether a communication for one business reference has
+     * already entered the durable email queue.
+     *
+     * This is used by scheduled/lifecycle communications where the same
+     * cron may safely run again after deployment, server restart or an
+     * operator retry.
+     *
+     * All queue statuses count as already queued:
+     *
+     * - PENDING
+     * - PROCESSING
+     * - SENT
+     * - FAILED
+     *
+     * A FAILED delivery must not cause a future cron run to create a
+     * completely new email. Delivery retries remain the responsibility
+     * of the existing queue retry mechanism.
+     */
+    public function hasReference(
+        string $referenceType,
+        int $referenceId
+    ): bool {
+        $referenceType =
+            trim(
+                $referenceType
+            );
+
+        if (
+            $referenceType === ''
+            || $referenceId <= 0
+        ) {
+            return false;
+        }
+
+        return $this
+            ->queueModel
+            ->where(
+                'reference_type',
+                $referenceType
+            )
+            ->where(
+                'reference_id',
+                $referenceId
+            )
+            ->countAllResults() > 0;
+    }
+
+    /**
      * Atomically reserve pending emails.
      *
      * PostgreSQL SKIP LOCKED prevents two workers from reserving the same

@@ -6,6 +6,7 @@ namespace App\Services\Admin;
 
 use App\Models\MemberContactRequestModel;
 use App\Models\MemberProfileReportModel;
+use App\Services\Email\MemberEmailService;
 use CodeIgniter\Database\BaseConnection;
 use DomainException;
 use RuntimeException;
@@ -25,7 +26,14 @@ final class MemberSupportService
         private readonly MemberContactRequestModel
         $contactRequestModel,
 
-        private readonly BaseConnection $database
+        /*
+     * Email remains outside the authoritative support transaction.
+     */
+        private readonly MemberEmailService
+        $memberEmailService,
+
+        private readonly BaseConnection
+        $database
     ) {}
 
     /**
@@ -223,6 +231,12 @@ final class MemberSupportService
         }
     }
 
+    /**
+     * Resolve one Contact Us request.
+     *
+     * The database transition remains authoritative. Member email is queued
+     * only after the resolution transaction has committed successfully.
+     */
     public function reviewContactRequest(
         int $requestId,
         int $adminUserId,
@@ -231,22 +245,30 @@ final class MemberSupportService
     ): void {
         if (
             $status
-            !== MemberContactRequestModel::STATUS_RESOLVED
+            !== MemberContactRequestModel
+            ::STATUS_RESOLVED
         ) {
             throw new DomainException(
                 'The request can only be marked as resolved.'
             );
         }
 
-        $responseNote = preg_replace(
-            '/\s+/u',
-            ' ',
-            trim($responseNote)
-        ) ?? '';
+        $responseNote =
+            preg_replace(
+                '/\s+/u',
+                ' ',
+                trim(
+                    $responseNote
+                )
+            ) ?? '';
 
         if (
-            mb_strlen($responseNote) < 5
-            || mb_strlen($responseNote) > 255
+            mb_strlen(
+                $responseNote
+            ) < 5
+            || mb_strlen(
+                $responseNote
+            ) > 255
         ) {
             throw new DomainException(
                 'The message to the member must contain '
@@ -254,10 +276,22 @@ final class MemberSupportService
             );
         }
 
-        $this->database->transBegin();
+        /*
+     * Retain the locked/current request outside the try block so its
+     * member/reference values are available after a successful commit.
+     *
+     * @var array<string, mixed>|null $request
+     */
+        $request =
+            null;
+
+        $this
+            ->database
+            ->transBegin();
 
         try {
-            $request = $this
+            $request =
+                $this
                 ->contactRequestModel
                 ->where(
                     'id',
@@ -265,7 +299,8 @@ final class MemberSupportService
                 )
                 ->where(
                     'status',
-                    MemberContactRequestModel::STATUS_OPEN
+                    MemberContactRequestModel
+                    ::STATUS_OPEN
                 )
                 ->first();
 
@@ -276,7 +311,8 @@ final class MemberSupportService
                 );
             }
 
-            $updated = $this
+            $updated =
+                $this
                 ->contactRequestModel
                 ->where(
                     'id',
@@ -284,19 +320,26 @@ final class MemberSupportService
                 )
                 ->where(
                     'status',
-                    MemberContactRequestModel::STATUS_OPEN
+                    MemberContactRequestModel
+                    ::STATUS_OPEN
                 )
                 ->set([
                     'status' =>
-                    MemberContactRequestModel::STATUS_RESOLVED,
+                    MemberContactRequestModel
+                    ::STATUS_RESOLVED,
 
                     'reviewed_by_admin_id' =>
                     $adminUserId,
 
                     'reviewed_at' =>
-                    gmdate('Y-m-d H:i:s')
+                    gmdate(
+                        'Y-m-d H:i:s'
+                    )
                         . '+00:00',
 
+                    /*
+                 * response_note is explicitly member-facing.
+                 */
                     'response_note' =>
                     $responseNote,
                 ])
@@ -304,7 +347,9 @@ final class MemberSupportService
 
             if (
                 $updated !== true
-                || $this->database->affectedRows() !== 1
+                || $this
+                ->database
+                ->affectedRows() !== 1
             ) {
                 throw new DomainException(
                     'This request was already resolved '
@@ -312,17 +357,66 @@ final class MemberSupportService
                 );
             }
 
-            if (!$this->database->transStatus()) {
+            if (
+                !$this
+                    ->database
+                    ->transStatus()
+            ) {
                 throw new RuntimeException(
                     'The support request transaction failed.'
                 );
             }
 
-            $this->database->transCommit();
+            $this
+                ->database
+                ->transCommit();
         } catch (Throwable $exception) {
-            $this->database->transRollback();
+            $this
+                ->database
+                ->transRollback();
 
             throw $exception;
+        }
+
+        /*
+     * ------------------------------------------------------------------
+     * Downstream member communication
+     * ------------------------------------------------------------------
+     *
+     * At this point the support resolution is committed.
+     *
+     * Email failure must not turn an already-resolved support request back
+     * into a controller error.
+     */
+        $memberUserId =
+            (int) (
+                $request['member_user_id']
+                ?? 0
+            );
+
+        $requestReference =
+            trim(
+                (string) (
+                    $request['request_reference']
+                    ?? ''
+                )
+            );
+
+        if (
+            $memberUserId > 0
+            && $requestReference !== ''
+        ) {
+            $this
+                ->memberEmailService
+                ->queueSupportRequestResolved(
+                    recipientUserId: $memberUserId,
+
+                    requestReference: $requestReference,
+
+                    requestId: $requestId,
+
+                    responseNote: $responseNote
+                );
         }
     }
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers\Web;
 
 use App\Controllers\BaseController;
+use App\Support\SeoMetadata;
 use CodeIgniter\HTTP\RedirectResponse;
 
 /**
@@ -52,7 +53,17 @@ final class HomeController extends BaseController
         return view(
             'Pages/Home/Index',
             [
-                'pageTitle' => 'Sikhanandkaraj',
+                'pageTitle' =>
+                'Sikh Matrimony & Matrimonial Site | SikhanandKaraj',
+
+                'seo' => SeoMetadata::publicPage(
+                    'Sikh Matrimony & Matrimonial Site | SikhanandKaraj',
+                    'Find meaningful Sikh matrimonial matches with '
+                        . 'SikhanandKaraj. Create your profile and connect '
+                        . 'through a privacy-focused matrimonial platform.',
+                    'web.home',
+                    true
+                ),
 
                 'plans' =>
                 $plans,

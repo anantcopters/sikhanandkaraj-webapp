@@ -167,8 +167,8 @@ $preferencesComplete =
 
 $preferenceBadgeClass =
     $preferencesComplete
-    ? 'bg-success-subtle text-success'
-    : 'bg-primary-subtle text-primary';
+    ? 'bg-success-subtle text-body'
+    : 'bg-primary-subtle text-body';
 
 /*
  * Resolve visibility presentation once for both incomplete and
@@ -1075,7 +1075,7 @@ $matchSections = [
                                                                     class="badge
                                                         bg-warning
                                                         text-body
-                                                        flex-shrink-0">
+                                                        flex-shrink-0 p-2">
 
                                                                     <?= esc(
                                                                         $shortcutStatusLabel

@@ -23,6 +23,21 @@ final class MemberPaymentModel extends Model
     public const PROVIDER_DEVELOPMENT =
     'DEVELOPMENT_SIMULATOR';
 
+    public const PROVIDER_OFFLINE =
+    'OFFLINE';
+
+    public const PAYMENT_METHOD_BANK_TRANSFER =
+    'BANK_TRANSFER';
+
+    public const PAYMENT_METHOD_UPI =
+    'UPI';
+
+    public const PAYMENT_METHOD_CASH =
+    'CASH';
+
+    public const PAYMENT_METHOD_OTHER =
+    'OTHER';
+
     protected $table =
     'member_payments';
 
@@ -50,6 +65,9 @@ final class MemberPaymentModel extends Model
         'amount_paise',
         'currency',
         'purchase_action',
+        'payment_method',
+        'recorded_by_admin_user_id',
+        'payment_note',
         'provider_response',
         'paid_at',
         'processed_at',

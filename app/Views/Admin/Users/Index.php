@@ -151,13 +151,13 @@ $this->section('content');
 
                             $badgeClass = match ($status) {
                                 AdminUserModel::STATUS_VERIFIED =>
-                                'bg-success-subtle text-success',
+                                'bg-success-subtle text-body',
 
                                 AdminUserModel::STATUS_SUSPENDED =>
-                                'bg-danger-subtle text-danger',
+                                'bg-danger-subtle text-body',
 
                                 default =>
-                                'bg-warning-subtle text-warning',
+                                'bg-warning-subtle text-body',
                             };
 
                             $statusLabel = match ($status) {

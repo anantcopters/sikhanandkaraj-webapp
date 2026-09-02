@@ -40,6 +40,7 @@ class Filters extends BaseFilters
         'adminAuth'     => \App\Filters\AdminAuthFilter::class,
         'fieldOfficerAuth' => \App\Filters\FieldOfficerAuthFilter::class,
         'superAdmin'    => \App\Filters\SuperAdminFilter::class,
+        'seoRobots'     => \App\Filters\SeoRobotsFilter::class,
     ];
 
     /**
@@ -92,6 +93,7 @@ class Filters extends BaseFilters
             'requestLog',
             // 'honeypot',
             'secureheaders',
+            'seoRobots',
         ],
     ];
 

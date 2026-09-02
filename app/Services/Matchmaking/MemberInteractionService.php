@@ -13,6 +13,10 @@ use App\Services\Notification\MemberNotificationService;
 use CodeIgniter\Database\BaseConnection;
 use App\Support\MemberNameVisibility;
 use App\Services\Membership\MembershipEntitlementService;
+use App\Services\Email\MemberEmailService;
+use App\Services\Communication\CommunicationEvent;
+use App\Services\Communication\CommunicationEventRegistry;
+use App\Services\Communication\CommunicationEventService;
 use DomainException;
 use RuntimeException;
 use Throwable;
@@ -63,6 +67,19 @@ final class MemberInteractionService
         private readonly MemberNotificationService
         $notificationService,
 
+        private readonly MemberEmailService
+        $memberEmailService,
+
+        /*
+        * Channel-independent communication events are published only after
+        * the authoritative member interaction has completed successfully.
+        *
+        * Communication failure must never rollback a completed matrimonial
+        * action.
+        */
+        private readonly CommunicationEventService
+        $communicationEventService,
+
         private readonly BaseConnection
         $database,
 
@@ -105,7 +122,8 @@ final class MemberInteractionService
         /*
      * Fast path.
      *
-     * Check either direction, not only from -> to.
+     * Check either direction, not only
+     * from -> to.
      */
         if (
             $this->interestModel
@@ -122,10 +140,12 @@ final class MemberInteractionService
 
         try {
             /*
-         * Serialize Interest creation for the member pair.
+         * Serialize Interest creation for
+         * the member pair.
          *
-         * Ordering IDs ensures A -> B and B -> A requests
-         * acquire locks in the same order.
+         * Ordering IDs ensures A -> B and
+         * B -> A requests acquire locks in
+         * the same order.
          */
             $this->database->query(
                 'SELECT id '
@@ -142,8 +162,9 @@ final class MemberInteractionService
             /*
          * Recheck after locking.
          *
-         * This prevents simultaneous reverse Interest
-         * submissions from creating two rows.
+         * This prevents simultaneous reverse
+         * Interest submissions from creating
+         * two rows.
          */
             if (
                 $this->interestModel
@@ -158,8 +179,8 @@ final class MemberInteractionService
                 return false;
             }
 
-            $insertId = $this
-                ->interestModel
+            $insertId =
+                $this->interestModel
                 ->insert(
                     [
                         'from_user_id' =>
@@ -189,15 +210,20 @@ final class MemberInteractionService
                 );
             }
 
+            $interestId =
+                (int) $insertId;
+
             /*
-         * Existing notification workflow remains intact.
+         * Existing in-app notification remains
+         * part of the authoritative Interest
+         * transaction.
          */
             $this->createInterestReceivedNotification(
                 fromUserId: $fromUserId,
 
                 toUserId: $toUserId,
 
-                interestId: (int) $insertId
+                interestId: $interestId
             );
 
             if (
@@ -212,8 +238,6 @@ final class MemberInteractionService
 
             $this->database
                 ->transCommit();
-
-            return true;
         } catch (
             Throwable $exception
         ) {
@@ -222,6 +246,41 @@ final class MemberInteractionService
 
             throw $exception;
         }
+
+        /*
+     * Email is an optional external
+     * communication channel.
+     *
+     * Queue it only AFTER the authoritative
+     * Interest transaction has committed.
+     *
+     * MemberEmailService performs the verified
+     * primary-email check and treats email
+     * queue failure as best-effort.
+     */
+        $recipient =
+            $this->userModel
+            ->find(
+                $toUserId
+            );
+
+        $this->memberEmailService
+            ->queueInterestReceived(
+                recipientUserId: $toUserId,
+
+                recipientName: is_array($recipient)
+                    ? trim(
+                        (string) (
+                            $recipient['full_name']
+                            ?? ''
+                        )
+                    )
+                    : '',
+
+                interestId: $interestId
+            );
+
+        return true;
     }
 
     /**
@@ -257,14 +316,14 @@ final class MemberInteractionService
         int $shortlistedUserId
     ): bool {
         /*
-     * Validate the relationship before starting the transaction.
-     *
-     * This reuses the existing member-pair authority and prevents:
-     *
-     * - self-shortlisting;
-     * - inactive members;
-     * - blocked relationships.
-     */
+        * Validate the relationship before starting the transaction.
+        *
+        * This reuses the existing member-pair authority and prevents:
+        *
+        * - self-shortlisting;
+        * - inactive members;
+        * - blocked relationships.
+        */
         $this->assertVisiblePair(
             $userId,
             $shortlistedUserId
@@ -273,16 +332,22 @@ final class MemberInteractionService
         $this->database
             ->transBegin();
 
+        /*
+        * Keep the created row ID outside the transaction block.
+        *
+        * It becomes the stable domain reference for the communication event
+        * after the transaction has committed.
+        */
+        $shortlistId =
+            0;
+
         try {
             /*
-         * Serialize Shortlist state changes for this member pair.
-         *
-         * IDs are always locked in ascending order so competing operations
-         * involving the same pair acquire PostgreSQL row locks consistently.
-         *
-         * This is deliberately the same strategy already used by
-         * showInterest().
-         */
+            * Serialize Shortlist state changes for this member pair.
+            *
+            * IDs are always locked in ascending order so competing operations
+            * involving the same pair acquire PostgreSQL row locks consistently.
+            */
             $this->database->query(
                 'SELECT id '
                     . 'FROM users '
@@ -296,15 +361,11 @@ final class MemberInteractionService
             );
 
             /*
-         * IMPORTANT:
-         *
-         * Resolve the state only AFTER acquiring the row locks.
-         *
-         * Reading the state before locking would reintroduce the race where
-         * two concurrent requests both make their decision from stale data.
-         */
+            * Resolve the state only AFTER acquiring the row locks.
+            */
             $isAlreadyShortlisted =
-                $this->shortlistModel
+                $this
+                ->shortlistModel
                 ->hasShortlisted(
                     $userId,
                     $shortlistedUserId
@@ -312,11 +373,12 @@ final class MemberInteractionService
 
             if ($isAlreadyShortlisted) {
                 /*
-             * Removing historical shortlist state remains allowed even when
-             * the member's paid membership has expired.
-             */
+                * Removing historical shortlist state remains allowed even when
+                * the member's paid membership has expired.
+                */
                 $removed =
-                    $this->shortlistModel
+                    $this
+                    ->shortlistModel
                     ->removeShortlist(
                         $userId,
                         $shortlistedUserId
@@ -329,7 +391,8 @@ final class MemberInteractionService
                 }
 
                 if (
-                    $this->database
+                    $this
+                    ->database
                     ->transStatus()
                     === false
                 ) {
@@ -341,19 +404,21 @@ final class MemberInteractionService
                 $this->database
                     ->transCommit();
 
+                /*
+                * Removing a Shortlist is not PROFILE_SHORTLISTED.
+                *
+                * No external communication event is generated.
+                */
                 return false;
             }
 
             /*
-         * Creating NEW shortlist state requires the current paid
-         * membership entitlement.
-         *
-         * Perform this check while the pair remains serialized so the
-         * authorization applies to the exact state transition we are
-         * about to perform.
-         */
+            * Creating NEW shortlist state requires the current paid
+            * membership entitlement.
+            */
             if (
-                !$this->membershipEntitlementService
+                !$this
+                    ->membershipEntitlementService
                     ->canShortlist(
                         $userId
                     )
@@ -365,7 +430,8 @@ final class MemberInteractionService
             }
 
             $insertId =
-                $this->shortlistModel
+                $this
+                ->shortlistModel
                 ->insert(
                     [
                         'user_id' =>
@@ -388,16 +454,17 @@ final class MemberInteractionService
                 );
             }
 
+            $shortlistId =
+                (int) $insertId;
+
             /*
-         * PostgreSQL's existing UNIQUE(user_id, shortlisted_user_id)
-         * remains the final defensive database invariant.
-         *
-         * Application locking defines deterministic toggle semantics;
-         * database uniqueness protects against accidental future callers
-         * that bypass this service.
-         */
+            * PostgreSQL's existing
+            * UNIQUE(user_id, shortlisted_user_id)
+            * remains the final defensive database invariant.
+            */
             if (
-                $this->database
+                $this
+                ->database
                 ->transStatus()
                 === false
             ) {
@@ -408,14 +475,45 @@ final class MemberInteractionService
 
             $this->database
                 ->transCommit();
-
-            return true;
         } catch (Throwable $exception) {
             $this->database
                 ->transRollback();
 
             throw $exception;
         }
+
+        /*
+        * Communication is deliberately outside the authoritative Shortlist
+        * transaction.
+        *
+        * The recipient is the member whose profile was shortlisted.
+        *
+        * Do not copy names, mobile numbers, email addresses, profile images
+        * or other member data into the durable event. The downstream
+        * communication layer must resolve currently-authorized presentation
+        * data when the digest is actually generated.
+        */
+        $this
+            ->communicationEventService
+            ->publish(
+                new CommunicationEvent(
+                    eventKey: CommunicationEventRegistry
+                    ::PROFILE_SHORTLISTED,
+
+                    recipientUserId: $shortlistedUserId,
+
+                    payload: [
+                        'actor_user_id' =>
+                        $userId,
+                    ],
+
+                    referenceType: 'MEMBER_SHORTLIST',
+
+                    referenceId: $shortlistId
+                )
+            );
+
+        return true;
     }
 
     /**
@@ -630,6 +728,15 @@ final class MemberInteractionService
          */
     }
 
+    /**
+     * Record one successfully-authorized Full Profile view.
+     *
+     * The existing MemberProfileViewModel remains the authoritative source
+     * for aggregated Profile View state.
+     *
+     * Communication is emitted only after the existing view persistence
+     * succeeds.
+     */
     public function recordView(
         int $viewerUserId,
         int $viewedUserId
@@ -639,10 +746,50 @@ final class MemberInteractionService
             $viewedUserId
         );
 
-        $this->profileViewModel
+        /*
+     * Preserve the existing Profile View persistence flow.
+     *
+     * MemberProfileViewModel atomically maintains:
+     *
+     * - view_count;
+     * - first_viewed_at;
+     * - last_viewed_at.
+     */
+        $this
+            ->profileViewModel
             ->recordView(
                 $viewerUserId,
                 $viewedUserId
+            );
+
+        /*
+     * PROFILE_VIEWED is an occurrence event.
+     *
+     * Unlike Shortlist, repeated Full Profile views are legitimate
+     * business occurrences and the existing member_profile_views table
+     * already increments view_count for each one.
+     *
+     * Therefore this event intentionally has no reference-backed
+     * idempotency key.
+     *
+     * The future digest aggregator will group/deduplicate these events
+     * by recipient and actor so repeated page openings do not become
+     * repeated email rows.
+     */
+        $this
+            ->communicationEventService
+            ->publish(
+                new CommunicationEvent(
+                    eventKey: CommunicationEventRegistry
+                    ::PROFILE_VIEWED,
+
+                    recipientUserId: $viewedUserId,
+
+                    payload: [
+                        'actor_user_id' =>
+                        $viewerUserId,
+                    ]
+                )
             );
     }
 
@@ -1326,8 +1473,8 @@ final class MemberInteractionService
                     $fromUserId,
 
                     'type' =>
-                    \App\Models\MemberNotificationModel
-                    ::TYPE_INTEREST_RECEIVED,
+                    CommunicationEventRegistry
+                    ::INTEREST_RECEIVED,
 
                     'title' =>
                     'New Interest',

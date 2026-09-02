@@ -782,8 +782,16 @@ final class MemberProfileController extends BaseController
     }
 
     /**
-     * Return a viewer-authorized medium photo URL for one
+     * Return a Full-Profile-authorized medium photo URL for one
      * approved gallery image belonging to another member.
+     *
+     * SECURITY:
+     *
+     * This endpoint is directly callable by the browser and therefore must
+     * never rely on the Full Profile page having been loaded first.
+     *
+     * MemberProfileViewService independently re-applies Full Profile
+     * authorization before a signed medium image URL is generated.
      */
     public function photoMediumUrl(
         string $profileReference,
@@ -795,77 +803,55 @@ final class MemberProfileController extends BaseController
         if ($photoId <= 0) {
             return $this->response
                 ->setStatusCode(404)
+                ->setHeader(
+                    'Cache-Control',
+                    'private, no-store, no-cache, '
+                        . 'must-revalidate, max-age=0'
+                )
+                ->setHeader(
+                    'Pragma',
+                    'no-cache'
+                )
                 ->setJSON([
-                    'success' => false,
+                    'status' =>
+                    'error',
+
                     'message' =>
                     'The requested photo is unavailable.',
                 ]);
         }
 
         try {
-            /** @var \App\Services\Matchmaking\MemberProfileViewService $profileService */
+            /** @var MemberProfileViewService $profileService */
             $profileService = service(
                 'memberProfileViewService'
             );
 
             /*
-         * Re-resolve the target server-side.
-         *
-         * This applies the same active-member and block
-         * authorization as the normal profile view.
-         */
-            $target = $profileService
-                ->targetForAction(
+             * Do not use targetForAction() here.
+             *
+             * Medium gallery images are Full Profile detail media and must
+             * independently pass through ProfileAccessPolicy.
+             */
+            $mediumUrl = $profileService
+                ->galleryMediumUrlForViewer(
                     $viewerUserId,
-                    $profileReference
-                );
-
-            $targetUserId = max(
-                0,
-                (int) (
-                    $target['id']
-                    ?? 0
-                )
-            );
-
-            if ($targetUserId <= 0) {
-                return $this->response
-                    ->setStatusCode(404)
-                    ->setJSON([
-                        'success' => false,
-                        'message' =>
-                        'The requested photo is unavailable.',
-                    ]);
-            }
-
-            /** @var \App\Services\Matchmaking\MemberInteractionService $interactionService */
-            $interactionService = service(
-                'memberInteractionService'
-            );
-
-            $hasInterestRelationship =
-                $interactionService
-                ->hasInterestBetween(
-                    $viewerUserId,
-                    $targetUserId
-                );
-
-            /** @var \App\Services\Profile\MemberPhotoUrlService $photoUrlService */
-            $photoUrlService = service(
-                'memberPhotoUrlService'
-            );
-
-            $mediumUrl = $photoUrlService
-                ->getApprovedGalleryMediumUrlForViewer(
-                    memberId: $targetUserId,
-                    viewerUserId: $viewerUserId,
-                    photoId: $photoId,
-                    hasInterestRelationship: $hasInterestRelationship
+                    $profileReference,
+                    $photoId
                 );
 
             if ($mediumUrl === '') {
                 return $this->response
                     ->setStatusCode(404)
+                    ->setHeader(
+                        'Cache-Control',
+                        'private, no-store, no-cache, '
+                            . 'must-revalidate, max-age=0'
+                    )
+                    ->setHeader(
+                        'Pragma',
+                        'no-cache'
+                    )
                     ->setJSON([
                         'status' =>
                         'error',
@@ -895,7 +881,11 @@ final class MemberProfileController extends BaseController
                     ],
                 ]);
         } catch (
-            \CodeIgniter\Exceptions\PageNotFoundException) {
+            PageNotFoundException) {
+            /*
+             * Keep unavailable, blocked, hidden and invalid targets
+             * indistinguishable.
+             */
             return $this->response
                 ->setStatusCode(404)
                 ->setHeader(
@@ -914,7 +904,64 @@ final class MemberProfileController extends BaseController
                     'message' =>
                     'The requested photo is unavailable.',
                 ]);
-        } catch (\Throwable $exception) {
+        } catch (
+            MembershipProfileQuotaExceededException
+            $exception
+        ) {
+            /*
+             * Match the existing Full Profile/PDF distinction between
+             * authorization failure and commercial quota exhaustion.
+             */
+            return $this->response
+                ->setStatusCode(429)
+                ->setHeader(
+                    'Cache-Control',
+                    'private, no-store, no-cache, '
+                        . 'must-revalidate, max-age=0'
+                )
+                ->setHeader(
+                    'Pragma',
+                    'no-cache'
+                )
+                ->setJSON([
+                    'status' =>
+                    'error',
+
+                    'message' =>
+                    $exception->getMessage(),
+                ]);
+        } catch (
+            DomainException
+            $exception
+        ) {
+            /*
+             * Membership / verification / gender-privacy denial.
+             *
+             * These are expected authorization outcomes rather than
+             * application failures.
+             */
+            return $this->response
+                ->setStatusCode(403)
+                ->setHeader(
+                    'Cache-Control',
+                    'private, no-store, no-cache, '
+                        . 'must-revalidate, max-age=0'
+                )
+                ->setHeader(
+                    'Pragma',
+                    'no-cache'
+                )
+                ->setJSON([
+                    'status' =>
+                    'error',
+
+                    'message' =>
+                    $exception->getMessage(),
+                ]);
+        } catch (
+            Throwable
+            $exception
+        ) {
             log_message(
                 'error',
                 'Viewer gallery medium URL failed. '
@@ -935,8 +982,19 @@ final class MemberProfileController extends BaseController
 
             return $this->response
                 ->setStatusCode(500)
+                ->setHeader(
+                    'Cache-Control',
+                    'private, no-store, no-cache, '
+                        . 'must-revalidate, max-age=0'
+                )
+                ->setHeader(
+                    'Pragma',
+                    'no-cache'
+                )
                 ->setJSON([
-                    'success' => false,
+                    'status' =>
+                    'error',
+
                     'message' =>
                     'The photo could not be loaded.',
                 ]);

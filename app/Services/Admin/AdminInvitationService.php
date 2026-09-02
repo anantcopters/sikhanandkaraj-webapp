@@ -6,7 +6,7 @@ namespace App\Services\Admin;
 
 use App\Models\AdminInvitationModel;
 use App\Models\AdminUserModel;
-use App\Services\Email\EmailQueueService;
+use App\Services\Email\AdminEmailService;
 use CodeIgniter\Database\BaseConnection;
 use RuntimeException;
 use Throwable;
@@ -18,7 +18,7 @@ final class AdminInvitationService
     public function __construct(
         private readonly AdminUserModel $adminUserModel,
         private readonly AdminInvitationModel $invitationModel,
-        private readonly EmailQueueService $emailQueueService,
+        private readonly AdminEmailService $adminEmailService,
         private readonly BaseConnection $database
     ) {}
 
@@ -474,7 +474,6 @@ final class AdminInvitationService
             }
 
             $this->database->transCommit();
-            
         } catch (Throwable $exception) {
             $this->database->transRollback();
 
@@ -573,23 +572,18 @@ final class AdminInvitationService
             $rawToken
         );
 
-        $this->emailQueueService->enqueue(
-            recipientEmail: (string) $admin['email_address'],
-            recipientName: (string) $admin['full_name'],
-            subject: 'Complete your Sikhanandkaraj administrator account',
-            viewName: 'Emails/Admin/AdminInvitation',
-            viewData: [
-                'adminName' =>
-                (string) $admin['full_name'],
-                'invitationUrl' => $invitationUrl,
-                'expiresInHours' =>
-                self::INVITATION_LIFETIME_HOURS,
-            ],
-            priority: 5,
-            maxAttempts: 3,
-            referenceType: 'ADMIN_INVITATION',
-            referenceId: (int) $invitationId
-        );
+        $this->adminEmailService
+            ->queueInvitation(
+                recipientEmail: (string) $admin['email_address'],
+
+                adminName: (string) $admin['full_name'],
+
+                invitationUrl: $invitationUrl,
+
+                expiresInHours: self::INVITATION_LIFETIME_HOURS,
+
+                invitationId: (int) $invitationId
+            );
     }
 
     private function assertUniqueContacts(

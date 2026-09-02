@@ -164,6 +164,24 @@ use App\Services\Development\DevelopmentMembershipPaymentSimulator;
 use App\Services\Membership\MembershipPaymentService;
 use App\Services\Admin\AdminMemberMatchesService;
 use App\Services\Matchmaking\PartnerPreferencePresentationService;
+use App\Services\Email\AdminEmailService;
+use App\Services\Email\EmailRegistry;
+use App\Services\Email\EmailRenderer;
+use App\Services\Email\MemberEmailService;
+use App\Services\Email\TestEmailService;
+use App\Services\Email\MemberEmailRecipientService;
+use App\Models\MemberCommunicationPreferenceModel;
+use App\Services\Communication\CommunicationPolicyService;
+use App\Services\Communication\MemberCommunicationPreferenceService;
+use App\Models\CommunicationEventModel;
+use App\Services\Communication\CommunicationDispatcherService;
+use App\Services\Communication\CommunicationEventService;
+use App\Services\Communication\EngagementDigestService;
+use App\Services\Communication\CommunicationOperationsService;
+use App\Models\AdminMemberActivityModel;
+use App\Services\Admin\AdminMemberActivityService;
+use App\Models\EmailQueueModel;
+use App\Models\SmsDeliveryLogModel;
 use Config\ProfilePdf;
 use Config\Matchmaking;
 use App\Logging\ApplicationErrorLogWriter;
@@ -312,6 +330,10 @@ final class Services extends BaseService
 
     /**
      * Return the member password-reset service.
+     *
+     * MemberEmailService is downstream from successful password
+     * persistence and OTP consumption. It does not participate in
+     * password-reset authorization.
      */
     public static function passwordResetService(
         bool $getShared = true
@@ -322,14 +344,34 @@ final class Services extends BaseService
             );
         }
 
-        $database = db_connect();
+        $database =
+            db_connect();
 
         return new PasswordResetService(
-            new UserModel($database),
-            new UserContactModel($database),
-            new ContactVerificationModel($database),
+            new UserModel(
+                $database
+            ),
+
+            new UserContactModel(
+                $database
+            ),
+
+            new ContactVerificationModel(
+                $database
+            ),
+
             $database,
-            static::smsProvider(false)
+
+            static::smsProvider(
+                false
+            ),
+
+            /*
+         * Existing centralized member-email pipeline.
+         */
+            static::memberEmailService(
+                false
+            )
         );
     }
 
@@ -464,7 +506,7 @@ final class Services extends BaseService
         return new AdminInvitationService(
             new AdminUserModel($database),
             new AdminInvitationModel($database),
-            new EmailQueueService($database),
+            static::adminEmailService(false),
             $database
         );
     }
@@ -978,24 +1020,48 @@ final class Services extends BaseService
             );
         }
 
-        $database = db_connect();
+        $database =
+            db_connect();
 
         /** @var MemberMedia $configuration */
-        $configuration = config(
-            MemberMedia::class
-        );
+        $configuration =
+            config(
+                MemberMedia::class
+            );
 
         return new MemberPhotoApprovalService(
             new AdminMemberPhotoApprovalModel(
                 $database
             ),
+
             new MemberPhotoModel(
                 $database
             ),
-            static::cloudFrontService(false),
+
+            new UserModel(
+                $database
+            ),
+
+            static::cloudFrontService(
+                false
+            ),
+
             $configuration,
-            static::adminAuditService(false),
-            static::memberNotificationService(false),
+
+            static::adminAuditService(
+                false
+            ),
+
+            new MemberNotificationService(
+                new MemberNotificationModel(
+                    $database
+                )
+            ),
+
+            static::memberEmailService(
+                false
+            ),
+
             $database
         );
     }
@@ -1012,12 +1078,14 @@ final class Services extends BaseService
             );
         }
 
-        $database = db_connect();
+        $database =
+            db_connect();
 
         /** @var MemberMedia $configuration */
-        $configuration = config(
-            MemberMedia::class
-        );
+        $configuration =
+            config(
+                MemberMedia::class
+            );
 
         return new MemberAadhaarService(
             new UserModel(
@@ -1044,18 +1112,19 @@ final class Services extends BaseService
                 false
             ),
 
-            $database,
-
-            config(
-                MemberMedia::class
+            static::memberEmailService(
+                false
             ),
 
-            /*
-            * Aadhaar upload/re-upload is membership controlled.
-            */
+            $database,
+
+            $configuration,
+
             static::membershipEntitlementService(
                 false
-            )
+            ),
+
+            static::memberNotificationService()
         );
     }
 
@@ -1108,7 +1177,8 @@ final class Services extends BaseService
             );
         }
 
-        $database = db_connect();
+        $database =
+            db_connect();
 
         return new MemberNotificationService(
             new MemberNotificationModel(
@@ -1343,8 +1413,11 @@ final class Services extends BaseService
     /**
      * Return the prelaunch administrator review service.
      *
-     * The dedicated factories are reused here so dependency construction is
-     * maintained in one location.
+     * The dedicated factories are reused here so dependency
+     * construction is maintained in one location.
+     *
+     * MemberEmailService is downstream from successful
+     * prelaunch-to-member migration and never owns approval.
      */
     public static function prelaunchAdminReviewService(
         bool $getShared = true
@@ -1355,23 +1428,37 @@ final class Services extends BaseService
             );
         }
 
-        $database = db_connect();
+        $database =
+            db_connect();
 
         return new PrelaunchAdminReviewService(
             new PrelaunchProfileModel(
                 $database
             ),
+
             new PrelaunchPhotoModel(
                 $database
             ),
+
             static::adminAuditService(
                 false
             ),
+
             $database,
+
             static::prelaunchContactAvailabilityService(
                 false
             ),
+
             static::prelaunchMemberMigrationService(
+                false
+            ),
+
+            /*
+         * Reuse the existing centralized member-email
+         * definition/policy/recipient/queue architecture.
+         */
+            static::memberEmailService(
                 false
             )
         );
@@ -1748,6 +1835,60 @@ final class Services extends BaseService
     }
 
     /**
+     * Return administrator member-activity service.
+     *
+     * Activity presentation reuses the same Partner Preference,
+     * Match Score, photo and profile-card authorities used by
+     * the existing Admin Match screen.
+     */
+    public static function adminMemberActivityService(
+        bool $getShared = true
+    ): AdminMemberActivityService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'adminMemberActivityService'
+            );
+        }
+
+        $database =
+            db_connect();
+
+        return new AdminMemberActivityService(
+            new UserModel(
+                $database
+            ),
+
+            new AdminMemberActivityModel(
+                $database
+            ),
+
+            new MemberMatchCandidateModel(
+                $database
+            ),
+
+            static::partnerPreferenceMatchService(
+                false
+            ),
+
+            static::memberMatchScoreService(
+                false
+            ),
+
+            static::memberProfilePresentationService(
+                false
+            ),
+
+            static::memberPhotoUrlService(
+                false
+            ),
+
+            static::partnerPreferencePresentationService(
+                false
+            )
+        );
+    }
+
+    /**
      * Structured, failure-safe application error logger.
      */
     public static function applicationErrorLogger(
@@ -1845,7 +1986,8 @@ final class Services extends BaseService
             );
         }
 
-        $database = db_connect();
+        $database =
+            db_connect();
 
         return new MemberInteractionService(
             new UserModel(
@@ -1869,26 +2011,45 @@ final class Services extends BaseService
             ),
 
             /*
-            * Intentionally construct this with the SAME database connection used by
-            * the interaction models.
-            *
-            * Interest persistence and notification creation must continue to
-            * participate in the same transaction.
-            */
+         * Intentionally construct this with the SAME database connection
+         * used by the interaction models.
+         *
+         * Interest persistence and in-app notification creation must remain
+         * in the same authoritative transaction.
+         */
             new MemberNotificationService(
                 new MemberNotificationModel(
                     $database
                 )
             ),
 
+            /*
+         * Existing immediate email communication remains unchanged during
+         * the incremental communication-orchestration migration.
+         */
+            static::memberEmailService(
+                false
+            ),
+
+            /*
+         * Durable channel-independent events are best-effort external
+         * communication orchestration.
+         *
+         * The CommunicationEventService handles publication failure without
+         * failing the already-completed matrimonial action.
+         */
+            static::communicationEventService(
+                false
+            ),
+
             $database,
 
             /*
-            * Shortlist entitlement is resolved centrally.
-            *
-            * Report, Block and Interest remain available to Free + Paid members
-            * according to MembershipEntitlementService.
-            */
+         * Shortlist entitlement is resolved centrally.
+         *
+         * Report, Block and Interest remain available according to the
+         * existing membership capability rules.
+         */
             static::membershipEntitlementService(
                 false
             )
@@ -2148,7 +2309,7 @@ final class Services extends BaseService
             static::partnerPreferencePresentationService(
                 false
             ),
-            
+
             static::profileAccessPolicy(
                 false
             )
@@ -2167,7 +2328,8 @@ final class Services extends BaseService
             );
         }
 
-        $database = db_connect();
+        $database =
+            db_connect();
 
         return new MemberInterestService(
             new UserModel(
@@ -2187,16 +2349,27 @@ final class Services extends BaseService
             ),
 
             /*
-            * Use the same DB connection so Interest response
-            * and notification remain in one transaction.
-            */
+         * Use the same DB connection so
+         * Interest response and in-app
+         * notification remain in one
+         * transaction.
+         */
             new MemberNotificationService(
                 new MemberNotificationModel(
                     $database
                 )
             ),
 
+            /*
+         * Email remains a downstream,
+         * best-effort communication channel.
+         */
+            static::memberEmailService(
+                false
+            ),
+
             $database,
+
             static::membershipEntitlementService(
                 false
             ),
@@ -2431,6 +2604,19 @@ final class Services extends BaseService
         );
     }
 
+    /**
+     * Return the authenticated member Account Settings service.
+     *
+     * Email verification deliberately receives MemberEmailService
+     * instead of EmailQueueService directly.
+     *
+     * Verification email is the explicit exception to the normal
+     * "verified primary email required" communication rule because
+     * its purpose is to establish email verification.
+     *
+     * MemberEmailService is also injected into Account Settings for
+     * post-success security notifications such as Password Changed.
+     */
     public static function memberAccountSettingsService(
         bool $getShared = true
     ): MemberAccountSettingsService {
@@ -2440,22 +2626,67 @@ final class Services extends BaseService
             );
         }
 
-        $database = db_connect();
+        /*
+     * Keep the Account Settings persistence models on the
+     * same application database connection.
+     */
+        $database =
+            db_connect();
 
         return new MemberAccountSettingsService(
-            new UserModel($database),
-            new UserContactModel($database),
-            new EmailVerificationTokenModel($database),
-            new EmailVerificationService(
-                new UserModel($database),
-                new UserContactModel($database),
-                new EmailVerificationTokenModel($database),
-                static::emailQueueService(false)
+            new UserModel(
+                $database
             ),
-            $database
+
+            new UserContactModel(
+                $database
+            ),
+
+            new EmailVerificationTokenModel(
+                $database
+            ),
+
+            new EmailVerificationService(
+                new UserModel(
+                    $database
+                ),
+
+                new UserContactModel(
+                    $database
+                ),
+
+                new EmailVerificationTokenModel(
+                    $database
+                ),
+
+                /*
+             * EmailVerificationService owns verification
+             * workflow while MemberEmailService owns email
+             * definition/rendering/queueing.
+             */
+                static::memberEmailService(
+                    false
+                )
+            ),
+
+            $database,
+
+            /*
+         * Security notification after successful
+         * password persistence.
+         */
+            static::memberEmailService(
+                false
+            )
         );
     }
 
+    /**
+     * Return authenticated-member Contact Us service.
+     *
+     * Support persistence remains authoritative. Email is injected only as a
+     * downstream transactional communication channel.
+     */
     public static function memberContactRequestService(
         bool $getShared = true
     ): MemberContactRequestService {
@@ -2465,9 +2696,16 @@ final class Services extends BaseService
             );
         }
 
+        $database =
+            db_connect();
+
         return new MemberContactRequestService(
             new MemberContactRequestModel(
-                db_connect()
+                $database
+            ),
+
+            static::memberEmailService(
+                false
             )
         );
     }
@@ -2491,6 +2729,12 @@ final class Services extends BaseService
         );
     }
 
+    /**
+     * Return administrator member-support service.
+     *
+     * Profile-report review behavior remains unchanged. MemberEmailService is
+     * used only by Contact Us resolution.
+     */
     public static function memberSupportService(
         bool $getShared = true
     ): MemberSupportService {
@@ -2500,7 +2744,8 @@ final class Services extends BaseService
             );
         }
 
-        $database = db_connect();
+        $database =
+            db_connect();
 
         return new MemberSupportService(
             new MemberProfileReportModel(
@@ -2509,6 +2754,10 @@ final class Services extends BaseService
 
             new MemberContactRequestModel(
                 $database
+            ),
+
+            static::memberEmailService(
+                false
             ),
 
             $database
@@ -2676,7 +2925,8 @@ final class Services extends BaseService
             );
         }
 
-        $database = db_connect();
+        $database =
+            db_connect();
 
         return new MemberVideoModerationService(
             new MemberVideoIntroductionModel(
@@ -2687,11 +2937,21 @@ final class Services extends BaseService
                 $database
             ),
 
+            new UserModel(
+                $database
+            ),
+
             static::cloudFrontService(
                 false
             ),
 
-            static::memberNotificationService(
+            new MemberNotificationService(
+                new MemberNotificationModel(
+                    $database
+                )
+            ),
+
+            static::memberEmailService(
                 false
             ),
 
@@ -2849,9 +3109,10 @@ final class Services extends BaseService
     /**
      * Return membership lifecycle housekeeping service.
      *
-     * This service synchronizes persisted lifecycle status only.
+     * This service synchronizes persisted lifecycle status and emits the
+     * transactional membership-expired communication.
      *
-     * MembershipService remains the runtime membership authority.
+     * MembershipService remains the runtime authorization authority.
      */
     public static function membershipLifecycleService(
         bool $getShared = true
@@ -2868,6 +3129,10 @@ final class Services extends BaseService
         return new MembershipLifecycleService(
             new MemberMembershipModel(
                 $database
+            ),
+
+            static::memberEmailService(
+                false
             )
         );
     }
@@ -3205,6 +3470,8 @@ final class Services extends BaseService
      *
      * Development and the future production payment gateway must both feed
      * authoritative successful-payment results through this service.
+     *
+     * MemberEmailService is deliberately downstream from payment processing.
      */
     public static function membershipPaymentService(
         bool $getShared = true
@@ -3233,6 +3500,12 @@ final class Services extends BaseService
                 $database
             ),
 
+            /*
+         * Keep the existing authoritative purchase service.
+         *
+         * Payment processing must not reproduce purchase/renewal/upgrade
+         * business rules locally.
+         */
             new MembershipPurchaseService(
                 $database,
 
@@ -3243,6 +3516,13 @@ final class Services extends BaseService
                 new MemberMembershipModel(
                     $database
                 )
+            ),
+
+            /*
+         * Optional external communication.
+         */
+            static::memberEmailService(
+                false
             )
         );
     }
@@ -3323,5 +3603,267 @@ final class Services extends BaseService
                     \App\Models\MemberMembershipLiveIntroductionViewModel::class
                 )
             );
+    }
+
+    public static function emailRegistry(
+        bool $getShared = true
+    ): EmailRegistry {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'emailRegistry'
+            );
+        }
+
+        return new EmailRegistry();
+    }
+
+    public static function emailRenderer(
+        bool $getShared = true
+    ): EmailRenderer {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'emailRenderer'
+            );
+        }
+
+        return new EmailRenderer();
+    }
+
+    public static function memberEmailRecipientService(
+        bool $getShared = true
+    ): MemberEmailRecipientService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberEmailRecipientService'
+            );
+        }
+
+        $database =
+            db_connect();
+
+        return new MemberEmailRecipientService(
+            new UserContactModel(
+                $database
+            )
+        );
+    }
+
+    public static function memberEmailService(
+        bool $getShared = true
+    ): MemberEmailService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberEmailService'
+            );
+        }
+
+        return new MemberEmailService(
+            static::emailRegistry(
+                false
+            ),
+
+            new EmailQueueService(),
+
+            static::memberEmailRecipientService(
+                false
+            ),
+            static::communicationPolicyService(false)
+        );
+    }
+
+    public static function adminEmailService(
+        bool $getShared = true
+    ): AdminEmailService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'adminEmailService'
+            );
+        }
+
+        return new AdminEmailService(
+            static::emailRegistry(false),
+            new EmailQueueService()
+        );
+    }
+
+    public static function testEmailService(
+        bool $getShared = true
+    ): TestEmailService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'testEmailService'
+            );
+        }
+
+        return new TestEmailService(
+            static::emailRegistry(false),
+            new EmailQueueService()
+        );
+    }
+
+    public static function communicationPolicyService(
+        bool $getShared = true
+    ): CommunicationPolicyService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'communicationPolicyService'
+            );
+        }
+
+        return new CommunicationPolicyService(
+            new MemberCommunicationPreferenceModel(
+                db_connect()
+            )
+        );
+    }
+
+    public static function memberCommunicationPreferenceService(
+        bool $getShared = true
+    ): MemberCommunicationPreferenceService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberCommunicationPreferenceService'
+            );
+        }
+
+        $database =
+            db_connect();
+
+        $preferenceModel =
+            new MemberCommunicationPreferenceModel(
+                $database
+            );
+
+        $policyService =
+            new CommunicationPolicyService(
+                $preferenceModel
+            );
+
+        return new MemberCommunicationPreferenceService(
+            $preferenceModel,
+            $policyService
+        );
+    }
+
+    /**
+     * Durable channel-independent communication event publisher.
+     */
+    public static function communicationEventService(
+        bool $getShared = true
+    ): CommunicationEventService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'communicationEventService'
+            );
+        }
+
+        return new CommunicationEventService(
+            new CommunicationEventModel(
+                db_connect()
+            )
+        );
+    }
+
+    /**
+     * Durable communication-event dispatcher.
+     */
+    public static function communicationDispatcherService(
+        bool $getShared = true
+    ): CommunicationDispatcherService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'communicationDispatcherService'
+            );
+        }
+
+        return new CommunicationDispatcherService(
+            new CommunicationEventModel(
+                db_connect()
+            )
+        );
+    }
+
+    /**
+     * Return the Engagement digest service.
+     *
+     * The service reuses:
+     *
+     * - durable communication_events;
+     * - central CommunicationPolicyService;
+     * - verified primary-email resolution;
+     * - EmailRegistry;
+     * - the existing durable email queue.
+     */
+    public static function engagementDigestService(
+        bool $getShared = true
+    ): EngagementDigestService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'engagementDigestService'
+            );
+        }
+
+        $database =
+            db_connect();
+
+        return new EngagementDigestService(
+            new CommunicationEventModel(
+                $database
+            ),
+
+            static::communicationPolicyService(
+                false
+            ),
+
+            new MemberEmailRecipientService(
+                new UserContactModel(
+                    $database
+                )
+            ),
+
+            new EmailRegistry(),
+
+            new EmailQueueService(
+                $database
+            ),
+
+            $database
+        );
+    }
+
+    /**
+     * Return the read-only communication operations service.
+     *
+     * This provides Super Admin operational visibility over:
+     *
+     * - the existing durable email queue;
+     * - SMS delivery attempts;
+     * - basic OTP rate-limit alerts.
+     *
+     * It deliberately does not own sending, retry or provider behaviour.
+     */
+    public static function communicationOperationsService(
+        bool $getShared = true
+    ): CommunicationOperationsService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'communicationOperationsService'
+            );
+        }
+
+        $database =
+            db_connect();
+
+        return new CommunicationOperationsService(
+            new EmailQueueModel(
+                $database
+            ),
+
+            new SmsDeliveryLogModel(
+                $database
+            ),
+
+            $database
+        );
     }
 }

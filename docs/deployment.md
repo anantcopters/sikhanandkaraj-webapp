@@ -106,7 +106,7 @@ QA-specific development-profile loading must additionally be explicitly enabled;
 ```ini
 CI_ENVIRONMENT = production
 APP_DEPLOYMENT = production
-app.baseURL = 'https://www.sikhanandkaraj.com/'
+app.baseURL = 'https://sikhanandkaraj.com/'
 app.forceGlobalSecureRequests = true
 cookie.secure = true
 cookie.httponly = true

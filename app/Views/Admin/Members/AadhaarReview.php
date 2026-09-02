@@ -312,7 +312,7 @@ $this->section('content');
                     <span
                         class="badge
                             bg-primary-subtle
-                            text-primary">
+                            text-body p-2">
 
                         <?= esc(
                             (string) count(
@@ -472,7 +472,7 @@ $this->section('content');
                                                 <span
                                                     class="badge
                                                         bg-primary-subtle
-                                                        text-primary
+                                                        text-body p-2
                                                         mt-2">
 
                                                     <i
@@ -568,16 +568,16 @@ $this->section('content');
                                         $historyBadgeClass =
                                             match ($historyStatus) {
                                                 'APPROVED' =>
-                                                'bg-success-subtle text-success',
+                                                'bg-success-subtle text-body p-2',
 
                                                 'REJECTED' =>
-                                                'bg-danger-subtle text-danger',
+                                                'bg-danger-subtle text-body p-2',
 
                                                 'UNDER_REVIEW' =>
-                                                'bg-warning-subtle text-dark',
+                                                'bg-warning-subtle text-body p-2',
 
                                                 default =>
-                                                'bg-secondary-subtle text-secondary',
+                                                'bg-secondary-subtle text-body p-2',
                                             };
                                         ?>
 

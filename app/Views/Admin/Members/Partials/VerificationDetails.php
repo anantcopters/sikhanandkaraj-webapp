@@ -39,10 +39,10 @@ $resolvedProfileReference = trim((string) ($profileReference ?? ''));
 
 $statusBadge = static function (string $status): string {
     return match (mb_strtoupper(trim($status))) {
-        'APPROVED' => 'bg-success-subtle text-success',
-        'UNDER_REVIEW', 'PENDING_REVIEW', 'PROCESSING' => 'bg-warning-subtle text-warning',
-        'REJECTED', 'PROCESSING_FAILED' => 'bg-danger-subtle text-danger',
-        default => 'bg-secondary-subtle text-secondary',
+        'APPROVED' => 'bg-success-subtle text-body p-2',
+        'UNDER_REVIEW', 'PENDING_REVIEW', 'PROCESSING' => 'bg-warning-subtle text-body p-2',
+        'REJECTED', 'PROCESSING_FAILED' => 'bg-danger-subtle text-body p-2',
+        default => 'bg-secondary-subtle text-body p-2',
     };
 };
 

@@ -10,193 +10,133 @@ declare(strict_types=1);
  * @var bool   $isReplacement
  */
 
-$resolvedName = trim(
-    (string) ($userName ?? '')
-);
+$resolvedName =
+    trim(
+        (string) ($userName ?? '')
+    );
 
 if ($resolvedName === '') {
     $resolvedName = 'Member';
 }
 
-$resolvedEmail = trim(
-    (string) ($emailAddress ?? '')
-);
+$resolvedEmail =
+    trim(
+        (string) ($emailAddress ?? '')
+    );
+
+$resolvedUrl =
+    trim(
+        (string) ($verificationUrl ?? '')
+    );
+
+$resolvedHours =
+    max(
+        1,
+        (int) ($expiresInHours ?? 24)
+    );
 
 $isReplacement =
     ($isReplacement ?? false) === true;
+
+ob_start();
 ?>
-<!doctype html>
-<html lang="en">
 
-<head>
-    <meta charset="utf-8">
-    <title>Verify Your Email Address</title>
+<p
+    style="
+        margin:0 0 18px;
+        font-size:15px;
+        line-height:1.7;
+    ">
+    Sat Sri Akal
+    <?= esc($resolvedName) ?>,
+</p>
 
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap'
-        );
+<p
+    style="
+        margin:0 0 18px;
+        font-size:15px;
+        line-height:1.7;
+    ">
+    Please confirm that
+    <strong>
+        <?= esc($resolvedEmail) ?>
+    </strong>
+    should be linked with your
+    Sikhanandkaraj account.
+</p>
 
-        body {
-            font-family: 'Inter', Arial, Helvetica, sans-serif;
-        }
-    </style>
-</head>
+<?php if ($isReplacement): ?>
 
-<body
+    <div
+        style="
+            margin:20px 0;
+            padding:14px 16px;
+            background:#f7f2fa;
+            border-left:3px solid #310a57;
+            color:#51475a;
+            font-size:14px;
+            line-height:1.6;
+        ">
+
+        Your current verified email
+        will remain active until this
+        new email address is confirmed.
+
+    </div>
+
+<?php endif; ?>
+
+<?= view(
+    'Emails/Components/Button',
+    [
+        'url' =>
+        $resolvedUrl,
+
+        'label' =>
+        'Verify Email Address',
+    ]
+) ?>
+
+<p
+    style="
+        margin:0 0 10px;
+        color:#6c757d;
+        font-size:13px;
+        line-height:1.6;
+    ">
+    This secure link is valid for
+    <?= esc(
+        (string) $resolvedHours
+    ) ?>
+    hours and can be used only once.
+</p>
+
+<p
     style="
         margin:0;
-        padding:0;
-        background:#f6f2f3;
-        color:#27272a;
+        color:#6c757d;
+        font-size:13px;
+        line-height:1.6;
     ">
+    If you did not request this change,
+    you can safely ignore this email.
+</p>
 
-    <table
-        role="presentation"
-        width="100%"
-        cellspacing="0"
-        cellpadding="0"
-        style="background:#f6f2f3;padding:32px 16px;">
+<?php
 
-        <tr>
-            <td align="center">
+$emailContent =
+    (string) ob_get_clean();
 
-                <table
-                    role="presentation"
-                    width="100%"
-                    cellspacing="0"
-                    cellpadding="0"
-                    style="
-                        max-width:600px;
-                        background:#ffffff;
-                        border-radius:16px;
-                        overflow:hidden;
-                    ">
+echo view(
+    'Emails/Layouts/Base',
+    [
+        'emailTitle' =>
+        'Verify Your Email Address',
 
-                    <tr>
-                        <td
-                            style="
-                                background:#ae1536;
-                                padding:24px 32px;
-                                color:#ffffff;
-                            ">
+        'emailSubtitle' =>
+        'Email Verification',
 
-                            <h1
-                                style="
-                                    margin:0;
-                                    font-size:22px;
-                                ">
-
-                                Sikhanandkaraj
-                            </h1>
-
-                            <p
-                                style="
-                                    margin:6px 0 0;
-                                    opacity:.9;
-                                ">
-
-                                Email Verification
-                            </p>
-                        </td>
-                    </tr>
-
-                    <tr>
-                        <td style="padding:32px;">
-
-                            <p
-                                style="
-                                    margin:0 0 16px;
-                                    line-height:1.6;
-                                ">
-
-                                Sat Sri Akal
-                                <?= esc($resolvedName) ?>,
-                            </p>
-
-                            <p
-                                style="
-                                    margin:0 0 16px;
-                                    line-height:1.6;
-                                ">
-
-                                Please confirm that
-                                <strong>
-                                    <?= esc($resolvedEmail) ?>
-                                </strong>
-                                should be linked with your
-                                Sikhanandkaraj account.
-                            </p>
-
-                            <?php if ($isReplacement): ?>
-                                <p
-                                    style="
-                                        margin:0 0 16px;
-                                        line-height:1.6;
-                                    ">
-
-                                    Your current verified email will
-                                    remain active until this new address
-                                    is confirmed.
-                                </p>
-                            <?php endif; ?>
-
-                            <p
-                                style="
-                                    margin:32px 0;
-                                    text-align:center;
-                                ">
-
-                                <a
-                                    href="<?= esc(
-                                                $verificationUrl,
-                                                'attr'
-                                            ) ?>"
-                                    style="
-                                        display:inline-block;
-                                        background:#ae1536;
-                                        color:#ffffff;
-                                        text-decoration:none;
-                                        padding:14px 24px;
-                                        border-radius:8px;
-                                        font-weight:600;
-                                    ">
-
-                                    Verify Email Address
-                                </a>
-                            </p>
-
-                            <p
-                                style="
-                                    margin:0 0 12px;
-                                    color:#71717a;
-                                    font-size:13px;
-                                    line-height:1.6;
-                                ">
-
-                                This secure link is valid for
-                                <?= esc(
-                                    (string) $expiresInHours
-                                ) ?>
-                                hours and can be used only once.
-                            </p>
-
-                            <p
-                                style="
-                                    margin:0;
-                                    color:#71717a;
-                                    font-size:13px;
-                                    line-height:1.6;
-                                ">
-
-                                If you did not request this change,
-                                you can safely ignore this email.
-                            </p>
-                        </td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
-    </table>
-</body>
-
-</html>
+        'emailContent' =>
+        $emailContent,
+    ]
+);

@@ -72,7 +72,7 @@
                         </div>
 
                         <small class="text-muted">
-                            AI powered better matches
+                            Preference-based compatible matches
                         </small>
 
                     </div>
@@ -97,7 +97,7 @@
                         </div>
 
                         <small class="text-muted">
-                            100% verified for trust
+                            Profile verification for greater trust
                         </small>
 
                     </div>

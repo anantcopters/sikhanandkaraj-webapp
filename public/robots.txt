@@ -1,2 +1,10 @@
 User-agent: *
-Disallow: 
+
+Disallow: /admin/
+Disallow: /api/
+Disallow: /field-officer/
+Disallow: /development/
+Disallow: /_preview/
+Disallow: /ISAK/
+
+Sitemap: https://sikhanandkaraj.com/sitemap.xml

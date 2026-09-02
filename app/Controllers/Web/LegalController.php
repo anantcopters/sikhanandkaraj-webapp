@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers\Web;
 
 use App\Controllers\BaseController;
+use App\Support\SeoMetadata;
 
 /**
  * Displays publicly accessible legal, privacy and safety information.
@@ -25,7 +26,10 @@ final class LegalController extends BaseController
     {
         return $this->renderLegalPage(
             'Pages/Legal/TermsAndConditions',
-            'Terms and Conditions | Sikhanandkaraj'
+            'Terms and Conditions | SikhanandKaraj',
+            'Read the terms governing registration, profiles, membership, '
+                . 'conduct and use of the SikhanandKaraj matrimonial platform.',
+            'web.legal.terms'
         );
     }
 
@@ -36,7 +40,10 @@ final class LegalController extends BaseController
     {
         return $this->renderLegalPage(
             'Pages/Legal/PrivacyPolicy',
-            'Privacy Policy | Sikhanandkaraj'
+            'Privacy Policy | SikhanandKaraj',
+            'Learn how SikhanandKaraj collects, uses, stores and protects '
+                . 'personal information across its matrimonial services.',
+            'web.legal.privacy'
         );
     }
 
@@ -47,7 +54,10 @@ final class LegalController extends BaseController
     {
         return $this->renderLegalPage(
             'Pages/Legal/Grievances',
-            'Grievance Redressal | Sikhanandkaraj'
+            'Grievance Redressal | SikhanandKaraj',
+            'Find the SikhanandKaraj grievance redressal process and the '
+                . 'appropriate way to raise a concern about the platform.',
+            'web.legal.grievances'
         );
     }
 
@@ -58,7 +68,11 @@ final class LegalController extends BaseController
     {
         return $this->renderLegalPage(
             'Pages/Legal/FraudAlert',
-            'Fraud Alert | Sikhanandkaraj'
+            'Matrimonial Fraud Alert | SikhanandKaraj',
+            'Read practical matrimonial fraud-prevention and account-safety '
+                . 'guidance from SikhanandKaraj before interacting or making '
+                . 'payments.',
+            'web.legal.fraud-alert'
         );
     }
 
@@ -69,7 +83,10 @@ final class LegalController extends BaseController
     {
         return $this->renderLegalPage(
             'Pages/Legal/CookiePolicy',
-            'Cookie Policy | Sikhanandkaraj'
+            'Cookie Policy | SikhanandKaraj',
+            'Review how SikhanandKaraj uses cookies and similar technologies '
+                . 'to operate and secure its matrimonial platform.',
+            'web.legal.cookie-policy'
         );
     }
 
@@ -81,7 +98,9 @@ final class LegalController extends BaseController
      */
     private function renderLegalPage(
         string $view,
-        string $pageTitle
+        string $pageTitle,
+        string $description,
+        string $routeName
     ): string {
         /*
          * Avoid retaining an outdated policy document after a revised version
@@ -99,6 +118,12 @@ final class LegalController extends BaseController
             [
                 'pageTitle' => $pageTitle,
                 'effectiveDate' => self::EFFECTIVE_DATE,
+                'seo' => SeoMetadata::publicPage(
+                    $pageTitle,
+                    $description,
+                    $routeName
+                ),
+                'minimalPublicPage' => true,
             ]
         );
     }

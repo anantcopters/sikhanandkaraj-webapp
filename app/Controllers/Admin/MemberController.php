@@ -13,6 +13,8 @@ use App\Support\DateDisplay;
 use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\RedirectResponse;
 use CodeIgniter\HTTP\ResponseInterface;
+use App\Validation\Admin\MemberOfflinePaymentValidation;
+use RuntimeException;
 use DomainException;
 use Throwable;
 
@@ -169,6 +171,23 @@ final class MemberController extends BaseController
                             'matchScoreDiagnosticInput'
                         ) ?? [],
 
+                        'offlinePaymentValidationErrors' =>
+                        session(
+                            'offlinePaymentValidationErrors'
+                        ) ?? [],
+
+                        'openOfflinePaymentModal' =>
+                        session(
+                            'openOfflinePaymentModal'
+                        ) === true,
+
+                        'adminMembershipPlans' =>
+                        service(
+                            'membershipPlanPresentationService'
+                        )->memberPlans(
+                            $userId
+                        ),
+
                         'pageScripts' => [
                             'assets/js/pages/admin-member-view.js',
                             'assets/js/pages/admin-video-introduction-review.js',
@@ -315,6 +334,115 @@ final class MemberController extends BaseController
                     additionalContext: [
                         'target_member_user_id' =>
                         $userId,
+                    ]
+                )
+            );
+
+            throw PageNotFoundException
+                ::forPageNotFound();
+        }
+    }
+
+    /**
+     * Display one member's administrator activity collection.
+     */
+    public function activity(
+        int $userId,
+        string $activityType
+    ): string {
+        $search =
+            preg_replace(
+                '/\s+/u',
+                ' ',
+                trim(
+                    (string) $this->request
+                        ->getGet(
+                            'search'
+                        )
+                )
+            ) ?? '';
+
+        $search =
+            mb_substr(
+                $search,
+                0,
+                100
+            );
+
+        $page = max(
+            1,
+            (int) (
+                $this->request
+                ->getGet(
+                    'page_adminMemberActivity'
+                )
+                ?? 1
+            )
+        );
+
+        try {
+            $result =
+                service(
+                    'adminMemberActivityService'
+                )->paginatedActivity(
+                    memberUserId: $userId,
+
+                    activityType: $activityType,
+
+                    search: $search,
+
+                    page: $page,
+
+                    perPage: 9
+                );
+
+            return view(
+                'Admin/Members/Activity',
+                [
+                    'pageTitle' =>
+                    $result['activity']['label']
+                        ?? 'Member Activity',
+
+                    ...$result,
+
+                    /*
+                 * Reuse the existing Admin Match page loader.
+                 *
+                 * Activity.php uses the same data attributes.
+                 */
+                    'pageScripts' => [
+                        'assets/js/pages/admin-member-matches.js',
+                    ],
+                ]
+            );
+        } catch (
+            PageNotFoundException $exception
+        ) {
+            throw $exception;
+        } catch (
+            DomainException $exception
+        ) {
+            throw PageNotFoundException
+                ::forPageNotFound();
+        } catch (Throwable $exception) {
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
+                'error',
+                AdminErrorContext::forOperation(
+                    operation: 'admin_member_activity',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'target_member_user_id' =>
+                        $userId,
+
+                        'activity_type' =>
+                        $activityType,
                     ]
                 )
             );
@@ -481,6 +609,267 @@ final class MemberController extends BaseController
                 ->with(
                     'matchScoreDiagnosticInput',
                     $input
+                );
+        }
+    }
+
+    /**
+     * Record a verified offline membership payment.
+     *
+     * Route-level superAdmin authorization is mandatory. This controller
+     * does not treat UI visibility as authorization.
+     */
+    public function recordOfflinePayment(
+        int $userId
+    ): RedirectResponse {
+        $returnUrl = route_to(
+            'admin.members.view',
+            $userId
+        );
+
+        $input = [
+            'plan_code' =>
+            mb_strtoupper(
+                trim(
+                    (string) $this->request
+                        ->getPost(
+                            'plan_code'
+                        )
+                )
+            ),
+
+            'payment_date' =>
+            trim(
+                (string) $this->request
+                    ->getPost(
+                        'payment_date'
+                    )
+            ),
+
+            'payment_method' =>
+            mb_strtoupper(
+                trim(
+                    (string) $this->request
+                        ->getPost(
+                            'payment_method'
+                        )
+                )
+            ),
+
+            'amount' =>
+            trim(
+                (string) $this->request
+                    ->getPost(
+                        'amount'
+                    )
+            ),
+
+            'transaction_reference' =>
+            trim(
+                (string) $this->request
+                    ->getPost(
+                        'transaction_reference'
+                    )
+            ),
+
+            'payment_note' =>
+            preg_replace(
+                '/\s+/u',
+                ' ',
+                trim(
+                    (string) $this->request
+                        ->getPost(
+                            'payment_note'
+                        )
+                )
+            ) ?? '',
+        ];
+
+        $validation = service(
+            'validation'
+        );
+
+        $validation->setRules(
+            MemberOfflinePaymentValidation
+                ::rules()
+        );
+
+        if (!$validation->run($input)) {
+            return redirect()
+                ->to($returnUrl)
+                ->withInput()
+                ->with(
+                    'offlinePaymentValidationErrors',
+                    $validation->getErrors()
+                )
+                ->with(
+                    'openOfflinePaymentModal',
+                    true
+                );
+        }
+
+        $paymentDate =
+            \DateTimeImmutable::createFromFormat(
+                '!Y-m-d',
+                $input['payment_date']
+            );
+
+        $today = new \DateTimeImmutable(
+            'today'
+        );
+
+        if (
+            !$paymentDate
+                instanceof \DateTimeImmutable
+            || $paymentDate > $today
+        ) {
+            return redirect()
+                ->to($returnUrl)
+                ->withInput()
+                ->with(
+                    'offlinePaymentValidationErrors',
+                    [
+                        'payment_date' =>
+                        'Payment date cannot be in the future.',
+                    ]
+                )
+                ->with(
+                    'openOfflinePaymentModal',
+                    true
+                );
+        }
+
+        /*
+     * Convert rupees to integer paise at the HTTP boundary.
+     * Payment persistence remains integer-only.
+     */
+        $amountPaise = (int) round(
+            ((float) $input['amount'])
+                * 100
+        );
+
+        try {
+            /*
+         * Confirm that the target is still a real administrator-visible
+         * member before creating financial data.
+         */
+            service(
+                'memberManagementService'
+            )->memberForAdmin(
+                $userId
+            );
+
+            $payment =
+                service(
+                    'membershipPaymentService'
+                )->recordOfflinePayment(
+                    userId: $userId,
+
+                    requestedPlanCode: $input['plan_code'],
+
+                    amountPaise: $amountPaise,
+
+                    paymentMethod: $input['payment_method'],
+
+                    paymentDate: $input['payment_date'],
+
+                    externalReference: $input['transaction_reference'],
+
+                    paymentNote: $input['payment_note'],
+
+                    adminUserId: $this->adminUserId()
+                );
+
+            return redirect()
+                ->to($returnUrl)
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'success',
+
+                        'title' =>
+                        'Membership activated',
+
+                        'message' =>
+                        trim(
+                            (string) (
+                                $payment['plan_name_snapshot']
+                                ?? 'Membership'
+                            )
+                        )
+                            . ' payment has been recorded and '
+                            . 'the membership has been activated.',
+                    ]
+                );
+        } catch (
+            PageNotFoundException $exception
+        ) {
+            throw $exception;
+        } catch (
+            RuntimeException
+            | DomainException $exception
+        ) {
+            return redirect()
+                ->to($returnUrl)
+                ->withInput()
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'danger',
+
+                        'title' =>
+                        'Payment not recorded',
+
+                        'message' =>
+                        $exception->getMessage(),
+                    ]
+                )
+                ->with(
+                    'openOfflinePaymentModal',
+                    true
+                );
+        } catch (Throwable $exception) {
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
+                'error',
+                AdminErrorContext::forOperation(
+                    operation: 'admin_member_offline_payment',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'target_member_user_id' =>
+                        $userId,
+                    ]
+                )
+            );
+
+            return redirect()
+                ->to($returnUrl)
+                ->withInput()
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'danger',
+
+                        'title' =>
+                        'Payment not recorded',
+
+                        'message' =>
+                        'The offline payment could not be recorded. '
+                            . 'Please try again.',
+                    ]
+                )
+                ->with(
+                    'openOfflinePaymentModal',
+                    true
                 );
         }
     }

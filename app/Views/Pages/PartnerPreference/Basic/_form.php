@@ -806,7 +806,7 @@ $drinkingHabits = is_array(
                         <span
                             class="badge
                         bg-success-subtle
-                        text-success
+                        text-body p-2
                         ms-2">
 
                             Recommended
@@ -838,7 +838,7 @@ $drinkingHabits = is_array(
                         <span
                             class="badge
                         bg-danger-subtle
-                        text-danger
+                        text-body p-2
                         ms-2">
 
                             Strict Match

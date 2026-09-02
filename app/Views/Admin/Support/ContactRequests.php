@@ -354,7 +354,7 @@ $this->section('content');
                                     <span
                                         class="badge
                                             bg-primary-subtle
-                                            text-primary
+                                            text-body
                                             p-2">
 
                                         <?= esc(
@@ -389,8 +389,8 @@ $this->section('content');
                                     <span
                                         class="badge
                                             <?= $isOpen
-                                                ? 'bg-warning-subtle text-dark'
-                                                : 'bg-success-subtle text-success' ?>
+                                                ? 'bg-warning-subtle text-body p-2'
+                                                : 'bg-success-subtle text-body p-2' ?>
                                             p-2">
 
                                         <?= $isOpen

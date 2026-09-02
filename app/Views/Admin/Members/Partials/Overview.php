@@ -54,7 +54,7 @@ $resolvedAccountStatus = trim(
 $resolvedStatusBadgeClass = trim(
     (string) (
         $statusBadgeClass
-        ?? 'bg-secondary-subtle text-secondary'
+        ?? 'bg-secondary-subtle text-body p-2'
     )
 );
 
@@ -181,7 +181,7 @@ $resolvedCanUnblock =
 
                             <span
                                 class="badge bg-primary-subtle
-                                    text-primary">
+                                    text-body p-2">
 
                                 <?= esc(
                                     $resolvedProfileReference !== ''

@@ -445,13 +445,13 @@ $this->section(
 
                             $statusClass = match ($status) {
                                 'APPROVED' =>
-                                'bg-success-subtle text-black',
+                                'bg-success-subtle text-body',
 
                                 'REJECTED' =>
-                                'bg-danger-subtle text-danger',
+                                'bg-danger-subtle text-body',
 
                                 default =>
-                                'bg-warning-subtle text-black',
+                                'bg-warning-subtle text-body',
                             };
                             ?>
 
@@ -460,7 +460,7 @@ $this->section(
                                     <span
                                         class="badge
                                             bg-primary-subtle
-                                            text-primary
+                                            text-body
                                             p-2">
 
                                         <?= esc(

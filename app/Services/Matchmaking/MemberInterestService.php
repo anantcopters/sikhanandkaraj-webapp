@@ -6,10 +6,11 @@ namespace App\Services\Matchmaking;
 
 use App\Models\MemberInterestModel;
 use App\Models\MemberMatchCandidateModel;
-use App\Models\MemberNotificationModel;
+use App\Services\Communication\CommunicationEventRegistry;
 use App\Models\UserModel;
 use App\Services\Notification\MemberNotificationService;
 use App\Services\Membership\MembershipEntitlementService;
+use App\Services\Email\MemberEmailService;
 use App\Support\MemberNameVisibility;
 use CodeIgniter\Database\BaseConnection;
 use DomainException;
@@ -54,6 +55,9 @@ final class MemberInterestService
 
         private readonly MemberNotificationService
         $notificationService,
+
+        private readonly MemberEmailService
+        $memberEmailService,
 
         private readonly BaseConnection
         $database,
@@ -277,8 +281,9 @@ final class MemberInterestService
 
         try {
             /*
-             * Lock the exact Interest row before reading it.
-             */
+         * Lock the exact Interest row before
+         * reading it.
+         */
             $this->database->query(
                 'SELECT id '
                     . 'FROM member_interests '
@@ -314,9 +319,9 @@ final class MemberInterestService
                 );
 
             /*
-             * Repeated submission of the same decision
-             * remains idempotent.
-             */
+         * Repeated submission of the same
+         * decision remains idempotent.
+         */
             if (
                 $currentStatus
                 === $newStatus
@@ -328,8 +333,9 @@ final class MemberInterestService
             }
 
             /*
-             * Accepted/Declined are final member-facing states.
-             */
+         * Accepted/Declined are final
+         * member-facing states.
+         */
             if (
                 $currentStatus
                 !== MemberInterestModel
@@ -340,13 +346,14 @@ final class MemberInterestService
                 );
             }
 
-            $interestId = max(
-                0,
-                (int) (
-                    $interest['id']
-                    ?? 0
-                )
-            );
+            $interestId =
+                max(
+                    0,
+                    (int) (
+                        $interest['id']
+                        ?? 0
+                    )
+                );
 
             if (
                 $interestId <= 0
@@ -380,10 +387,10 @@ final class MemberInterestService
             }
 
             /*
-             * Notify the original sender of the decision.
-             *
-             * Notification is part of the same DB transaction.
-             */
+         * In-app notification is authoritative
+         * application state and remains inside
+         * the same transaction.
+         */
             $this->createResponseNotification(
                 senderUserId: $fromUserId,
 
@@ -406,8 +413,6 @@ final class MemberInterestService
 
             $this->database
                 ->transCommit();
-
-            return true;
         } catch (
             Throwable $exception
         ) {
@@ -416,6 +421,37 @@ final class MemberInterestService
 
             throw $exception;
         }
+
+        /*
+     * External email is deliberately queued
+     * only after the authoritative Interest
+     * transaction has committed successfully.
+     */
+        $recipient =
+            $this->userModel
+            ->find(
+                $fromUserId
+            );
+
+        $this->memberEmailService
+            ->queueInterestResponse(
+                recipientUserId: $fromUserId,
+
+                recipientName: is_array($recipient)
+                    ? trim(
+                        (string) (
+                            $recipient['full_name']
+                            ?? ''
+                        )
+                    )
+                    : '',
+
+                interestId: $interestId,
+
+                status: $newStatus
+            );
+
+        return true;
     }
 
     /**
@@ -510,10 +546,10 @@ final class MemberInterestService
 
                     'type' =>
                     $accepted
-                        ? MemberNotificationModel
-                        ::TYPE_INTEREST_ACCEPTED
-                        : MemberNotificationModel
-                        ::TYPE_INTEREST_REJECTED,
+                        ? CommunicationEventRegistry
+                        ::INTEREST_ACCEPTED
+                        : CommunicationEventRegistry
+                        ::INTEREST_DECLINED,
 
                     'title' =>
                     $accepted

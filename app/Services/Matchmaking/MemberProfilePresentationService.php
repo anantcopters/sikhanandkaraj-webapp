@@ -52,7 +52,8 @@ final class MemberProfilePresentationService
      *         mobile:bool,
      *         email:bool,
      *         aadhaar:bool,
-     *         videoIntroduction:bool
+     *         videoIntroduction:bool,
+     *         nearestGurudwara:bool
      *     },
      *     image:string,
      *     profileUrl:string
@@ -407,8 +408,13 @@ final class MemberProfilePresentationService
             $commercialPriority,
 
             /*
-            * Verification values are normalized in the backend so views never need
-            * to interpret PostgreSQL boolean representations.
+            * Verification/trust values are normalized in the backend so views never
+            * need to interpret database values or decide whether a supplied profile
+            * detail is meaningful.
+            *
+            * Nearest Gurudwara is a member-provided trust detail rather than an
+            * administrator verification. It is shown only when Family Details
+            * contains a non-blank value.
             */
             'verification' => [
                 'mobile' =>
@@ -434,6 +440,14 @@ final class MemberProfilePresentationService
                     $member['has_video_introduction']
                         ?? false
                 ),
+
+                'nearestGurudwara' =>
+                trim(
+                    (string) (
+                        $member['nearest_gurudwara']
+                        ?? ''
+                    )
+                ) !== '',
             ],
 
             'image' =>

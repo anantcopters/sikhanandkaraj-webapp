@@ -1097,22 +1097,6 @@ form[aria-busy="true"] {
 }
 
 /**
- * Temporary member avatar used until profile-image storage is connected.
- */
-.dashboard-avatar {
-    width: 104px;
-    height: 104px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    background-color: rgba(174, 21, 54, 0.08);
-    color: var(--sak-primary);
-    font-size: 3rem;
-    object-fit: cover;
-}
-
-/**
  * Align the profile-completion shortcut icons consistently.
  */
 .dashboard-shortcut-icon {
@@ -1139,19 +1123,6 @@ form[aria-busy="true"] {
     overscroll-behavior-inline: contain;
     scroll-snap-type: inline proximity;
     scrollbar-width: thin;
-}
-
-/**
- * Online/offline indicator positioned over the profile placeholder.
- */
-.dashboard-online-status {
-    position: absolute;
-    right: calc(50% - 45px);
-    bottom: 3px;
-    width: 14px;
-    height: 14px;
-    border: 2px solid var(--sak-white);
-    border-radius: 50%;
 }
 
 /* ==========================================================================
@@ -1713,7 +1684,7 @@ form[aria-busy="true"] {
     bottom: 0;
     left: 0;
     width: 61%;
-    background-image: url("../images/Bg_Hero.png");
+    background-image: url("../images/Bg_Hero.webp");
     background-repeat: no-repeat;
     background-position: center center;
     background-size: cover;
@@ -2211,12 +2182,12 @@ form[aria-busy="true"] {
 .text-gurmukhi {
     color: #ae1536;
     line-height: 1.1;
-    text-shadow: 0 2px 20px rgba(0,0,0,0.4);
+    text-shadow: 0 2px 20px rgba(0, 0, 0, 0.4);
     font-weight: 700;
 }
 
 .w-35 {
-  width: 35% !important;
+    width: 35% !important;
 }
 
 /* Preserve the standard footer layout above the mobile breakpoint. */
@@ -2232,4 +2203,8 @@ form[aria-busy="true"] {
         max-width: 18rem;
         margin-inline: auto;
     }
+}
+
+.text-color-footer {
+    color: #f2f2f7;
 }

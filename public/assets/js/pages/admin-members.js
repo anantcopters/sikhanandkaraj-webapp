@@ -311,7 +311,7 @@
                         ? 'bg-danger-subtle '
                         + 'text-danger'
                         : 'bg-success-subtle '
-                        + 'text-success';
+                        + 'text-body p-2';
 
                 return [
                     '<tr>',

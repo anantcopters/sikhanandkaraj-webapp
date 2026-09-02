@@ -293,7 +293,7 @@
                         ? 'bg-danger-subtle '
                         + 'text-danger'
                         : 'bg-success-subtle '
-                        + 'text-success';
+                        + 'text-body p-2';
 
                 return [
                     '<tr>',
@@ -674,12 +674,158 @@
         );
     }
 
+    /**
+ * Keep the offline payment amount aligned with the selected
+ * authoritative membership plan.
+ *
+ * The plan price is supplied by MembershipPlanPresentationService.
+ * Administrators may still override Amount Received after selection.
+ */
+    function initializeOfflinePaymentPlanAmount() {
+        const planSelect = document.getElementById(
+            'offlinePaymentPlan'
+        );
+
+        const amountInput = document.getElementById(
+            'offlinePaymentAmount'
+        );
+
+        const planAmount = document.getElementById(
+            'offlinePaymentPlanAmount'
+        );
+
+        const planAmountDisplay =
+            planAmount
+                ? planAmount.querySelector(
+                    '[data-plan-amount-display]'
+                )
+                : null;
+
+        if (
+            !(planSelect instanceof HTMLSelectElement)
+            || !(amountInput instanceof HTMLInputElement)
+            || !planAmount
+            || !planAmountDisplay
+        ) {
+            return;
+        }
+
+        /**
+         * Apply the selected plan's master price.
+         *
+         * @param {boolean} updateAmount
+         */
+        function applyPlanPrice(
+            updateAmount
+        ) {
+            const selectedOption =
+                planSelect.options[
+                planSelect.selectedIndex
+                ];
+
+            const price = String(
+                selectedOption?.dataset.planPrice
+                ?? ''
+            ).trim();
+
+            const priceDisplay = String(
+                selectedOption?.dataset
+                    .planPriceDisplay
+                ?? ''
+            ).trim();
+
+            if (
+                price === ''
+                || priceDisplay === ''
+            ) {
+                planAmount.classList.add(
+                    'd-none'
+                );
+
+                planAmountDisplay.textContent =
+                    '';
+
+                if (updateAmount) {
+                    amountInput.value = '';
+                }
+
+                return;
+            }
+
+            planAmountDisplay.textContent =
+                '₹' + priceDisplay;
+
+            planAmount.classList.remove(
+                'd-none'
+            );
+
+            /*
+             * A plan change starts from the plan master amount.
+             * After that the administrator is free to override
+             * Amount Received.
+             */
+            if (updateAmount) {
+                amountInput.value = price;
+            }
+        }
+
+        planSelect.addEventListener(
+            'change',
+            function () {
+                applyPlanPrice(
+                    true
+                );
+            }
+        );
+
+        /*
+         * On server-validation return, preserve the administrator's
+         * submitted amount instead of overwriting it with the plan price.
+         */
+        applyPlanPrice(
+            amountInput.value.trim() === ''
+        );
+    }
+
+    /**
+     * Reopen the offline-payment modal after server validation failure.
+     */
+    function initializeOfflinePaymentModal() {
+        const modalElement = document.getElementById(
+            'offline-payment-modal'
+        );
+
+        if (
+            !modalElement
+            || typeof bootstrap === 'undefined'
+        ) {
+            return;
+        }
+
+        if (
+            String(
+                modalElement.dataset.openModal
+                ?? '0'
+            ) !== '1'
+        ) {
+            return;
+        }
+
+        bootstrap.Modal
+            .getOrCreateInstance(
+                modalElement
+            )
+            .show();
+    }
+
     document.addEventListener(
         'DOMContentLoaded',
         function () {
             initializeStatusModal();
             initializeHistoryModal();
             initializePhotoModal();
+            initializeOfflinePaymentPlanAmount();
+            initializeOfflinePaymentModal();
         }
     );
 }());

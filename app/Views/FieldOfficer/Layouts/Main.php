@@ -83,7 +83,7 @@ $logoutUrl =
 $logoUrl =
     base_url(
         'assets/images/'
-            . 'logo_sak_bgremove_final.png'
+            . 'logo_sak_header.png'
     );
 
 $bootstrapCssUrl =
@@ -132,6 +132,7 @@ $selectChoiceJsUrl =
     <meta
         name="viewport"
         content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow, noarchive">
 
     <title>
         <?= esc($pageTitle) ?>

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers\Web;
 
 use App\Controllers\BaseController;
+use App\Support\SeoMetadata;
 
 /**
  * Displays publicly accessible company and service information.
@@ -18,7 +19,11 @@ final class InformationController extends BaseController
     {
         return $this->renderInformationPage(
             'Pages/Information/AboutUs',
-            'About Us | Sikhanandkaraj'
+            'About SikhanandKaraj | Sikh Matrimonial Platform',
+            'Learn how SikhanandKaraj helps Sikh individuals and families '
+                . 'discover meaningful matrimonial connections with privacy, '
+                . 'shared values and trust.',
+            'web.information.about'
         );
     }
 
@@ -29,7 +34,11 @@ final class InformationController extends BaseController
     {
         return $this->renderInformationPage(
             'Pages/Information/AdvertiseWithUs',
-            'Advertise With Us | Sikhanandkaraj'
+            'Advertise With SikhanandKaraj',
+            'Explore responsible advertising and partnership opportunities '
+                . 'with SikhanandKaraj and reach marriage-focused Sikh '
+                . 'individuals and families.',
+            'web.information.advertise'
         );
     }
 
@@ -40,7 +49,11 @@ final class InformationController extends BaseController
     {
         return $this->renderInformationPage(
             'Pages/Information/PaymentOptions',
-            'Payment Options | Sikhanandkaraj'
+            'Membership Payment Options | SikhanandKaraj',
+            'Review the available SikhanandKaraj membership payment options '
+                . 'and important payment-safety guidance before making a '
+                . 'payment.',
+            'web.information.payment-options'
         );
     }
 
@@ -62,7 +75,17 @@ final class InformationController extends BaseController
             'Pages/Information/MembershipPlans',
             [
                 'pageTitle' =>
-                'Membership Plans | Sikhanandkaraj',
+                'Sikh Matrimony Membership Plans | SikhanandKaraj',
+
+                'seo' => SeoMetadata::publicPage(
+                    'Sikh Matrimony Membership Plans | SikhanandKaraj',
+                    'Compare SikhanandKaraj matrimonial membership plans, '
+                        . 'features and durations to choose the plan that '
+                        . 'supports your search for a compatible life partner.',
+                    'web.information.membership-plans'
+                ),
+
+                'minimalPublicPage' => true,
 
                 'plans' =>
                 $plans,
@@ -77,7 +100,11 @@ final class InformationController extends BaseController
     {
         return $this->renderInformationPage(
             'Pages/Information/Career',
-            'Careers | Sikhanandkaraj'
+            'Careers at SikhanandKaraj',
+            'Explore career opportunities with SikhanandKaraj and help build '
+                . 'a trusted, privacy-conscious matrimonial platform for the '
+                . 'Sikh community.',
+            'web.information.careers'
         );
     }
 
@@ -89,13 +116,23 @@ final class InformationController extends BaseController
      */
     private function renderInformationPage(
         string $view,
-        string $pageTitle
+        string $pageTitle,
+        string $description,
+        string $routeName
     ): string {
         return view(
             $view,
             [
                 'pageTitle' =>
                 $pageTitle,
+
+                'seo' => SeoMetadata::publicPage(
+                    $pageTitle,
+                    $description,
+                    $routeName
+                ),
+
+                'minimalPublicPage' => true,
             ]
         );
     }

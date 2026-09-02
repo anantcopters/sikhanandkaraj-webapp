@@ -750,6 +750,74 @@ final class PrelaunchProfileController extends BaseController
                 );
             }
 
+            /*
+ * The profile and its photographs have already been successfully
+ * persisted by PrelaunchProfileService at this point.
+ *
+ * Email remains a downstream operational notification. A queue
+ * failure must not turn an already-created profile into a failed
+ * form submission.
+ */
+            try {
+                $validatedProfile =
+                    $validation->getValidated();
+
+                $mobileNumber =
+                    trim(
+                        (string) (
+                            $validatedProfile['country_code']
+                            ?? ''
+                        )
+                    )
+                    . trim(
+                        (string) (
+                            $validatedProfile['mobile_number']
+                            ?? ''
+                        )
+                    );
+
+                service(
+                    'adminEmailService'
+                )->queueNewProfileCreated(
+                    fullName: (string) (
+                        $validatedProfile['full_name']
+                        ?? ''
+                    ),
+
+                    gender: (string) (
+                        $validatedProfile['gender']
+                        ?? ''
+                    ),
+
+                    mobileNumber: $mobileNumber,
+
+                    profileReference: $result->profileReference,
+
+                    source: 'PRELAUNCH',
+
+                    referenceId: $result->profileId
+                );
+            } catch (Throwable $notificationException) {
+                service(
+                    'applicationErrorLogger'
+                )->exception(
+                    $notificationException,
+                    'error',
+                    PrelaunchErrorContext::forOperation(
+                        operation: 'prelaunch_new_profile_email',
+
+                        component: self::class,
+
+                        method: __FUNCTION__,
+
+                        additionalContext: [
+                            'profile_id' =>
+                            $result->profileId,
+                        ]
+                    )
+                );
+            }
+
             return redirect()
                 ->to(
                     route_to(

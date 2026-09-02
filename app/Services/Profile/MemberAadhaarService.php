@@ -14,6 +14,9 @@ use App\Services\Aws\S3Service;
 use CodeIgniter\Database\BaseConnection;
 use CodeIgniter\HTTP\Files\UploadedFile;
 use App\Services\Membership\MembershipEntitlementService;
+use App\Services\Communication\CommunicationEventRegistry;
+use App\Services\Notification\MemberNotificationService;
+use App\Services\Email\MemberEmailService;
 use Config\MemberMedia;
 use DomainException;
 use RuntimeException;
@@ -52,6 +55,9 @@ final class MemberAadhaarService
         private readonly AdminAuditService
         $auditService,
 
+        private readonly MemberEmailService
+        $memberEmailService,
+
         private readonly BaseConnection
         $database,
 
@@ -65,7 +71,10 @@ final class MemberAadhaarService
         * Do not derive paid/free state from UserModel or plan codes here.
         */
         private readonly MembershipEntitlementService
-        $membershipEntitlementService
+        $membershipEntitlementService,
+
+        private readonly MemberNotificationService
+        $memberNotificationService,
     ) {}
 
     /**
@@ -245,16 +254,15 @@ final class MemberAadhaarService
             : '';
 
         /*
-        * Aadhaar history and verification state remain visible even when a member
-        * later becomes Free.
+        * Aadhaar Verification is available to both Free and Paid members.
         *
-        * This is intentional:
+        * Keep capability resolution centralized through
+        * MembershipEntitlementService rather than making this service infer
+        * membership/account type directly.
         *
-        * - verification already performed remains part of the member's identity;
-        * - historical moderation information must not disappear;
-        * - only the ability to START another upload is membership-controlled.
-        *
-        * Therefore membership affects canUpload, not the existing status/history.
+        * The entitlement result determines whether the product capability is
+        * available. The current Aadhaar workflow state independently determines
+        * whether another document may actually be submitted.
         */
         $hasAadhaarEntitlement =
             $this->membershipEntitlementService
@@ -265,11 +273,18 @@ final class MemberAadhaarService
         /*
         * A member may upload only when BOTH conditions are satisfied:
         *
-        * 1. the current Aadhaar workflow state allows another submission; and
-        * 2. the active membership grants the Aadhaar capability.
+        * 1. Aadhaar Verification is available to the authenticated member; and
+        * 2. the current Aadhaar workflow state permits another submission.
         *
-        * upload() repeats the entitlement check server-side and remains the
-        * authoritative security boundary.
+        * Free and Paid members follow exactly the same Aadhaar workflow:
+        *
+        * NOT_ADDED     -> upload allowed
+        * REJECTED      -> re-upload allowed
+        * UNDER_REVIEW  -> upload blocked
+        * APPROVED      -> upload blocked
+        *
+        * upload() repeats the capability check server-side and remains the
+        * authoritative security boundary for direct POST requests.
         */
         $canUpload =
             $hasAadhaarEntitlement
@@ -350,9 +365,13 @@ final class MemberAadhaarService
         * SECURITY BOUNDARY
         * --------------------------------------------------------------------------
         *
-        * Aadhaar upload is a paid membership capability.
+        * Aadhaar Verification is available to both Free and Paid members.
         *
-        * This check MUST occur in the service before:
+        * MembershipEntitlementService remains the central authority for product
+        * capabilities. This service must not independently infer account type or
+        * bypass that capability boundary.
+        *
+        * This check MUST occur before:
         *
         * - inspecting the uploaded document;
         * - calculating checksums;
@@ -360,7 +379,9 @@ final class MemberAadhaarService
         * - uploading anything to S3;
         * - writing submission history.
         *
-        * Controller/UI checks are convenience only and must never be relied upon.
+        * The check is intentionally repeated server-side even though the Account
+        * Settings UI also uses the resolved Aadhaar state. UI visibility is never
+        * treated as authorization.
         */
         if (
             !$this->membershipEntitlementService
@@ -369,8 +390,8 @@ final class MemberAadhaarService
                 )
         ) {
             throw new DomainException(
-                'A paid membership is required to use '
-                    . 'Aadhaar Verification.'
+                'Aadhaar Verification is not available '
+                    . 'for this account.'
             );
         }
 
@@ -790,6 +811,8 @@ final class MemberAadhaarService
                 );
             }
 
+
+
             $this->database->transCommit();
         } catch (Throwable $exception) {
             $this->database->transRollback();
@@ -797,6 +820,30 @@ final class MemberAadhaarService
             throw $exception;
         }
 
+        $this->memberNotificationService
+            ->create([
+                'recipientUserId' =>
+                $memberId,
+
+                'type' =>
+                CommunicationEventRegistry
+                ::AADHAAR_APPROVED,
+
+                'title' =>
+                'Aadhaar Approved',
+
+                'message' =>
+                'Your Aadhaar verification has been approved.',
+
+                'entityType' =>
+                'AADHAAR_SUBMISSION',
+
+                'entityId' =>
+                (int) $submission['id'],
+
+                'targetUrl' =>
+                '/account-settings/aadhaar',
+            ]);
         /*
      * Audit after the business transaction commits.
      *
@@ -833,6 +880,37 @@ final class MemberAadhaarService
                 ]
             )
         );
+
+        $memberId =
+            (int) (
+                $submission['member_id']
+                ?? 0
+            );
+
+        $member =
+            $this->userModel
+            ->find(
+                $memberId
+            );
+
+        $this->memberEmailService
+            ->queueAadhaarApproved(
+                recipientUserId: $memberId,
+
+                recipientName: is_array($member)
+                    ? trim(
+                        (string) (
+                            $member['full_name']
+                            ?? ''
+                        )
+                    )
+                    : '',
+
+                submissionId: (int) (
+                    $submission['id']
+                    ?? 0
+                )
+            );
     }
 
     /**
@@ -974,6 +1052,31 @@ final class MemberAadhaarService
             throw $exception;
         }
 
+        $this->memberNotificationService
+            ->create([
+                'recipientUserId' =>
+                $memberId,
+
+                'type' =>
+                CommunicationEventRegistry
+                ::AADHAAR_REJECTED,
+
+                'title' =>
+                'Aadhaar Rejected',
+
+                'message' =>
+                'Your Aadhaar verification was not approved. Please review the rejection reason and upload your Aadhaar again.',
+
+                'entityType' =>
+                'AADHAAR_SUBMISSION',
+
+                'entityId' =>
+                (int) $submission['id'],
+
+                'targetUrl' =>
+                '/account-settings/aadhaar',
+            ]);
+
         $this->auditService->record(
             new AdminAuditEvent(
                 action: AdminAuditAction
@@ -1004,6 +1107,39 @@ final class MemberAadhaarService
                 ]
             )
         );
+
+        $memberId =
+            (int) (
+                $submission['member_id']
+                ?? 0
+            );
+
+        $member =
+            $this->userModel
+            ->find(
+                $memberId
+            );
+
+        $this->memberEmailService
+            ->queueAadhaarRejected(
+                recipientUserId: $memberId,
+
+                recipientName: is_array($member)
+                    ? trim(
+                        (string) (
+                            $member['full_name']
+                            ?? ''
+                        )
+                    )
+                    : '',
+
+                submissionId: (int) (
+                    $submission['id']
+                    ?? 0
+                ),
+
+                reason: $normalizedReason
+            );
     }
 
     /**
