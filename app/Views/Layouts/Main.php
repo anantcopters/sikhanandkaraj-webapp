@@ -66,7 +66,6 @@ $googleTagManagerEnabled = preg_match(
     $googleTagManagerId
 ) === 1;
 ?>
-?>
 <!doctype html>
 <html lang="en" dir="ltr">
 
@@ -238,8 +237,7 @@ $googleTagManagerEnabled = preg_match(
             </noscript>
             <!-- End Google Tag Manager (noscript) -->
         <?php endif; ?>
-
-        <?= $this->include('Components/Header') ?>
+        
         <?= $this->include('Components/Header') ?>
         <?= view(
             'Components/Member/PaidAadhaarReminder'
