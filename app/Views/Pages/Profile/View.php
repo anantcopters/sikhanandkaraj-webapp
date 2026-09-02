@@ -2576,7 +2576,7 @@ $this->section('content');
                                             ): ?>
 
                                                 <span
-                                                    class="badge bg-primary
+                                                    class="badge bg-primary text-white
                                         position-absolute
                                         top-0 start-0 m-2">
 

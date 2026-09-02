@@ -748,18 +748,10 @@ form[aria-busy="true"] {
    Dashboard user dropdown integration
    ========================================================================== */
 
-/*
- * Allow the existing Velzon topbar profile component to fit inside
- * the public website header.
- */
 .public-navbar .topbar-user {
     margin-left: 0 !important;
 }
 
-/*
- * The app.css topbar user button was originally designed for the Velzon
- * admin topbar. Keep it compact inside the Sikh Anand Karaj header.
- */
 .public-navbar .topbar-user .btn {
     min-height: 54px;
     padding: 6px 12px;

@@ -207,90 +207,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ) {
             recorder.stop();
         }
-    };
-
-    const readMediaDuration = (
-        blob
-    ) => new Promise(
-        (resolve, reject) => {
-            const media = document.createElement(
-                'video'
-            );
-
-            const objectUrl =
-                URL.createObjectURL(
-                    blob
-                );
-
-            const cleanup = () => {
-                URL.revokeObjectURL(
-                    objectUrl
-                );
-
-                media.removeAttribute(
-                    'src'
-                );
-
-                media.load();
-            };
-
-            media.preload = 'metadata';
-
-            media.addEventListener(
-                'loadedmetadata',
-                () => {
-                    const duration =
-                        Number(
-                            media.duration
-                        );
-
-                    if (
-                        Number.isFinite(duration)
-                        && duration > 0
-                    ) {
-                        cleanup();
-
-                        resolve(
-                            duration
-                        );
-
-                        return;
-                    }
-
-                    cleanup();
-
-                    reject(
-                        new Error(
-                            'The recorded video duration '
-                            + 'could not be determined.'
-                        )
-                    );
-                },
-                {
-                    once: true,
-                }
-            );
-
-            media.addEventListener(
-                'error',
-                () => {
-                    cleanup();
-
-                    reject(
-                        new Error(
-                            'The recorded video could not '
-                            + 'be inspected. Please retake it.'
-                        )
-                    );
-                },
-                {
-                    once: true,
-                }
-            );
-
-            media.src = objectUrl;
-        }
-    );
+    };    
 
     if (!window.isSecureContext) {
         enable.disabled = true;
@@ -600,31 +517,28 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        let mediaDuration;
-
-        try {
-            mediaDuration =
-                await readMediaDuration(
-                    blob
-                );
-        } catch (exception) {
-            showError(
-                exception.message
-                || 'The recorded video could not '
-                + 'be validated. Please retake it.'
-            );
-
-            retake.classList.remove(
-                'd-none'
-            );
-
-            releaseCamera();
-
-            return;
-        }
+        /*
+        * Browser-recorded WebM files do not consistently expose duration
+        * metadata through HTMLMediaElement.duration.
+        *
+        * Chrome can report NaN for an otherwise valid MediaRecorder WebM,
+        * while Firefox may expose a finite duration for the same recording
+        * flow.
+        *
+        * The browser already has a reliable elapsed recording duration from
+        * performance.now(), so use that for immediate client-side validation.
+        *
+        * This is not the authoritative media-duration validation. The
+        * background processing worker independently inspects the uploaded
+        * media with FFprobe and rejects recordings outside the configured
+        * duration range.
+        */
+        const mediaDuration =
+            wallClockDuration;
 
         if (
-            mediaDuration < minSeconds
+            !Number.isFinite(mediaDuration)
+            || mediaDuration < minSeconds
             || mediaDuration
             > (
                 maxSeconds
