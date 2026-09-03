@@ -1437,6 +1437,38 @@ $matchSections = [
 
                             <?php else: ?>
 
+                                <?php
+                                $emptyActionUrl =
+                                    trim(
+                                        (string) (
+                                            $section['emptyActionUrl']
+                                            ?? $section['viewAllUrl']
+                                            ?? route_to(
+                                                'web.matches'
+                                            )
+                                        )
+                                    );
+
+                                $emptyActionLabel =
+                                    trim(
+                                        (string) (
+                                            $section['emptyActionLabel']
+                                            ?? ''
+                                        )
+                                    );
+
+                                if ($emptyActionLabel === '') {
+                                    $emptyActionLabel =
+                                        'View '
+                                        . trim(
+                                            (string) (
+                                                $section['title']
+                                                ?? 'Profiles'
+                                            )
+                                        );
+                                }
+                                ?>
+
                                 <div class="text-center py-4">
                                     <i
                                         class="ri-user-search-line
@@ -1452,32 +1484,16 @@ $matchSections = [
 
                                     <a
                                         href="<?= esc(
-                                                    (string) (
-                                                        $section['viewAllUrl']
-                                                        ?? route_to(
-                                                            'web.matches'
-                                                        )
-                                                    ),
+                                                    $emptyActionUrl,
                                                     'attr'
                                                 ) ?>"
                                         class="d-inline-flex
             align-items-center gap-1
             text-primary fw-medium fs-13">
 
-                                        <?php if (
-                                            ($section['key'] ?? '')
-                                            === 'all-matches'
-                                        ): ?>
-                                            Open Match Menu
-                                        <?php else: ?>
-                                            View
-                                            <?= esc(
-                                                (string) (
-                                                    $section['title']
-                                                    ?? 'Profiles'
-                                                )
-                                            ) ?>
-                                        <?php endif; ?>
+                                        <?= esc(
+                                            $emptyActionLabel
+                                        ) ?>
 
                                         <i
                                             class="ri-arrow-right-line"

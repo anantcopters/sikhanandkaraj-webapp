@@ -875,7 +875,7 @@ $hidePublicLoginAction =
                         </span>
 
                         <span class="public-navbar__phone-number">
-                            +91 98877 11226
+                            +91 9887711226
                         </span>
 
                     </a>

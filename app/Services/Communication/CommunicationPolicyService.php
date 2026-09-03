@@ -6,6 +6,7 @@ namespace App\Services\Communication;
 
 use App\Models\MemberCommunicationPreferenceModel;
 use App\Services\Email\EmailDefinition;
+use App\Support\BooleanValue;
 
 /**
  * Central server-side communication policy.
@@ -94,11 +95,10 @@ final class CommunicationPolicyService
         }
 
         if (
-            !$this
-                ->booleanValue(
-                    $preference['is_enabled']
-                        ?? false
-                )
+            !BooleanValue::fromDatabase(
+                $preference['is_enabled']
+                    ?? false
+            )
         ) {
             return CommunicationDeliveryDecision
             ::SKIP;
@@ -182,8 +182,7 @@ final class CommunicationPolicyService
         }
 
         $enabled =
-            $this
-            ->booleanValue(
+            BooleanValue::fromDatabase(
                 $preference['is_enabled']
                     ?? false
             );
@@ -359,15 +358,5 @@ final class CommunicationPolicyService
         }
 
         return $frequency;
-    }
-
-    private function booleanValue(
-        mixed $value
-    ): bool {
-        return $value === true
-            || $value === 1
-            || $value === '1'
-            || $value === 't'
-            || $value === 'true';
     }
 }

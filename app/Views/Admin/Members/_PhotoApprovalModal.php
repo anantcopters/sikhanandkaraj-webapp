@@ -162,13 +162,13 @@ $carouselId = $modalId . 'Carousel';
 
                                 $statusClass = match ($photoStatus) {
                                     'APPROVED' =>
-                                    'bg-success-subtle text-success',
+                                    'bg-success-subtle text-body',
 
                                     'REJECTED' =>
-                                    'bg-danger-subtle text-danger',
+                                    'bg-danger-subtle text-body',
 
                                     default =>
-                                    'bg-warning-subtle text-warning',
+                                    'bg-warning-subtle text-body',
                                 };
                                 ?>
 
