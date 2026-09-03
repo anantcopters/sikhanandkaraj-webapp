@@ -348,7 +348,7 @@ final class MemberPhotoApprovalService
      * @return array{
      *     photoId:int,
      *     memberId:int,
-     *     notificationId:int,
+     *     notificationId:int|null,
      *     status:string
      * }
      */
@@ -515,59 +515,110 @@ final class MemberPhotoApprovalService
             throw $exception;
         }
 
-        $notificationId =
-            $this->notificationService
-            ->create([
-                'recipientUserId' =>
-                $memberId,
+        /*
+        * In-app notification and external email are independent
+        * downstream channels.
+        *
+        * The moderation transaction has already committed.
+        *
+        * Failure of one communication channel must never:
+        *
+        * - rollback the photo rejection;
+        * - prevent the other channel from being attempted.
+        */
+        $notificationId = null;
 
-                'type' =>
-                CommunicationEventRegistry
-                ::PHOTO_REJECTED,
+        try {
+            $notificationId =
+                $this->notificationService
+                ->create([
+                    'recipientUserId' =>
+                    $memberId,
 
-                'title' =>
-                'Profile photo not approved',
+                    'type' =>
+                    CommunicationEventRegistry
+                    ::PHOTO_REJECTED,
 
-                'message' =>
-                $notificationMessage,
+                    'title' =>
+                    'Profile photo not approved',
 
-                'entityType' =>
-                'MEMBER_PHOTO',
+                    'message' =>
+                    $notificationMessage,
 
-                'entityId' =>
-                $photoId,
+                    'entityType' =>
+                    'MEMBER_PHOTO',
 
-                'targetUrl' =>
-                '/profile/photos',
-            ]);
+                    'entityId' =>
+                    $photoId,
+
+                    'targetUrl' =>
+                    route_to(
+                        'web.profile.photos'
+                    ),
+                ]);
+        } catch (Throwable $exception) {
+            log_message(
+                'error',
+                'Photo rejection notification failed for '
+                    . 'member {memberId}, photo {photoId}: {message}',
+                [
+                    'memberId' =>
+                    $memberId,
+
+                    'photoId' =>
+                    $photoId,
+
+                    'message' =>
+                    $exception->getMessage(),
+                ]
+            );
+        }
 
         /*
-        * External communication is downstream
-        * from the completed moderation transaction.
+        * Email is attempted independently from the
+        * in-app notification.
         */
-        $member =
-            $this->userModel
-            ->find(
-                $memberId
-            );
+        try {
+            $member =
+                $this->userModel
+                ->find(
+                    $memberId
+                );
 
-        $this->memberEmailService
-            ->queuePhotoRejected(
-                recipientUserId: $memberId,
+            $this->memberEmailService
+                ->queuePhotoRejected(
+                    recipientUserId: $memberId,
 
-                recipientName: is_array($member)
-                    ? trim(
-                        (string) (
-                            $member['full_name']
-                            ?? ''
+                    recipientName: is_array($member)
+                        ? trim(
+                            (string) (
+                                $member['full_name']
+                                ?? ''
+                            )
                         )
-                    )
-                    : '',
+                        : '',
 
-                photoId: $photoId,
+                    photoId: $photoId,
 
-                reason: $reason
+                    reason: $reason
+                );
+        } catch (Throwable $exception) {
+            log_message(
+                'error',
+                'Photo rejection email queue failed for '
+                    . 'member {memberId}, photo {photoId}: {message}',
+                [
+                    'memberId' =>
+                    $memberId,
+
+                    'photoId' =>
+                    $photoId,
+
+                    'message' =>
+                    $exception->getMessage(),
+                ]
             );
+        }
 
         return [
             'photoId' =>
@@ -701,7 +752,9 @@ final class MemberPhotoApprovalService
                     'MEMBER_PHOTO',
 
                     'targetUrl' =>
-                    '/profile/photos',
+                    route_to(
+                        'web.profile.photos'
+                    ),
                 ]);
         } catch (Throwable $exception) {
             log_message(

@@ -249,8 +249,9 @@ final class MemberEmailService
                 '',
 
                 'actionUrl' =>
-                base_url(
-                    'account-settings/aadhaar'
+                url_to(
+                    'web.account.settings.section',
+                    'aadhaar-verification'
                 ),
 
                 'actionLabel' =>
@@ -289,8 +290,9 @@ final class MemberEmailService
                 trim($reason),
 
                 'actionUrl' =>
-                base_url(
-                    'account-settings/aadhaar'
+                url_to(
+                    'web.account.settings.section',
+                    'aadhaar-verification'
                 ),
 
                 'actionLabel' =>
@@ -387,8 +389,9 @@ final class MemberEmailService
                     : $reason,
 
                 'actionUrl' =>
-                base_url(
-                    'account-settings/video-introduction'
+                url_to(
+                    'web.account.settings.section',
+                    'video-introduction'
                 ),
 
                 'actionLabel' =>
