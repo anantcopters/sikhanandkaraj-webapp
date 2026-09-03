@@ -58,7 +58,7 @@ final class MemberVideoIntroductionReviewController extends BaseController
             )
         ) {
             $selectedStatus =
-                'PENDING_REVIEW';
+                'ALL';
         }
 
         /** @var MemberVideoModerationService $service */
