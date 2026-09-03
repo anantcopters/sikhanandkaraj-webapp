@@ -329,6 +329,52 @@ final class MemberPhotoApprovalService
             );
         }
 
+        /*
+        * Email is independent from the in-app notification.
+        *
+        * Failure here must not affect the already completed
+        * photo moderation or its in-app notification.
+        */
+        try {
+            $member =
+                $this->userModel
+                ->find(
+                    $memberId
+                );
+
+            $this->memberEmailService
+                ->queuePhotoApproved(
+                    recipientUserId: $memberId,
+
+                    recipientName: is_array($member)
+                        ? trim(
+                            (string) (
+                                $member['full_name']
+                                ?? ''
+                            )
+                        )
+                        : '',
+
+                    photoId: $photoId
+                );
+        } catch (Throwable $exception) {
+            log_message(
+                'error',
+                'Photo approval email queue failed for '
+                    . 'member {memberId}, photo {photoId}: {message}',
+                [
+                    'memberId' =>
+                    $memberId,
+
+                    'photoId' =>
+                    $photoId,
+
+                    'message' =>
+                    $exception->getMessage(),
+                ]
+            );
+        }
+
         return [
             'photoId' => $photoId,
             'memberId' => $memberId,

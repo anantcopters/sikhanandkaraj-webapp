@@ -38,6 +38,9 @@ final class EmailRegistry
     public const MEMBER_ENGAGEMENT_DIGEST =
     'MEMBER_ENGAGEMENT_DIGEST';
 
+    public const MEMBER_PHOTO_APPROVED =
+    'MEMBER_PHOTO_APPROVED';
+
     public const MEMBER_PHOTO_REJECTED =
     'MEMBER_PHOTO_REJECTED';
 
@@ -494,6 +497,46 @@ final class EmailRegistry
                 * moderation or membership communication.
                 */
                 priority: 50,
+
+                maxAttempts: 3
+            ),
+
+            self::MEMBER_PHOTO_APPROVED =>
+            new EmailDefinition(
+                key: self::MEMBER_PHOTO_APPROVED,
+
+                name: 'Profile Photo Approved',
+
+                category: self::CATEGORY_MODERATION,
+
+                subject: 'Your profile photo is approved',
+
+                viewName: 'Emails/Member/ModerationActivity',
+
+                previewData: [
+                    'userName' =>
+                    'Harpreet Singh',
+
+                    'heading' =>
+                    'Your profile photo is approved',
+
+                    'message' =>
+                    'Your profile photo has been reviewed '
+                        . 'and approved.',
+
+                    'reason' =>
+                    '',
+
+                    'actionUrl' =>
+                    base_url(
+                        'profile/photos'
+                    ),
+
+                    'actionLabel' =>
+                    'View Profile Photos',
+                ],
+
+                priority: 20,
 
                 maxAttempts: 3
             ),

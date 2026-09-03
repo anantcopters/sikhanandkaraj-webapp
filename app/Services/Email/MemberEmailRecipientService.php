@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Email;
 
 use App\Models\UserContactModel;
+use App\Support\BooleanValue;
 
 final class MemberEmailRecipientService
 {
@@ -34,14 +35,19 @@ final class MemberEmailRecipientService
         }
 
         if (
-            ($contact['is_verified'] ?? false) !== true
-            && (int) ($contact['is_verified'] ?? 0) !== 1
+            !BooleanValue::fromDatabase(
+                $contact['is_verified']
+                    ?? false
+            )
         ) {
             return null;
         }
 
         $email = trim(
-            (string) ($contact['contact_value'] ?? '')
+            (string) (
+                $contact['contact_value']
+                ?? ''
+            )
         );
 
         if (
@@ -55,8 +61,13 @@ final class MemberEmailRecipientService
         }
 
         return [
-            'email' => $email,
-            'name'  => trim($recipientName),
+            'email' =>
+            $email,
+
+            'name' =>
+            trim(
+                $recipientName
+            ),
         ];
     }
 }

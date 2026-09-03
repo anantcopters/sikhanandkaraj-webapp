@@ -180,6 +180,45 @@ final class MemberEmailService
         );
     }
 
+    public function queuePhotoApproved(
+        int $recipientUserId,
+        string $recipientName,
+        int $photoId
+    ): ?int {
+        return $this->queueMemberCommunication(
+            recipientUserId: $recipientUserId,
+
+            recipientName: $recipientName,
+
+            definitionKey: EmailRegistry
+            ::MEMBER_PHOTO_APPROVED,
+
+            viewData: [
+                'heading' =>
+                'Your profile photo is approved',
+
+                'message' =>
+                'Your profile photo has been reviewed '
+                    . 'and approved.',
+
+                'reason' =>
+                '',
+
+                'actionUrl' =>
+                url_to(
+                    'web.profile.photos'
+                ),
+
+                'actionLabel' =>
+                'View Profile Photos',
+            ],
+
+            referenceType: 'MEMBER_PHOTO',
+
+            referenceId: $photoId
+        );
+    }
+
     public function queuePhotoRejected(
         int $recipientUserId,
         string $recipientName,
@@ -210,8 +249,8 @@ final class MemberEmailService
                 $reason,
 
                 'actionUrl' =>
-                base_url(
-                    'profile/photos'
+                url_to(
+                    'web.profile.photos'
                 ),
 
                 'actionLabel' =>
@@ -982,6 +1021,24 @@ final class MemberEmailService
                         $definition
                     )
             ) {
+                log_message(
+                    'warning',
+                    'Member email skipped by communication policy. '
+                        . 'Definition: {definition}; '
+                        . 'Category: {category}; '
+                        . 'Recipient user ID: {userId}.',
+                    [
+                        'definition' =>
+                        $definitionKey,
+
+                        'category' =>
+                        $definition->category,
+
+                        'userId' =>
+                        $recipientUserId,
+                    ]
+                );
+
                 return null;
             }
 
@@ -998,6 +1055,21 @@ final class MemberEmailService
                 );
 
             if ($recipient === null) {
+                log_message(
+                    'warning',
+                    'Member email skipped because no verified '
+                        . 'primary email was resolved. '
+                        . 'Definition: {definition}; '
+                        . 'Recipient user ID: {userId}.',
+                    [
+                        'definition' =>
+                        $definitionKey,
+
+                        'userId' =>
+                        $recipientUserId,
+                    ]
+                );
+
                 return null;
             }
 
