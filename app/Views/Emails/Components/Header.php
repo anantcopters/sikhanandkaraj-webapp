@@ -19,7 +19,7 @@ $resolvedSubtitle =
     );
 
 $resolvedSupportPhone =
-    '+91 98877 11226';
+    '+91 9887711226';
 ?>
 
 <tr>

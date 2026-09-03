@@ -25,7 +25,7 @@ final class ProfilePdf extends BaseConfig
     /**
      * Help number displayed in the PDF.
      */
-    public string $supportPhone = '+91 98877 11226';
+    public string $supportPhone = '+91 9887711226';
 
     public function __construct()
     {
