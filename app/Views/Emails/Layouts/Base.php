@@ -30,7 +30,7 @@ $resolvedSupportPhone =
 $logoUrl =
     base_url(
         'assets/images/'
-            . 'logo_sak_header.png'
+            . 'logo_sak_header_email.png'
     );
 
 $interRegularUrl =

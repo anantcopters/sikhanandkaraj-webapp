@@ -140,12 +140,12 @@
             updateGenderVisibility
         );
 
-        genderInputs.forEach(function (input) {
-            input.addEventListener(
-                'change',
-                updateMobileRecommendation
-            );
-        });
+        // genderInputs.forEach(function (input) {
+        //     input.addEventListener(
+        //         'change',
+        //         updateMobileRecommendation
+        //     );
+        // });
 
         /*
          * Initialize after refresh, old input or server-side

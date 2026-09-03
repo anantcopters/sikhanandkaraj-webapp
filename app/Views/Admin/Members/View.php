@@ -466,19 +466,19 @@ $isEmailVerified = BooleanValue::fromDatabase(
 
 $statusBadgeClass = match ($accountStatus) {
     UserModel::STATUS_ACTIVE =>
-    'bg-success-subtle text-success',
+    'bg-success-subtle text-body',
 
     UserModel::STATUS_SUSPENDED =>
-    'bg-danger-subtle text-danger',
+    'bg-danger-subtle text-body',
 
     UserModel::STATUS_PENDING =>
-    'bg-warning-subtle text-dark',
+    'bg-warning-subtle text-body',
 
     UserModel::STATUS_DELETED =>
-    'bg-secondary-subtle text-secondary',
+    'bg-secondary-subtle text-body',
 
     default =>
-    'bg-secondary-subtle text-secondary',
+    'bg-secondary-subtle text-body',
 };
 
 $canBlock =
