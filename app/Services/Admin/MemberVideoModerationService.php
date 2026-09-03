@@ -440,59 +440,101 @@ final class MemberVideoModerationService
                 ::VIDEO_RESUBMISSION_REQUESTED,
             };
 
-        $this->notificationService->create(
-            [
-                'recipientUserId' =>
-                $memberId,
+        /*
+        * Application notification is an independent
+        * downstream communication channel.
+        */
+        try {
+            $this->notificationService
+                ->create([
+                    'recipientUserId' =>
+                    $memberId,
 
-                'type' =>
-                $notificationType,
+                    'type' =>
+                    $notificationType,
 
-                'title' =>
-                $title,
+                    'title' =>
+                    $title,
 
-                'message' =>
-                $message,
+                    'message' =>
+                    $message,
 
-                'entityType' =>
-                'VIDEO_INTRODUCTION',
+                    'entityType' =>
+                    'VIDEO_INTRODUCTION',
 
-                'entityId' =>
-                $videoId,
+                    'entityId' =>
+                    $videoId,
 
-                'targetUrl' =>
-                '/account-settings/video-introduction',
-            ]
-        );
+                    'targetUrl' =>
+                    route_to(
+                        'web.account.settings.section',
+                        'video-introduction'
+                    ),
+                ]);
+        } catch (Throwable $exception) {
+            log_message(
+                'error',
+                'Video moderation notification failed for '
+                    . 'member {memberId}, video {videoId}: {message}',
+                [
+                    'memberId' =>
+                    $memberId,
+
+                    'videoId' =>
+                    $videoId,
+
+                    'message' =>
+                    $exception->getMessage(),
+                ]
+            );
+        }
 
         /*
-        * External communication is downstream
-        * from the completed moderation transaction.
+        * Email is independent from the application
+        * notification.
         */
-        $member =
-            $this->userModel
-            ->find(
-                $memberId
-            );
+        try {
+            $member =
+                $this->userModel
+                ->find(
+                    $memberId
+                );
 
-        $this->memberEmailService
-            ->queueVideoModeration(
-                recipientUserId: $memberId,
+            $this->memberEmailService
+                ->queueVideoModeration(
+                    recipientUserId: $memberId,
 
-                recipientName: is_array($member)
-                    ? trim(
-                        (string) (
-                            $member['full_name']
-                            ?? ''
+                    recipientName: is_array($member)
+                        ? trim(
+                            (string) (
+                                $member['full_name']
+                                ?? ''
+                            )
                         )
-                    )
-                    : '',
+                        : '',
 
-                videoId: $videoId,
+                    videoId: $videoId,
 
-                status: $targetStatus,
+                    status: $targetStatus,
 
-                reason: $reason
+                    reason: $reason
+                );
+        } catch (Throwable $exception) {
+            log_message(
+                'error',
+                'Video moderation email queue failed for '
+                    . 'member {memberId}, video {videoId}: {message}',
+                [
+                    'memberId' =>
+                    $memberId,
+
+                    'videoId' =>
+                    $videoId,
+
+                    'message' =>
+                    $exception->getMessage(),
+                ]
             );
+        }
     }
 }

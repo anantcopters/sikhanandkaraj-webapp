@@ -63,6 +63,28 @@ $emailValue = trim(
     )
 );
 
+/*
+ * Keep long email addresses from pushing the verification
+ * status outside the Trust and Verification row.
+ *
+ * The complete address remains available through the
+ * existing Bootstrap tooltip.
+ */
+$emailDisplayValue = $emailValue;
+
+if (
+    $emailValue !== ''
+    && mb_strlen($emailValue) > 18
+) {
+    $emailDisplayValue =
+        mb_substr(
+            $emailValue,
+            0,
+            18
+        )
+        . '...';
+}
+
 $emailStatus = mb_strtoupper(
     trim(
         (string) (
@@ -239,7 +261,6 @@ $videoIntroductionSettingsUrl = route_to(
         </div>
 
         <!-- Email verification -->
-        <!-- Email verification -->
         <a
             href="<?= esc(
                         $emailSettingsUrl,
@@ -280,12 +301,15 @@ $videoIntroductionSettingsUrl = route_to(
 
                     <span
                         class="d-block
-                    fw-medium
-                    text-truncate
-                    fs-13"
+        fw-medium
+        text-truncate
+        fs-13"
                         <?php if (
                             $emailValue !== ''
+                            && $emailDisplayValue !== $emailValue
                         ): ?>
+                        data-bs-toggle="tooltip"
+                        data-bs-placement="top"
                         title="<?= esc(
                                     $emailValue,
                                     'attr'
@@ -293,8 +317,8 @@ $videoIntroductionSettingsUrl = route_to(
                         <?php endif; ?>>
 
                         <?= esc(
-                            $emailValue !== ''
-                                ? $emailValue
+                            $emailDisplayValue !== ''
+                                ? $emailDisplayValue
                                 : 'Not added'
                         ) ?>
                     </span>

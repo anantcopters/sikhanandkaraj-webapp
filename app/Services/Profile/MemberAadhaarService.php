@@ -820,97 +820,97 @@ final class MemberAadhaarService
             throw $exception;
         }
 
-        $this->memberNotificationService
-            ->create([
-                'recipientUserId' =>
-                $memberId,
-
-                'type' =>
-                CommunicationEventRegistry
-                ::AADHAAR_APPROVED,
-
-                'title' =>
-                'Aadhaar Approved',
-
-                'message' =>
-                'Your Aadhaar verification has been approved.',
-
-                'entityType' =>
-                'AADHAAR_SUBMISSION',
-
-                'entityId' =>
-                (int) $submission['id'],
-
-                'targetUrl' =>
-                '/account-settings/aadhaar',
-            ]);
         /*
-     * Audit after the business transaction commits.
-     *
-     * Do not place Aadhaar name, DOB, document key or signed URL
-     * in the administrator audit payload.
-     */
-        $this->auditService->record(
-            new AdminAuditEvent(
-                action: AdminAuditAction
-                ::MEMBER_AADHAAR_APPROVED,
+        * Moderation is already committed.
+        *
+        * Application notification and email are independent
+        * downstream communication channels.
+        */
+        try {
+            $this->memberNotificationService
+                ->create([
+                    'recipientUserId' =>
+                    $memberId,
 
-                actorAdminId: $adminId,
+                    'type' =>
+                    CommunicationEventRegistry
+                    ::AADHAAR_APPROVED,
 
-                targetType: 'MEMBER',
+                    'title' =>
+                    'Aadhaar Approved',
 
-                targetId: (int) $submission['member_id'],
+                    'message' =>
+                    'Your Aadhaar verification has been approved.',
 
-                targetLabel: (string) (
-                    $submission['profile_ref_number']
-                    ?? ''
-                ),
+                    'entityType' =>
+                    'AADHAAR_SUBMISSION',
 
-                description: 'Administrator approved a member Aadhaar submission.',
-
-                afterData: [
-                    'aadhaar_status' =>
-                    MemberAadhaarSubmissionModel
-                    ::STATUS_APPROVED,
-                ],
-
-                metadata: [
-                    'submission_id' =>
+                    'entityId' =>
                     (int) $submission['id'],
+
+                    'targetUrl' =>
+                    route_to(
+                        'web.account.settings.section',
+                        'aadhaar-verification'
+                    ),
+                ]);
+        } catch (Throwable $exception) {
+            log_message(
+                'error',
+                'Aadhaar approval notification failed for '
+                    . 'member {memberId}, submission {submissionId}: {message}',
+                [
+                    'memberId' =>
+                    $memberId,
+
+                    'submissionId' =>
+                    (int) $submission['id'],
+
+                    'message' =>
+                    $exception->getMessage(),
                 ]
-            )
-        );
-
-        $memberId =
-            (int) (
-                $submission['member_id']
-                ?? 0
             );
+        }
 
-        $member =
-            $this->userModel
-            ->find(
-                $memberId
-            );
+        try {
+            $member =
+                $this->userModel
+                ->find(
+                    $memberId
+                );
 
-        $this->memberEmailService
-            ->queueAadhaarApproved(
-                recipientUserId: $memberId,
+            $this->memberEmailService
+                ->queueAadhaarApproved(
+                    recipientUserId: $memberId,
 
-                recipientName: is_array($member)
-                    ? trim(
-                        (string) (
-                            $member['full_name']
-                            ?? ''
+                    recipientName: is_array($member)
+                        ? trim(
+                            (string) (
+                                $member['full_name']
+                                ?? ''
+                            )
                         )
-                    )
-                    : '',
+                        : '',
 
-                submissionId: (int) (
-                    $submission['id']
-                    ?? 0
-                )
+                    submissionId: (int) $submission['id']
+                );
+        } catch (Throwable $exception) {
+            log_message(
+                'error',
+                'Aadhaar approval email queue failed for '
+                    . 'member {memberId}, submission {submissionId}: {message}',
+                [
+                    'memberId' =>
+                    $memberId,
+
+                    'submissionId' =>
+                    (int) $submission['id'],
+
+                    'message' =>
+                    $exception->getMessage(),
+                ]
             );
+        }
     }
 
     /**
@@ -1052,94 +1052,101 @@ final class MemberAadhaarService
             throw $exception;
         }
 
-        $this->memberNotificationService
-            ->create([
-                'recipientUserId' =>
-                $memberId,
+        /*
+        * Moderation is already committed.
+        *
+        * In-app notification failure must not prevent the
+        * rejection email, and vice versa.
+        */
+        try {
+            $this->memberNotificationService
+                ->create([
+                    'recipientUserId' =>
+                    $memberId,
 
-                'type' =>
-                CommunicationEventRegistry
-                ::AADHAAR_REJECTED,
+                    'type' =>
+                    CommunicationEventRegistry
+                    ::AADHAAR_REJECTED,
 
-                'title' =>
-                'Aadhaar Rejected',
+                    'title' =>
+                    'Aadhaar Rejected',
 
-                'message' =>
-                'Your Aadhaar verification was not approved. Please review the rejection reason and upload your Aadhaar again.',
+                    'message' =>
+                    'Your Aadhaar verification was not approved. '
+                        . 'Reason: '
+                        . $reason,
 
-                'entityType' =>
-                'AADHAAR_SUBMISSION',
+                    'entityType' =>
+                    'AADHAAR_SUBMISSION',
 
-                'entityId' =>
-                (int) $submission['id'],
-
-                'targetUrl' =>
-                '/account-settings/aadhaar',
-            ]);
-
-        $this->auditService->record(
-            new AdminAuditEvent(
-                action: AdminAuditAction
-                ::MEMBER_AADHAAR_REJECTED,
-
-                actorAdminId: $adminId,
-
-                targetType: 'MEMBER',
-
-                targetId: (int) $submission['member_id'],
-
-                targetLabel: (string) (
-                    $submission['profile_ref_number']
-                    ?? ''
-                ),
-
-                description: 'Administrator rejected a member Aadhaar submission.',
-
-                afterData: [
-                    'aadhaar_status' =>
-                    MemberAadhaarSubmissionModel
-                    ::STATUS_REJECTED,
-                ],
-
-                metadata: [
-                    'submission_id' =>
+                    'entityId' =>
                     (int) $submission['id'],
+
+                    'targetUrl' =>
+                    route_to(
+                        'web.account.settings.section',
+                        'aadhaar-verification'
+                    ),
+                ]);
+        } catch (Throwable $exception) {
+            log_message(
+                'error',
+                'Aadhaar rejection notification failed for '
+                    . 'member {memberId}, submission {submissionId}: {message}',
+                [
+                    'memberId' =>
+                    $memberId,
+
+                    'submissionId' =>
+                    (int) $submission['id'],
+
+                    'message' =>
+                    $exception->getMessage(),
                 ]
-            )
-        );
-
-        $memberId =
-            (int) (
-                $submission['member_id']
-                ?? 0
             );
+        }
 
-        $member =
-            $this->userModel
-            ->find(
-                $memberId
-            );
+        try {
+            $member =
+                $this->userModel
+                ->find(
+                    $memberId
+                );
 
-        $this->memberEmailService
-            ->queueAadhaarRejected(
-                recipientUserId: $memberId,
+            $this->memberEmailService
+                ->queueAadhaarRejected(
+                    recipientUserId: $memberId,
 
-                recipientName: is_array($member)
-                    ? trim(
-                        (string) (
-                            $member['full_name']
-                            ?? ''
+                    recipientName: is_array($member)
+                        ? trim(
+                            (string) (
+                                $member['full_name']
+                                ?? ''
+                            )
                         )
-                    )
-                    : '',
+                        : '',
 
-                submissionId: (int) (
-                    $submission['id']
-                    ?? 0
-                ),
+                    submissionId: (int) $submission['id'],
 
-                reason: $normalizedReason
+                    reason: $reason
+                );
+        } catch (Throwable $exception) {
+            log_message(
+                'error',
+                'Aadhaar rejection email queue failed for '
+                    . 'member {memberId}, submission {submissionId}: {message}',
+                [
+                    'memberId' =>
+                    $memberId,
+
+                    'submissionId' =>
+                    (int) $submission['id'],
+
+                    'message' =>
+                    $exception->getMessage(),
+                ]
             );
+        }
     }
 
     /**
