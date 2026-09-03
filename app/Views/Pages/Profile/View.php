@@ -3837,7 +3837,7 @@ $this->section('content');
 
                     <div
                         id="profilePhotoGalleryCarousel"
-                        class="carousel slide"
+                        class="carousel slide carousel-dark"
                         data-bs-interval="false"
                         data-bs-touch="true"
                         data-profile-gallery-carousel>

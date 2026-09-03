@@ -251,6 +251,19 @@ $matchSections = [
         route_to(
             'web.matches'
         ),
+
+        /*
+        * When no preference-matched profiles are available,
+        * guide the member back to Partner Preferences instead
+        * of opening the empty Match listing.
+        */
+        'emptyActionLabel' =>
+        'Add/Edit Partner Preferences',
+
+        'emptyActionUrl' =>
+        route_to(
+            'web.partner-preference'
+        ),
     ],
 
     [

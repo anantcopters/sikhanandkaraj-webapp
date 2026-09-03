@@ -97,7 +97,7 @@ $carouselId = $modalId . 'Carousel';
                                 $carouselId,
                                 'attr'
                             ) ?>"
-                        class="carousel slide">
+                        class="carousel slide carousel-dark" data-bs-ride="false">
 
                         <div class="carousel-indicators">
 
