@@ -130,7 +130,7 @@ declare(strict_types=1);
 
                     <div
                         id="memberPhotoCarousel"
-                        class="carousel slide"
+                        class="carousel slide carousel-dark"
                         data-bs-interval="false">
 
                         <div
