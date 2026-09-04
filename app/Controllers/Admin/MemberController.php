@@ -787,7 +787,9 @@ final class MemberController extends BaseController
 
                     paymentNote: $input['payment_note'],
 
-                    adminUserId: $this->adminUserId(),
+                    adminUserId: (int) session(
+                        'admin_user_id'
+                    ),
 
                     couponCode: $input['coupon_code']
                 );
@@ -1435,7 +1437,9 @@ final class MemberController extends BaseController
                     $userId,
                     $validation
                         ->getValidated()['reason'],
-                    $this->adminUserId()
+                    (int) session(
+                        'admin_user_id'
+                    ),
                 );
 
                 $title = 'Member blocked';
@@ -1446,7 +1450,9 @@ final class MemberController extends BaseController
                     $userId,
                     $validation
                         ->getValidated()['reason'],
-                    $this->adminUserId()
+                    (int) session(
+                        'admin_user_id'
+                    ),
                 );
 
                 $title = 'Member unblocked';
@@ -1561,22 +1567,6 @@ final class MemberController extends BaseController
         return route_to(
             'admin.members.index'
         );
-    }
-
-    private function adminUserId(): int
-    {
-        $adminUserId = session(
-            'admin_user_id'
-        );
-
-        if (!is_numeric($adminUserId)) {
-            session()->destroy();
-
-            throw PageNotFoundException
-                ::forPageNotFound();
-        }
-
-        return (int) $adminUserId;
     }
 
     private function photoNotFoundResponse(): ResponseInterface

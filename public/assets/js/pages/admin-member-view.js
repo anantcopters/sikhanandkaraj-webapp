@@ -824,252 +824,7 @@
             );
         }
 
-        /**
- * Evaluate an optional coupon for the selected member and plan.
- *
- * This request is preview-only. The server performs the same authoritative
- * coupon validation again when the offline payment is finally saved.
- */
-        function initializeOfflinePaymentCoupon() {
-            const planSelect = document.getElementById(
-                'offlinePaymentPlan'
-            );
 
-            const couponInput =
-                document.querySelector(
-                    '[data-coupon-code]'
-                );
-
-            const applyButton =
-                document.querySelector(
-                    '[data-apply-coupon]'
-                );
-
-            const errorElement =
-                document.querySelector(
-                    '[data-coupon-error]'
-                );
-
-            const breakdown =
-                document.querySelector(
-                    '[data-coupon-breakdown]'
-                );
-
-            const planPrice =
-                document.querySelector(
-                    '[data-coupon-plan-price]'
-                );
-
-            const discount =
-                document.querySelector(
-                    '[data-coupon-discount]'
-                );
-
-            const finalPayable =
-                document.querySelector(
-                    '[data-coupon-final]'
-                );
-
-            if (
-                !(planSelect instanceof HTMLSelectElement)
-                || !(couponInput instanceof HTMLInputElement)
-                || !(applyButton instanceof HTMLButtonElement)
-                || !errorElement
-                || !breakdown
-                || !planPrice
-                || !discount
-                || !finalPayable
-            ) {
-                return;
-            }
-
-            function clearResult() {
-                errorElement.textContent = '';
-
-                errorElement.classList.add(
-                    'd-none'
-                );
-
-                breakdown.classList.add(
-                    'd-none'
-                );
-
-                planPrice.textContent = '';
-                discount.textContent = '';
-                finalPayable.textContent = '';
-            }
-
-            applyButton.addEventListener(
-                'click',
-                async function () {
-                    clearResult();
-
-                    const planCode =
-                        planSelect.value.trim();
-
-                    const couponCode =
-                        couponInput.value
-                            .trim()
-                            .toUpperCase();
-
-                    couponInput.value =
-                        couponCode;
-
-                    if (planCode === '') {
-                        errorElement.textContent =
-                            'Please select a membership plan first.';
-
-                        errorElement.classList.remove(
-                            'd-none'
-                        );
-
-                        planSelect.focus();
-
-                        return;
-                    }
-
-                    if (couponCode === '') {
-                        errorElement.textContent =
-                            'Please enter a coupon code.';
-
-                        errorElement.classList.remove(
-                            'd-none'
-                        );
-
-                        couponInput.focus();
-
-                        return;
-                    }
-
-                    const endpoint =
-                        String(
-                            applyButton.dataset
-                                .couponUrl
-                            ?? ''
-                        ).trim();
-
-                    if (endpoint === '') {
-                        return;
-                    }
-
-                    applyButton.disabled = true;
-
-                    try {
-                        const body =
-                            new URLSearchParams();
-
-                        body.set(
-                            'plan_code',
-                            planCode
-                        );
-
-                        body.set(
-                            'coupon_code',
-                            couponCode
-                        );
-
-                        const response =
-                            await fetch(
-                                endpoint,
-                                {
-                                    method: 'POST',
-
-                                    headers: {
-                                        'Accept':
-                                            'application/json',
-
-                                        'Content-Type':
-                                            'application/x-www-form-urlencoded;charset=UTF-8',
-
-                                        'X-Requested-With':
-                                            'XMLHttpRequest'
-                                    },
-
-                                    credentials:
-                                        'same-origin',
-
-                                    body:
-                                        body.toString()
-                                }
-                            );
-
-                        const payload =
-                            await response.json();
-
-                        if (
-                            !response.ok
-                            || payload.successful
-                            !== true
-                        ) {
-                            throw new Error(
-                                payload.message
-                                ?? 'Coupon could not be applied.'
-                            );
-                        }
-
-                        /*
-                         * Use display values returned by the server.
-                         */
-                        planPrice.textContent =
-                            payload.pricing
-                                ?.planPriceDisplay
-                            ?? '';
-
-                        discount.textContent =
-                            payload.pricing
-                                ?.discountDisplay
-                            ?? '';
-
-                        finalPayable.textContent =
-                            payload.pricing
-                                ?.finalPayableDisplay
-                            ?? '';
-
-                        breakdown.classList.remove(
-                            'd-none'
-                        );
-
-                        /*
-                         * Tell the amount-warning logic what the current expected
-                         * payable is. This remains presentation-only.
-                         */
-                        document.dispatchEvent(
-                            new CustomEvent(
-                                'offline-payment:coupon-applied',
-                                {
-                                    detail: {
-                                        finalPayable:
-                                            payload.pricing
-                                                ?.finalPayable
-                                            ?? ''
-                                    }
-                                }
-                            )
-                        );
-                    } catch (error) {
-                        errorElement.textContent =
-                            error instanceof Error
-                                ? error.message
-                                : 'Coupon could not be applied.';
-
-                        errorElement.classList.remove(
-                            'd-none'
-                        );
-                    } finally {
-                        applyButton.disabled = false;
-                    }
-                }
-            );
-
-            /*
-             * Editing the coupon after it has been evaluated invalidates the
-             * displayed result until Apply Coupon is clicked again.
-             */
-            couponInput.addEventListener(
-                'input',
-                clearResult
-            );
-        }
 
         /**
          * Apply the selected plan's master price.
@@ -1191,6 +946,253 @@
          */
         applyPlanPrice(
             amountInput.value.trim() === ''
+        );
+    }
+
+    /**
+ * Evaluate an optional coupon for the selected member and plan.
+ *
+ * This request is preview-only. The server performs the same authoritative
+ * coupon validation again when the offline payment is finally saved.
+ */
+    function initializeOfflinePaymentCoupon() {
+        const planSelect = document.getElementById(
+            'offlinePaymentPlan'
+        );
+
+        const couponInput =
+            document.querySelector(
+                '[data-coupon-code]'
+            );
+
+        const applyButton =
+            document.querySelector(
+                '[data-apply-coupon]'
+            );
+
+        const errorElement =
+            document.querySelector(
+                '[data-coupon-error]'
+            );
+
+        const breakdown =
+            document.querySelector(
+                '[data-coupon-breakdown]'
+            );
+
+        const planPrice =
+            document.querySelector(
+                '[data-coupon-plan-price]'
+            );
+
+        const discount =
+            document.querySelector(
+                '[data-coupon-discount]'
+            );
+
+        const finalPayable =
+            document.querySelector(
+                '[data-coupon-final]'
+            );
+
+        if (
+            !(planSelect instanceof HTMLSelectElement)
+            || !(couponInput instanceof HTMLInputElement)
+            || !(applyButton instanceof HTMLButtonElement)
+            || !errorElement
+            || !breakdown
+            || !planPrice
+            || !discount
+            || !finalPayable
+        ) {
+            return;
+        }
+
+        function clearResult() {
+            errorElement.textContent = '';
+
+            errorElement.classList.add(
+                'd-none'
+            );
+
+            breakdown.classList.add(
+                'd-none'
+            );
+
+            planPrice.textContent = '';
+            discount.textContent = '';
+            finalPayable.textContent = '';
+        }
+
+        applyButton.addEventListener(
+            'click',
+            async function () {
+                clearResult();
+
+                const planCode =
+                    planSelect.value.trim();
+
+                const couponCode =
+                    couponInput.value
+                        .trim()
+                        .toUpperCase();
+
+                couponInput.value =
+                    couponCode;
+
+                if (planCode === '') {
+                    errorElement.textContent =
+                        'Please select a membership plan first.';
+
+                    errorElement.classList.remove(
+                        'd-none'
+                    );
+
+                    planSelect.focus();
+
+                    return;
+                }
+
+                if (couponCode === '') {
+                    errorElement.textContent =
+                        'Please enter a coupon code.';
+
+                    errorElement.classList.remove(
+                        'd-none'
+                    );
+
+                    couponInput.focus();
+
+                    return;
+                }
+
+                const endpoint =
+                    String(
+                        applyButton.dataset
+                            .couponUrl
+                        ?? ''
+                    ).trim();
+
+                if (endpoint === '') {
+                    return;
+                }
+
+                applyButton.disabled = true;
+
+                try {
+                    const body =
+                        new URLSearchParams();
+
+                    body.set(
+                        'plan_code',
+                        planCode
+                    );
+
+                    body.set(
+                        'coupon_code',
+                        couponCode
+                    );
+
+                    const response =
+                        await fetch(
+                            endpoint,
+                            {
+                                method: 'POST',
+
+                                headers: {
+                                    'Accept':
+                                        'application/json',
+
+                                    'Content-Type':
+                                        'application/x-www-form-urlencoded;charset=UTF-8',
+
+                                    'X-Requested-With':
+                                        'XMLHttpRequest'
+                                },
+
+                                credentials:
+                                    'same-origin',
+
+                                body:
+                                    body.toString()
+                            }
+                        );
+
+                    const payload =
+                        await response.json();
+
+                    if (
+                        !response.ok
+                        || payload.successful
+                        !== true
+                    ) {
+                        throw new Error(
+                            payload.message
+                            ?? 'Coupon could not be applied.'
+                        );
+                    }
+
+                    /*
+                     * Use display values returned by the server.
+                     */
+                    planPrice.textContent =
+                        payload.pricing
+                            ?.planPriceDisplay
+                        ?? '';
+
+                    discount.textContent =
+                        payload.pricing
+                            ?.discountDisplay
+                        ?? '';
+
+                    finalPayable.textContent =
+                        payload.pricing
+                            ?.finalPayableDisplay
+                        ?? '';
+
+                    breakdown.classList.remove(
+                        'd-none'
+                    );
+
+                    /*
+                     * Tell the amount-warning logic what the current expected
+                     * payable is. This remains presentation-only.
+                     */
+                    document.dispatchEvent(
+                        new CustomEvent(
+                            'offline-payment:coupon-applied',
+                            {
+                                detail: {
+                                    finalPayable:
+                                        payload.pricing
+                                            ?.finalPayable
+                                        ?? ''
+                                }
+                            }
+                        )
+                    );
+                } catch (error) {
+                    errorElement.textContent =
+                        error instanceof Error
+                            ? error.message
+                            : 'Coupon could not be applied.';
+
+                    errorElement.classList.remove(
+                        'd-none'
+                    );
+                } finally {
+                    applyButton.disabled = false;
+                }
+            }
+        );
+
+        /*
+         * Editing the coupon after it has been evaluated invalidates the
+         * displayed result until Apply Coupon is clicked again.
+         */
+        couponInput.addEventListener(
+            'input',
+            clearResult
         );
     }
 
