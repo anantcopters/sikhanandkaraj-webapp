@@ -394,18 +394,18 @@ final class CouponController extends BaseController
             db_connect()
             ->table('users')
             ->select(
-                'id, profile_id, first_name, last_name'
+                'id, profile_ref_number, full_name'
             )
             ->where(
-                'is_active',
-                true
+                'account_status',
+                \App\Models\UserModel::STATUS_ACTIVE
+            )
+            ->where(
+                'deleted_at',
+                null
             )
             ->orderBy(
-                'first_name',
-                'ASC'
-            )
-            ->orderBy(
-                'last_name',
+                'full_name',
                 'ASC'
             )
             ->get()

@@ -214,15 +214,20 @@ $discountValue =
         $discountValue
     );
 
+$isActiveFromDatabase =
+    $isEdit
+        ? \App\Support\BooleanValue::fromDatabase(
+            $resolvedCoupon['is_active']
+                ?? false
+        )
+        : true;
+
 $isActive =
-    old(
+    (string) old(
         'is_active',
-        $isEdit
-            ? (string) (
-                $resolvedCoupon['is_active']
-                ?? '0'
-            )
-            : '1'
+        $isActiveFromDatabase
+            ? '1'
+            : '0'
     ) === '1';
 
 $this->extend(
@@ -796,20 +801,16 @@ $this->section(
                                 $memberName =
                                     trim(
                                         (string) (
-                                            $member['first_name']
+                                            $member['full_name']
                                             ?? ''
                                         )
-                                            . ' '
-                                            . (string) (
-                                                $member['last_name']
-                                                ?? ''
-                                            )
+
                                     );
 
                                 $profileId =
                                     trim(
                                         (string) (
-                                            $member['profile_id']
+                                            $member['profile_ref_number']
                                             ?? ''
                                         )
                                     );

@@ -347,20 +347,15 @@ $this->section(
                             $memberName =
                                 trim(
                                     (string) (
-                                        $redemption['first_name']
+                                        $redemption['full_name']
                                         ?? ''
                                     )
-                                        . ' '
-                                        . (string) (
-                                            $redemption['last_name']
-                                            ?? ''
-                                        )
                                 );
 
                             $profileId =
                                 trim(
                                     (string) (
-                                        $redemption['profile_id']
+                                        $redemption['profile_ref_number']
                                         ?? ''
                                     )
                                 );

@@ -564,9 +564,8 @@ final class CouponManagementService
             ->table('coupon_redemptions cr')
             ->select(
                 'cr.*, '
-                    . 'u.profile_id, '
-                    . 'u.first_name, '
-                    . 'u.last_name, '
+                    . 'u.profile_ref_number, '
+                    . 'u.full_name, '
                     . 'mp.name AS plan_name, '
                     . 'mp.code AS plan_code, '
                     . 'p.payment_method, '
