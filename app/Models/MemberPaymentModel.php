@@ -71,6 +71,10 @@ final class MemberPaymentModel extends Model
         'provider_response',
         'paid_at',
         'processed_at',
+        'coupon_id',
+        'plan_price_paise',
+        'coupon_discount_paise',
+        'final_payable_paise'
     ];
 
     protected $useTimestamps =

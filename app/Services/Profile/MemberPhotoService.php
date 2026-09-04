@@ -165,11 +165,18 @@ final class MemberPhotoService
         int $memberId,
         UploadedFile $uploadedFile,
         string $visibility,
-        bool $makePrimary
+        bool $makePrimary,
+        int $focalX,
+        int $focalY
     ): array {
         $this->assertMemberExists($memberId);
 
         $this->assertVisibility($visibility);
+
+        $this->assertFocalPosition(
+            $focalX,
+            $focalY
+        );
 
         /*
          * Fast pre-check. The transaction performs a second check.
@@ -261,6 +268,8 @@ final class MemberPhotoService
                 'status' => 'PENDING',
                 'visibility' => $visibility,
                 'is_primary' => $isPrimary,
+                'focal_x' => $focalX,
+                'focal_y' => $focalY,
                 'uploaded_by_type' => 'MEMBER',
                 'uploaded_by_id' => $memberId,
             ], true);
@@ -545,6 +554,57 @@ final class MemberPhotoService
             'approvedCount' => $approvedCount,
             'hasUploadedPhoto' => $uploadedCount > 0,
         ];
+    }
+
+    /**
+     * Update presentation position for one owned photo.
+     *
+     * This changes presentation metadata only. It deliberately does not
+     * modify the photograph, moderation status or S3 objects.
+     */
+    public function updateFocalPosition(
+        int $memberId,
+        int $photoId,
+        int $focalX,
+        int $focalY
+    ): void {
+        $this->assertFocalPosition(
+            $focalX,
+            $focalY
+        );
+
+        $photo = $this->requireOwnedPhoto(
+            $photoId,
+            $memberId
+        );
+
+        if (!$this->photoModel->update(
+            (int) $photo['id'],
+            [
+                'focal_x' => $focalX,
+                'focal_y' => $focalY,
+            ]
+        )) {
+            throw new RuntimeException(
+                'Photo position could not be updated.'
+            );
+        }
+    }
+
+    private function assertFocalPosition(
+        int $focalX,
+        int $focalY
+    ): void {
+        if (
+            $focalX < 0
+            || $focalX > 100
+            || $focalY < 0
+            || $focalY > 100
+        ) {
+            throw new DomainException(
+                'Please select a valid photo position.'
+            );
+        }
     }
 
     /**

@@ -794,7 +794,7 @@ final class MemberMatchmakingService
          * CloudFront signing remains per visible photograph, which is expected
          * and is not a database N+1.
          */
-        $thumbnailUrls =
+        $thumbnailPresentations =
             $this
             ->photoUrlService
             ->getApprovedPrimaryThumbnailUrlsForViewer(
@@ -887,8 +887,12 @@ final class MemberMatchmakingService
 
                     hasInterestRelationship: $hasInterestRelationship,
 
-                    resolvedImage: $thumbnailUrls[$memberId]
-                        ?? ''
+                    resolvedPhoto: $thumbnailPresentations[$memberId]
+                        ?? [
+                            'url' => '',
+                            'focalX' => 50,
+                            'focalY' => 20,
+                        ]
                 );
 
             if ($profile === null) {

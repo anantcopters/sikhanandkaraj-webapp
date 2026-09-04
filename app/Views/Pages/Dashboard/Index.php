@@ -34,6 +34,8 @@ declare(strict_types=1);
  * Shared profile-summary variables.
  *
  * @var string                            $profileImage
+ * @var int                               $photoFocalX
+ * @var int                               $photoFocalY
  * @var array<string, mixed>              $profileCompletion
  * @var array<string, mixed>              $overallProfileSummary
  * @var array<int, array<string, mixed>>  $profileShortcuts
@@ -65,6 +67,28 @@ $resolvedReference = trim(
 
 $resolvedProfileImage = trim(
     (string) ($profileImage ?? '')
+);
+
+$resolvedPhotoFocalX = max(
+    0,
+    min(
+        100,
+        (int) (
+            $photoFocalX
+            ?? 50
+        )
+    )
+);
+
+$resolvedPhotoFocalY = max(
+    0,
+    min(
+        100,
+        (int) (
+            $photoFocalY
+            ?? 20
+        )
+    )
 );
 
 $resolvedGender =
@@ -411,8 +435,8 @@ $matchSections = [
                 <div class="dashboard-sidebar">
                     <div class="card border border-danger border-opacity-25 shadow-sm">
                         <div class="card-body p-3 text-center">
-
-                            <div class="member-profile-thumbnail mx-auto mb-2">
+                            <div
+                                class="member-profile-thumbnail mx-auto mb-2">
 
                                 <img
                                     src="<?= esc(
@@ -423,16 +447,27 @@ $matchSections = [
                                                 $resolvedName
                                                     . ' profile photo',
                                                 'attr'
-                                            ) ?>">
+                                            ) ?>"
+                                    loading="lazy"
+                                    style="--member-photo-x:
+            <?= esc(
+                (string) $resolvedPhotoFocalX,
+                'attr'
+            ) ?>%;
+            --member-photo-y:
+            <?= esc(
+                (string) $resolvedPhotoFocalY,
+                'attr'
+            ) ?>%;">
 
                             </div>
 
-                            <h2 class="fs-18 fw-semibold mb-1">
+                            <h2 class="fs-18 fw-semibold mb-2">
                                 <?= esc($resolvedName) ?>
                             </h2>
 
                             <?php if ($resolvedReference !== ''): ?>
-                                <p class="text-muted fs-13 mb-1">
+                                <p class="text-muted fs-13 mb-2">
                                     Reference:
                                     <strong>
                                         <?= esc($resolvedReference) ?>

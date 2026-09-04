@@ -133,6 +133,12 @@ $pageScripts = $pageScripts ?? [];
                 'admin/short-urls'
             );
 
+        $couponsActive =
+            str_starts_with(
+                $currentPath,
+                'admin/coupons'
+            );
+
         $sakVolunteersActive =
             str_starts_with(
                 $currentPath,
@@ -157,7 +163,8 @@ $pageScripts = $pageScripts ?? [];
             || $matchScoreActive
             || $emailPreviewActive
             || $communicationOperationsActive
-            || $shortUrlsActive;
+            || $shortUrlsActive
+            || $couponsActive;
 
         $profileReportsActive =
             str_starts_with(
@@ -720,6 +727,31 @@ $pageScripts = $pageScripts ?? [];
                                                 </i>
 
                                                 Communication Operations
+                                            </a>
+                                        </li>
+
+                                        <li>
+                                            <a
+                                                href="<?= route_to(
+                                                            'admin.coupons.index'
+                                                        ) ?>"
+                                                class="dropdown-item
+            d-flex
+            align-items-center
+            gap-2
+            <?= $couponsActive
+                                    ? 'active'
+                                    : '' ?>"
+                                                <?= $couponsActive
+                                                    ? 'aria-current="page"'
+                                                    : '' ?>>
+
+                                                <i
+                                                    class="ri-coupon-3-line"
+                                                    aria-hidden="true">
+                                                </i>
+
+                                                Coupon Management
                                             </a>
                                         </li>
                                         <li>

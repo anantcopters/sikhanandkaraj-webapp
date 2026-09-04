@@ -220,7 +220,7 @@ $approvedPhotoCount = max(
                         alt="Profile photo"
                         class="img-thumbnail
             object-fit-cover
-            w-100 h-100"
+            w-100"
                         loading="lazy">
 
                 </div>
