@@ -2567,9 +2567,10 @@ $this->section('content');
                                         <button
                                             type="button"
                                             class="d-block w-100 p-0
-    border rounded-3
+    border-0 rounded-3
     overflow-hidden
-    position-relative"
+    position-relative
+    bg-transparent"
                                             data-profile-gallery-trigger
                                             data-slide-index="<?= esc(
                                                                     (string) $index,
@@ -2583,51 +2584,19 @@ $this->section('content');
                                                             'attr'
                                                         ) ?>">
 
-                                            <span
-                                                class="ratio ratio-1x1 d-block">
-
-                                                <img
-                                                    src="<?= esc(
-                                                                $photo['thumbnailUrl'],
-                                                                'attr'
-                                                            ) ?>"
-                                                    alt="<?= esc(
-                                                                $fullName
-                                                                    . ' profile photo '
-                                                                    . ($index + 1),
-                                                                'attr'
-                                                            ) ?>"
-                                                    class="profile-preview-gallery-photo"
-                                                    loading="lazy"
-                                                    style="object-position:
-            <?= esc(
-                                        (string) max(
-                                            0,
-                                            min(
-                                                100,
-                                                (int) (
-                                                    $photo['focalX']
-                                                    ?? 50
-                                                )
-                                            )
-                                        ),
-                                        'attr'
-                                    ) ?>%
-            <?= esc(
-                                        (string) max(
-                                            0,
-                                            min(
-                                                100,
-                                                (int) (
-                                                    $photo['focalY']
-                                                    ?? 20
-                                                )
-                                            )
-                                        ),
-                                        'attr'
-                                    ) ?>%;">
-
-                                            </span>
+                                            <img
+                                                src="<?= esc(
+                                                            $photo['thumbnailUrl'],
+                                                            'attr'
+                                                        ) ?>"
+                                                alt="<?= esc(
+                                                            $fullName
+                                                                . ' profile photo '
+                                                                . ($index + 1),
+                                                            'attr'
+                                                        ) ?>"
+                                                class="member-photo-medium no-height"
+                                                loading="lazy">
 
                                             <?php if (
                                                 !$isOtherMemberProfileView

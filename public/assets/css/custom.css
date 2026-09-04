@@ -2201,6 +2201,10 @@ form[aria-busy="true"] {
     border-radius: 0.5rem;
 }
 
+.no-height {
+    height: auto !important;
+}
+
 /*
  * Gallery thumbnails remain square and independent from the
  * medium profile-image presentation.
