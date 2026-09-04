@@ -1169,7 +1169,7 @@ $this->section('content');
                                             <div class="modal-body">
 
                                                 <div
-                                                    class="alert alert-danger d-flex align-items-start gap-2 mb-3"
+                                                    class="alert alert-warning d-flex align-items-start gap-2 mb-3"
                                                     role="alert">
 
                                                     <i
