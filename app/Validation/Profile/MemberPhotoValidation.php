@@ -29,7 +29,7 @@ final class MemberPhotoValidation
             )
         );
 
-        return [
+        $rules = [
             'photo' => [
                 'label' => 'Photo',
 
@@ -116,6 +116,11 @@ final class MemberPhotoValidation
                 ],
             ],
         ];
+
+        return array_merge(
+            $rules,
+            self::focalPositionRules()
+        );
     }
 
     /**

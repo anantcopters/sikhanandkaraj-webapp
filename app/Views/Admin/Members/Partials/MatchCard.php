@@ -196,7 +196,7 @@ $preferenceModalId =
                         style="width: 160px;">
 
                         <div
-                            class="member-profile-thumbnail mx-auto">
+                            class="member-profile-thumbnail mx-auto mb-2">
 
                             <img
                                 src="<?= esc(

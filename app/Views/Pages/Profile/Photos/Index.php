@@ -339,17 +339,38 @@ $this->section('content');
 
                                         <div
                                             id="profile-photo-preview-wrapper"
-                                            class="border rounded p-3 mb-3 d-none">
+                                            class="mb-3 d-none">
 
-                                            <div class="text-center mb-2">
-                                                <h3 class="fs-14 fw-semibold mb-1">
-                                                    Adjust Profile Photo
-                                                </h3>
+                                            <div class="mb-3">
 
-                                                <p class="text-muted fs-12 mb-0">
-                                                    Drag the photo so your face and turban are
-                                                    clearly visible.
+                                                <div
+                                                    class="d-flex
+                align-items-center
+                gap-2 mb-1">
+
+                                                    <i
+                                                        class="ri-drag-move-2-line
+                    text-success fs-18"
+                                                        aria-hidden="true">
+                                                    </i>
+
+                                                    <h3
+                                                        class="fs-14 fw-semibold mb-0">
+
+                                                        Adjust Profile Photo
+
+                                                    </h3>
+
+                                                </div>
+
+                                                <p
+                                                    class="color-pink fs-13 mb-0">
+
+                                                    Position your photo for
+                                                    Profile Cards.
+
                                                 </p>
+
                                             </div>
 
                                             <div
@@ -363,20 +384,22 @@ $this->section('content');
                                                     id="profile-photo-preview"
                                                     data-photo-adjuster-image
                                                     draggable="false">
+
                                             </div>
 
                                             <p
                                                 class="form-text color-pink
-            text-center mb-0 mt-2">
+            text-center mb-0 mt-2 fs-13">
 
                                                 <i
                                                     class="ri-drag-move-2-line me-1"
                                                     aria-hidden="true">
                                                 </i>
 
-                                                Drag the photo to adjust how it appears
-                                                on profile cards.
+                                                Drag photo to reposition
+
                                             </p>
+
                                         </div>
 
                                         <div class="mb-3">
@@ -662,7 +685,7 @@ $this->section('content');
                                             ?>
 
                                             <div
-                                                class="col-12 col-sm-6 col-xl-4">
+                                                class="col-12 col-sm-6 col-xl-6">
 
                                                 <article
                                                     class="card border border-danger border-opacity-25
@@ -826,6 +849,13 @@ $this->section('content');
                                                                     data-bs-toggle="modal"
                                                                     data-bs-target="#photo-position-modal"
                                                                     data-photo-position-button
+                                                                    data-position-url="<?= esc(
+                                                                                            url_to(
+                                                                                                'web.profile.photos.position',
+                                                                                                $photoId
+                                                                                            ),
+                                                                                            'attr'
+                                                                                        ) ?>"
                                                                     data-photo-id="<?= esc(
                                                                                         (string) $photoId,
                                                                                         'attr'
@@ -1100,7 +1130,7 @@ $this->section('content');
 
                                     <div class="modal-content">
 
-                                        <div class="modal-header">
+                                        <div class="modal-header bg-info-subtle py-2">
                                             <h2
                                                 class="modal-title fs-16 fw-semibold"
                                                 id="photo-position-modal-title">
@@ -1138,10 +1168,27 @@ $this->section('content');
 
                                             <div class="modal-body">
 
-                                                <p class="text-muted fs-13 text-center mb-3">
-                                                    Drag the photo so your face and turban
-                                                    are clearly visible.
-                                                </p>
+                                                <div
+                                                    class="alert alert-danger d-flex align-items-start gap-2 mb-3"
+                                                    role="alert">
+
+                                                    <i
+                                                        class="ri-information-line fs-20 flex-shrink-0"
+                                                        aria-hidden="true">
+                                                    </i>
+
+                                                    <div>
+                                                        <div class="fw-medium mb-1">
+                                                            Adjust how your photo appears
+                                                        </div>
+
+                                                        <div class="fs-13">
+                                                            Drag the photo to choose its position.
+                                                            Your original uploaded photo will not be changed.
+                                                        </div>
+                                                    </div>
+
+                                                </div>
 
                                                 <div
                                                     class="profile-photo-adjuster mx-auto"
@@ -1153,19 +1200,6 @@ $this->section('content');
                                                         data-existing-photo-adjuster-image
                                                         draggable="false">
                                                 </div>
-
-                                                <p
-                                                    class="form-text color-pink
-                            text-center mb-0 mt-2">
-
-                                                    <i
-                                                        class="ri-drag-move-2-line me-1"
-                                                        aria-hidden="true">
-                                                    </i>
-
-                                                    This changes only how the photo is positioned.
-                                                    Your approved photo is not replaced.
-                                                </p>
                                             </div>
 
                                             <div class="modal-footer">
@@ -1181,7 +1215,7 @@ $this->section('content');
                                                 <button
                                                     type="submit"
                                                     class="btn registration-form__submit
-                            fs-14 fw-medium text-uppercase"
+                            fs-14 fw-medium text-uppercase w-50"
                                                     data-photo-position-submit>
 
                                                     <span data-position-label>

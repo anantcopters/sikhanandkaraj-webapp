@@ -1289,6 +1289,7 @@ $routes->group('', [
         [
             'as' =>
             'web.profile.photos.position',
+            'filter' => 'webAuth',
         ]
     );
 

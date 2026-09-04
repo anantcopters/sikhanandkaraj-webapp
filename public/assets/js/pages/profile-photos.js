@@ -549,6 +549,13 @@ document.addEventListener('DOMContentLoaded', () => {
         );
     }
 
+    initializePhotoAdjuster(
+        uploadAdjuster,
+        preview,
+        uploadFocalX,
+        uploadFocalY
+    );
+
     photoInput?.addEventListener(
         'change',
         async () => {
@@ -874,7 +881,9 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener(
         'beforeunload',
         clearPreview
-    ); document
+    );
+
+    document
         .querySelectorAll(
             '[data-photo-position-button]'
         )
@@ -906,8 +915,16 @@ document.addEventListener('DOMContentLoaded', () => {
                         return;
                     }
 
+                    const positionUrl =
+                        button.dataset.positionUrl
+                        ?? '';
+
+                    if (positionUrl === '') {
+                        return;
+                    }
+
                     positionForm.action =
-                        `${window.location.pathname}/${photoId}/position`;
+                        positionUrl;
 
                     positionImage.src =
                         button.dataset

@@ -130,7 +130,7 @@ $resolvedCanUnblock =
                         flex-sm-row gap-3">
 
                     <div
-                        class="member-profile-thumbnail mx-auto flex-shrink-0"
+                        class="member-profile-thumbnail mx-auto flex-shrink-0 mb-2"
                         data-member-profile-thumbnail>
 
                         <img
@@ -154,7 +154,7 @@ $resolvedCanUnblock =
 
                             <h2
                                 class="fs-20
-                                    fw-semibold mb-0">
+                                    fw-semibold mb-1">
 
                                 <?= esc(
                                     $resolvedFullName
