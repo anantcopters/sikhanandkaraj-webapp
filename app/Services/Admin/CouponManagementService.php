@@ -858,20 +858,6 @@ final class CouponManagementService
             }
         }
 
-        /*
-        * Require an exact set match.
-        *
-        * This deliberately does not silently remove invalid IDs. If even one
-        * submitted plan is unavailable, the entire administrative request is
-        * rejected so that Superadmin knows the coupon configuration was not
-        * accepted as submitted.
-        */
-        if ($validPlanIds !== $submittedPlanIds) {
-            throw new DomainException(
-                'One or more selected membership plans are not available.'
-            );
-        }
-
         if (
             $discountType
             === CouponModel::DISCOUNT_PERCENTAGE
