@@ -1192,6 +1192,9 @@ final class MemberController extends BaseController
 
                     'message' =>
                     'Please select a plan, payment date and enter a coupon code.',
+
+                    'csrf' =>
+                    $this->csrfPayload(),
                 ]);
         }
 
@@ -1305,6 +1308,9 @@ final class MemberController extends BaseController
 
                         'message' =>
                         'Please select a valid payment date.',
+
+                        'csrf' =>
+                        $this->csrfPayload(),
                     ]);
             }
 
@@ -1323,9 +1329,12 @@ final class MemberController extends BaseController
 
                         'message' =>
                         'Payment date cannot be in the future.',
+
+                        'csrf' =>
+                        $this->csrfPayload(),
                     ]);
             }
-            
+
             $evaluation =
                 service(
                     'couponService'
@@ -1413,6 +1422,9 @@ final class MemberController extends BaseController
                                 2
                             ),
                     ],
+
+                    'csrf' =>
+                    $this->csrfPayload(),
                 ]);
         } catch (DomainException $exception) {
             return $this->response
@@ -1423,6 +1435,9 @@ final class MemberController extends BaseController
 
                     'message' =>
                     $exception->getMessage(),
+
+                    'csrf' =>
+                    $this->csrfPayload(),
                 ]);
         } catch (Throwable $exception) {
             service(
@@ -1455,8 +1470,31 @@ final class MemberController extends BaseController
 
                     'message' =>
                     'Coupon could not be evaluated.',
+
+                    'csrf' =>
+                    $this->csrfPayload(),
                 ]);
         }
+    }
+
+    /**
+     * Return the current CSRF token after a protected AJAX request.
+     *
+     * CodeIgniter regenerates the token after successful CSRF validation,
+     * therefore the browser must replace the token stored in the parent
+     * offline-payment form before another AJAX/form POST.
+     *
+     * @return array{name:string, hash:string}
+     */
+    private function csrfPayload(): array
+    {
+        return [
+            'name' =>
+            csrf_token(),
+
+            'hash' =>
+            csrf_hash(),
+        ];
     }
 
     /**

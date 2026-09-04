@@ -1188,6 +1188,52 @@
                     const payload =
                         await response.json();
 
+                    /*
+ * CodeIgniter regenerates the CSRF token after every successfully
+ * verified POST.
+ *
+ * Update the parent form before handling either success or validation
+ * failure so repeated Apply Coupon requests and the final Record Payment
+ * submission always use the latest token.
+ */
+                    const responseCsrfName =
+                        String(
+                            payload.csrf?.name
+                            ?? ''
+                        ).trim();
+
+                    const responseCsrfHash =
+                        String(
+                            payload.csrf?.hash
+                            ?? ''
+                        ).trim();
+
+                    if (
+                        paymentForm instanceof HTMLFormElement
+                        && responseCsrfName !== ''
+                        && responseCsrfHash !== ''
+                    ) {
+                        const currentCsrfInput =
+                            paymentForm.querySelector(
+                                'input[name="'
+                                + CSS.escape(
+                                    responseCsrfName
+                                )
+                                + '"]'
+                            );
+
+                        if (
+                            currentCsrfInput
+                            instanceof HTMLInputElement
+                        ) {
+                            currentCsrfInput.value =
+                                responseCsrfHash;
+                        }
+
+                        paymentForm.dataset.csrfName =
+                            responseCsrfName;
+                    }
+
                     if (
                         !response.ok
                         || payload.successful

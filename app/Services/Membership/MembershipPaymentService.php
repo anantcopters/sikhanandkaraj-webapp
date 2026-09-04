@@ -323,38 +323,60 @@ final class MembershipPaymentService
         /*
         * Validate the payment date.
         */
+        /*
+ * Validate the administrator-submitted payment date.
+ *
+ * This value comes from the final POST and is therefore the authoritative
+ * date used for offline coupon validation. Never rely on the earlier
+ * Apply Coupon preview.
+ */
+        $paymentDateValue =
+            trim(
+                $paymentDate
+            );
+
+        $timezone =
+            new \DateTimeZone(
+                'Asia/Kolkata'
+            );
+
         $paymentDateObject =
             \DateTimeImmutable::createFromFormat(
                 '!Y-m-d',
-                trim(
-                    $paymentDate
-                ),
-                new \DateTimeZone(
-                    'Asia/Kolkata'
-                )
+                $paymentDateValue,
+                $timezone
             );
 
-        $today =
-            new \DateTimeImmutable(
-                'today',
-                new \DateTimeZone(
-                    'Asia/Kolkata'
-                )
-            );
+        $paymentDateErrors =
+            \DateTimeImmutable::getLastErrors();
 
         if (
-            !$paymentDateObject
+            !(
+                $paymentDateObject
                 instanceof \DateTimeImmutable
+            )
+            || (
+                is_array($paymentDateErrors)
+                && (
+                    ($paymentDateErrors['warning_count'] ?? 0) > 0
+                    || ($paymentDateErrors['error_count'] ?? 0) > 0
+                )
+            )
+            || $paymentDateObject->format('Y-m-d')
+            !== $paymentDateValue
         ) {
             throw new RuntimeException(
                 'The payment date is invalid.'
             );
         }
 
-        if (
-            $paymentDateObject
-            > $today
-        ) {
+        $today =
+            new \DateTimeImmutable(
+                'today',
+                $timezone
+            );
+
+        if ($paymentDateObject > $today) {
             throw new RuntimeException(
                 'The payment date cannot be in the future.'
             );
