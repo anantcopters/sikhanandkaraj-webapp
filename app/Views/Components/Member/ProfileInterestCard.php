@@ -58,6 +58,28 @@ $image = trim(
     )
 );
 
+$photoFocalX = max(
+    0,
+    min(
+        100,
+        (int) (
+            $profile['photoFocalX']
+            ?? 50
+        )
+    )
+);
+
+$photoFocalY = max(
+    0,
+    min(
+        100,
+        (int) (
+            $profile['photoFocalY']
+            ?? 20
+        )
+    )
+);
+
 $city = trim(
     (string) (
         $profile['city']
@@ -299,8 +321,7 @@ $profileNavigationUrl =
                         class="text-decoration-none">
 
                         <div
-                            class="member-profile-thumbnail mx-auto"
-                            data-member-profile-thumbnail>
+                            class="member-profile-thumbnail mx-auto">
 
                             <img
                                 src="<?= esc(
@@ -313,7 +334,16 @@ $profileNavigationUrl =
                                             'attr'
                                         ) ?>"
                                 loading="lazy"
-                                data-member-profile-thumbnail-image>
+                                style="--member-photo-x:
+            <?= esc(
+                        (string) $photoFocalX,
+                        'attr'
+                    ) ?>%;
+        --member-photo-y:
+            <?= esc(
+                        (string) $photoFocalY,
+                        'attr'
+                    ) ?>%;">
 
                         </div>
 
@@ -326,7 +356,7 @@ $profileNavigationUrl =
         Full Profile navigation path when membership/privacy policy has
         denied Full Profile access.
     -->
-                    <div class="member-profile-thumbnail mx-auto" data-member-profile-thumbnail>
+                    <div class="member-profile-thumbnail mx-auto">
 
                         <img
                             src="<?= esc(
@@ -338,7 +368,18 @@ $profileNavigationUrl =
                                             . ' profile photo',
                                         'attr'
                                     ) ?>"
-                            loading="lazy" data-member-profile-thumbnail-image>
+                            loading="lazy"
+                            style="--member-photo-x:
+            <?= esc(
+                        (string) $photoFocalX,
+                        'attr'
+                    ) ?>%;
+        --member-photo-y:
+            <?= esc(
+                        (string) $photoFocalY,
+                        'attr'
+                    ) ?>%;">
+
                     </div>
 
                 <?php endif; ?>

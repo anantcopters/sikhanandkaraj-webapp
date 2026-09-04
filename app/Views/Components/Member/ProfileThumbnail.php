@@ -70,6 +70,28 @@ $image = trim(
     )
 );
 
+$photoFocalX = max(
+    0,
+    min(
+        100,
+        (int) (
+            $profile['photoFocalX']
+            ?? 50
+        )
+    )
+);
+
+$photoFocalY = max(
+    0,
+    min(
+        100,
+        (int) (
+            $profile['photoFocalY']
+            ?? 20
+        )
+    )
+);
+
 $profileUrl = trim(
     (string) (
         $profile['profileUrl']
@@ -168,8 +190,7 @@ $canOpenModal =
                 <div class="position-relative mx-auto mb-3">
 
                     <div
-                        class="member-profile-thumbnail mx-auto"
-                        data-member-profile-thumbnail>
+                        class="member-profile-thumbnail mx-auto">
 
                         <img
                             src="<?= esc(
@@ -182,7 +203,16 @@ $canOpenModal =
                                         'attr'
                                     ) ?>"
                             loading="lazy"
-                            data-member-profile-thumbnail-image>
+                            style="--member-photo-x:
+            <?= esc(
+                (string) $photoFocalX,
+                'attr'
+            ) ?>%;
+        --member-photo-y:
+            <?= esc(
+                (string) $photoFocalY,
+                'attr'
+            ) ?>%;">
 
                     </div>
 

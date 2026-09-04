@@ -1283,6 +1283,15 @@ $routes->group('', [
         ]
     );
 
+    $routes->post(
+        'profile/photos/(:num)/position',
+        'MemberPhotoController::updateFocalPosition/$1',
+        [
+            'as' =>
+            'web.profile.photos.position',
+        ]
+    );
+
     $routes->get(
         'profile/video-introduction/record',
         'MemberVideoIntroductionController::record',
