@@ -1342,21 +1342,40 @@ final class CouponManagementService
             );
         }
 
-        $oldLimit =
-            (int) (
-                $existing['usage_limit']
-                ?? 0
-            );
-
         $newLimit =
             (int) (
                 $newCoupon['usage_limit']
                 ?? 0
             );
 
-        if ($newLimit < $oldLimit) {
+        $usedCount =
+            (int) (
+                $existing['used_count']
+                ?? 0
+            );
+
+        /*
+        * Usage limit may be increased or reduced after redemption.
+        *
+        * However:
+        * 1. Usage limit can never be less than 1.
+        * 2. Usage limit can never be less than the number of completed
+        *    redemptions already recorded.
+        *
+        * Setting usage limit equal to used count is valid and causes
+        * the coupon to become Exhausted.
+        */
+        $minimumAllowedLimit =
+            max(
+                1,
+                $usedCount
+            );
+
+        if ($newLimit < $minimumAllowedLimit) {
             throw new DomainException(
-                'Usage limit can only be increased after the first redemption.'
+                $usedCount > 0
+                    ? 'Usage limit cannot be less than the number of coupons already used.'
+                    : 'Usage limit must be at least 1.'
             );
         }
 
