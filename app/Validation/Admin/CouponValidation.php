@@ -42,7 +42,7 @@ final class CouponValidation
             *
             * Do not apply the generic "integer" rule here:
             *
-            * - PERCENTAGE must be a whole number from 1 to 90.
+            * - PERCENTAGE must be a whole number from 1 to 100.
             * - FLAT represents a rupee amount and may contain paise,
             *   for example 499.50.
             *

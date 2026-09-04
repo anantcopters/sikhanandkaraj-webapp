@@ -240,19 +240,19 @@ $this->section(
                             $statusClass =
                                 match ($status) {
                                     'ACTIVE' =>
-                                    'bg-success-subtle text-success',
+                                    'bg-success-subtle text-body',
 
                                     'SCHEDULED' =>
-                                    'bg-info-subtle text-info',
+                                    'bg-info-subtle text-body',
 
                                     'EXHAUSTED' =>
-                                    'bg-warning-subtle text-dark',
+                                    'bg-warning-subtle text-body',
 
                                     'EXPIRED' =>
                                     'bg-secondary-subtle text-body',
 
                                     default =>
-                                    'bg-danger-subtle text-danger',
+                                    'bg-danger-subtle text-body',
                                 };
 
                             ?>
@@ -306,7 +306,7 @@ $this->section(
                                                     bg-light
                                                     text-body
                                                     border
-                                                    me-1
+                                                    me-1 p-2
                                                 ">
 
                                                 <?= esc(

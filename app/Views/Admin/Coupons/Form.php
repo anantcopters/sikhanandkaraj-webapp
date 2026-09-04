@@ -620,7 +620,7 @@ $this->section(
                                                         'attr'
                                                     ) ?>">
 
-                                <div class="form-text">
+                                <div class="form-text color-pink">
                                     Coupon remains valid through
                                     11:59:59 PM on this date.
                                 </div>
@@ -856,7 +856,7 @@ $this->section(
 
                                 </select>
 
-                                <div class="form-text">
+                                <div class="form-text color-pink">
                                     Search and select one or more
                                     registered members.
                                 </div>
@@ -1149,7 +1149,7 @@ $this->section(
 
                                     </div>
 
-                                    <div class="form-text">
+                                    <div class="form-text color-pink">
                                         Deactivate the coupon to prevent
                                         further redemption without deleting
                                         its history.
@@ -1180,20 +1180,7 @@ $this->section(
             gap-2
         ">
 
-                            <a
-                                href="<?= route_to(
-                                            'admin.coupons.index'
-                                        ) ?>"
-                                class="
-                btn
-                btn-soft-secondary
-                w-auto
-                px-3
-            ">
 
-                                Cancel
-
-                            </a>
 
                             <button
                                 type="submit"

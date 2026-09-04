@@ -258,7 +258,7 @@ final class MembershipPaymentService
             );
         }
 
-        if ($amountPaise <= 0) {
+        if ($amountPaise < 0) {
             throw new RuntimeException(
                 'The payment amount must be greater than zero.'
             );
