@@ -1744,6 +1744,22 @@ $routes->group('admin', [
             static function (
                 RouteCollection $routes
             ): void {
+
+                /*
+                * Preview coupon eligibility and pricing for the selected member/plan.
+                *
+                * This endpoint does NOT redeem the coupon.
+                * Final validation happens again when the payment is saved.
+                */
+                $routes->post(
+                    '(:num)/coupon/evaluate',
+                    'MemberController::evaluateCoupon/$1',
+                    [
+                        'as' =>
+                        'admin.members.coupon-evaluate',
+                    ]
+                );
+
                 $routes->post(
                     '(:num)/offline-payment',
                     'MemberController::recordOfflinePayment/$1',
@@ -1972,6 +1988,20 @@ $routes->group('admin', [
             }
         );
 
+        /*
+ * --------------------------------------------------------------------------
+ * Coupon Management
+ * --------------------------------------------------------------------------
+ *
+ * Coupon configuration changes membership pricing and is therefore
+ * restricted to SUPER_ADMIN.
+ *
+ * The outer /admin route group already declares:
+ *
+ *     namespace => App\Controllers\Admin
+ *
+ * Do not prefix CouponController with "Admin\" again.
+ */
         $routes->group(
             'coupons',
             [
@@ -1979,11 +2009,11 @@ $routes->group('admin', [
                 'superAdmin',
             ],
             static function (
-                $routes
+                RouteCollection $routes
             ): void {
                 $routes->get(
-                    '/',
-                    'Admin\CouponController::index',
+                    '',
+                    'CouponController::index',
                     [
                         'as' =>
                         'admin.coupons.index',
@@ -1992,7 +2022,7 @@ $routes->group('admin', [
 
                 $routes->get(
                     'create',
-                    'Admin\CouponController::create',
+                    'CouponController::create',
                     [
                         'as' =>
                         'admin.coupons.create',
@@ -2000,8 +2030,8 @@ $routes->group('admin', [
                 );
 
                 $routes->post(
-                    '/',
-                    'Admin\CouponController::store',
+                    '',
+                    'CouponController::store',
                     [
                         'as' =>
                         'admin.coupons.store',
@@ -2010,7 +2040,7 @@ $routes->group('admin', [
 
                 $routes->get(
                     '(:num)/edit',
-                    'Admin\CouponController::edit/$1',
+                    'CouponController::edit/$1',
                     [
                         'as' =>
                         'admin.coupons.edit',
@@ -2019,7 +2049,7 @@ $routes->group('admin', [
 
                 $routes->post(
                     '(:num)',
-                    'Admin\CouponController::update/$1',
+                    'CouponController::update/$1',
                     [
                         'as' =>
                         'admin.coupons.update',
@@ -2028,7 +2058,7 @@ $routes->group('admin', [
 
                 $routes->post(
                     '(:num)/status',
-                    'Admin\CouponController::status/$1',
+                    'CouponController::status/$1',
                     [
                         'as' =>
                         'admin.coupons.status',
@@ -2037,7 +2067,7 @@ $routes->group('admin', [
 
                 $routes->get(
                     '(:num)/report',
-                    'Admin\CouponController::report/$1',
+                    'CouponController::report/$1',
                     [
                         'as' =>
                         'admin.coupons.report',

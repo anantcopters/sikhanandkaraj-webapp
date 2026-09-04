@@ -419,6 +419,91 @@ final class CouponController extends BaseController
             ->get()
             ->getResultArray();
 
+        /*
+ * Coupon geography uses the same master location tables used by
+ * Basic Details. Only countries need to be rendered initially.
+ *
+ * States and cities are loaded through the existing ProfileMaster
+ * endpoints when the parent selection changes.
+ */
+        $countries =
+            db_connect()
+            ->table('master_countries')
+            ->select(
+                'id, name'
+            )
+            ->where(
+                'is_active',
+                1
+            )
+            ->orderBy(
+                'name',
+                'ASC'
+            )
+            ->get()
+            ->getResultArray();
+
+        $states = [];
+        $cities = [];
+
+        $selectedCountryId =
+            (int) (
+                $coupon['country_id']
+                ?? 0
+            );
+
+        $selectedStateId =
+            (int) (
+                $coupon['state_id']
+                ?? 0
+            );
+
+        if ($selectedCountryId > 0) {
+            $states =
+                db_connect()
+                ->table('master_states')
+                ->select(
+                    'id, name'
+                )
+                ->where(
+                    'country_id',
+                    $selectedCountryId
+                )
+                ->where(
+                    'is_active',
+                    1
+                )
+                ->orderBy(
+                    'name',
+                    'ASC'
+                )
+                ->get()
+                ->getResultArray();
+        }
+
+        if ($selectedStateId > 0) {
+            $cities =
+                db_connect()
+                ->table('master_cities')
+                ->select(
+                    'id, name'
+                )
+                ->where(
+                    'state_id',
+                    $selectedStateId
+                )
+                ->where(
+                    'is_active',
+                    1
+                )
+                ->orderBy(
+                    'name',
+                    'ASC'
+                )
+                ->get()
+                ->getResultArray();
+        }
+
         return view(
             'Admin/Coupons/Form',
             [
@@ -433,6 +518,15 @@ final class CouponController extends BaseController
 
                 'members' =>
                 $members,
+
+                'countries' =>
+                $countries,
+
+                'states' =>
+                $states,
+
+                'cities' =>
+                $cities,
 
                 'validationErrors' =>
                 session(

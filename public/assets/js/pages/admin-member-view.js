@@ -678,8 +678,9 @@
  * Keep the offline payment amount aligned with the selected
  * authoritative membership plan.
  *
- * The plan price is supplied by MembershipPlanPresentationService.
- * Administrators may still override Amount Received after selection.
+ * Coupon evaluation can change the expected payable amount.
+ * Administrators may still override Amount Received, but a visible
+ * warning is shown whenever it differs from the expected amount.
  */
     function initializeOfflinePaymentPlanAmount() {
         const planSelect = document.getElementById(
@@ -693,6 +694,36 @@
         const planAmount = document.getElementById(
             'offlinePaymentPlanAmount'
         );
+
+        const amountWarning =
+            document.querySelector(
+                '[data-payment-amount-warning]'
+            );
+
+        const couponBreakdown =
+            document.querySelector(
+                '[data-coupon-breakdown]'
+            );
+
+        const couponError =
+            document.querySelector(
+                '[data-coupon-error]'
+            );
+
+        const couponPlanPrice =
+            document.querySelector(
+                '[data-coupon-plan-price]'
+            );
+
+        const couponDiscount =
+            document.querySelector(
+                '[data-coupon-discount]'
+            );
+
+        const couponFinal =
+            document.querySelector(
+                '[data-coupon-final]'
+            );
 
         const planAmountDisplay =
             planAmount
@@ -708,6 +739,336 @@
             || !planAmountDisplay
         ) {
             return;
+        }
+
+        /*
+         * The expected payable is held only in JavaScript.
+         *
+         * It is NOT submitted to the server and therefore cannot become
+         * authoritative pricing data.
+         */
+        let expectedPayable = null;
+
+        /**
+         * Remove a previously evaluated coupon from the UI.
+         *
+         * A coupon is plan-specific. Therefore changing the plan must
+         * invalidate the previous coupon evaluation.
+         */
+        function clearCouponEvaluation() {
+            expectedPayable = null;
+
+            couponBreakdown?.classList.add(
+                'd-none'
+            );
+
+            couponError?.classList.add(
+                'd-none'
+            );
+
+            if (couponError) {
+                couponError.textContent = '';
+            }
+
+            if (couponPlanPrice) {
+                couponPlanPrice.textContent = '';
+            }
+
+            if (couponDiscount) {
+                couponDiscount.textContent = '';
+            }
+
+            if (couponFinal) {
+                couponFinal.textContent = '';
+            }
+        }
+
+        /**
+         * Compare actual amount received with the current expected payable.
+         *
+         * This is deliberately a warning rather than a validation failure,
+         * because Superadmin may legitimately record a different amount.
+         */
+        function syncAmountWarning() {
+            if (!amountWarning) {
+                return;
+            }
+
+            const received =
+                Number.parseFloat(
+                    amountInput.value
+                );
+
+            const expected =
+                expectedPayable !== null
+                    ? expectedPayable
+                    : Number.parseFloat(
+                        String(
+                            planSelect.options[
+                                planSelect.selectedIndex
+                            ]?.dataset.planPrice
+                            ?? ''
+                        )
+                    );
+
+            const differs =
+                Number.isFinite(received)
+                && Number.isFinite(expected)
+                && Math.abs(
+                    received - expected
+                ) >= 0.01;
+
+            amountWarning.classList.toggle(
+                'd-none',
+                !differs
+            );
+        }
+
+        /**
+ * Evaluate an optional coupon for the selected member and plan.
+ *
+ * This request is preview-only. The server performs the same authoritative
+ * coupon validation again when the offline payment is finally saved.
+ */
+        function initializeOfflinePaymentCoupon() {
+            const planSelect = document.getElementById(
+                'offlinePaymentPlan'
+            );
+
+            const couponInput =
+                document.querySelector(
+                    '[data-coupon-code]'
+                );
+
+            const applyButton =
+                document.querySelector(
+                    '[data-apply-coupon]'
+                );
+
+            const errorElement =
+                document.querySelector(
+                    '[data-coupon-error]'
+                );
+
+            const breakdown =
+                document.querySelector(
+                    '[data-coupon-breakdown]'
+                );
+
+            const planPrice =
+                document.querySelector(
+                    '[data-coupon-plan-price]'
+                );
+
+            const discount =
+                document.querySelector(
+                    '[data-coupon-discount]'
+                );
+
+            const finalPayable =
+                document.querySelector(
+                    '[data-coupon-final]'
+                );
+
+            if (
+                !(planSelect instanceof HTMLSelectElement)
+                || !(couponInput instanceof HTMLInputElement)
+                || !(applyButton instanceof HTMLButtonElement)
+                || !errorElement
+                || !breakdown
+                || !planPrice
+                || !discount
+                || !finalPayable
+            ) {
+                return;
+            }
+
+            function clearResult() {
+                errorElement.textContent = '';
+
+                errorElement.classList.add(
+                    'd-none'
+                );
+
+                breakdown.classList.add(
+                    'd-none'
+                );
+
+                planPrice.textContent = '';
+                discount.textContent = '';
+                finalPayable.textContent = '';
+            }
+
+            applyButton.addEventListener(
+                'click',
+                async function () {
+                    clearResult();
+
+                    const planCode =
+                        planSelect.value.trim();
+
+                    const couponCode =
+                        couponInput.value
+                            .trim()
+                            .toUpperCase();
+
+                    couponInput.value =
+                        couponCode;
+
+                    if (planCode === '') {
+                        errorElement.textContent =
+                            'Please select a membership plan first.';
+
+                        errorElement.classList.remove(
+                            'd-none'
+                        );
+
+                        planSelect.focus();
+
+                        return;
+                    }
+
+                    if (couponCode === '') {
+                        errorElement.textContent =
+                            'Please enter a coupon code.';
+
+                        errorElement.classList.remove(
+                            'd-none'
+                        );
+
+                        couponInput.focus();
+
+                        return;
+                    }
+
+                    const endpoint =
+                        String(
+                            applyButton.dataset
+                                .couponUrl
+                            ?? ''
+                        ).trim();
+
+                    if (endpoint === '') {
+                        return;
+                    }
+
+                    applyButton.disabled = true;
+
+                    try {
+                        const body =
+                            new URLSearchParams();
+
+                        body.set(
+                            'plan_code',
+                            planCode
+                        );
+
+                        body.set(
+                            'coupon_code',
+                            couponCode
+                        );
+
+                        const response =
+                            await fetch(
+                                endpoint,
+                                {
+                                    method: 'POST',
+
+                                    headers: {
+                                        'Accept':
+                                            'application/json',
+
+                                        'Content-Type':
+                                            'application/x-www-form-urlencoded;charset=UTF-8',
+
+                                        'X-Requested-With':
+                                            'XMLHttpRequest'
+                                    },
+
+                                    credentials:
+                                        'same-origin',
+
+                                    body:
+                                        body.toString()
+                                }
+                            );
+
+                        const payload =
+                            await response.json();
+
+                        if (
+                            !response.ok
+                            || payload.successful
+                            !== true
+                        ) {
+                            throw new Error(
+                                payload.message
+                                ?? 'Coupon could not be applied.'
+                            );
+                        }
+
+                        /*
+                         * Use display values returned by the server.
+                         */
+                        planPrice.textContent =
+                            payload.pricing
+                                ?.planPriceDisplay
+                            ?? '';
+
+                        discount.textContent =
+                            payload.pricing
+                                ?.discountDisplay
+                            ?? '';
+
+                        finalPayable.textContent =
+                            payload.pricing
+                                ?.finalPayableDisplay
+                            ?? '';
+
+                        breakdown.classList.remove(
+                            'd-none'
+                        );
+
+                        /*
+                         * Tell the amount-warning logic what the current expected
+                         * payable is. This remains presentation-only.
+                         */
+                        document.dispatchEvent(
+                            new CustomEvent(
+                                'offline-payment:coupon-applied',
+                                {
+                                    detail: {
+                                        finalPayable:
+                                            payload.pricing
+                                                ?.finalPayable
+                                            ?? ''
+                                    }
+                                }
+                            )
+                        );
+                    } catch (error) {
+                        errorElement.textContent =
+                            error instanceof Error
+                                ? error.message
+                                : 'Coupon could not be applied.';
+
+                        errorElement.classList.remove(
+                            'd-none'
+                        );
+                    } finally {
+                        applyButton.disabled = false;
+                    }
+                }
+            );
+
+            /*
+             * Editing the coupon after it has been evaluated invalidates the
+             * displayed result until Apply Coupon is clicked again.
+             */
+            couponInput.addEventListener(
+                'input',
+                clearResult
+            );
         }
 
         /**
@@ -734,6 +1095,11 @@
                 ?? ''
             ).trim();
 
+            expectedPayable =
+                price !== ''
+                    ? Number.parseFloat(price)
+                    : null;
+
             if (
                 price === ''
                 || priceDisplay === ''
@@ -749,6 +1115,8 @@
                     amountInput.value = '';
                 }
 
+                syncAmountWarning();
+
                 return;
             }
 
@@ -759,19 +1127,22 @@
                 'd-none'
             );
 
-            /*
-             * A plan change starts from the plan master amount.
-             * After that the administrator is free to override
-             * Amount Received.
-             */
             if (updateAmount) {
                 amountInput.value = price;
             }
+
+            syncAmountWarning();
         }
 
         planSelect.addEventListener(
             'change',
             function () {
+                /*
+                 * IMPORTANT:
+                 * A coupon evaluated for the previous plan is no longer valid.
+                 */
+                clearCouponEvaluation();
+
                 applyPlanPrice(
                     true
                 );
@@ -779,8 +1150,44 @@
         );
 
         /*
+         * Re-evaluate the mismatch warning whenever Superadmin manually
+         * changes Amount Received.
+         */
+        amountInput.addEventListener(
+            'input',
+            syncAmountWarning
+        );
+
+        /*
+         * Allow the coupon handler below to publish the newly calculated
+         * final payable without introducing a hidden authoritative field.
+         */
+        document.addEventListener(
+            'offline-payment:coupon-applied',
+            function (event) {
+                const finalPayable =
+                    Number.parseFloat(
+                        String(
+                            event.detail
+                                ?.finalPayable
+                            ?? ''
+                        )
+                    );
+
+                expectedPayable =
+                    Number.isFinite(
+                        finalPayable
+                    )
+                        ? finalPayable
+                        : null;
+
+                syncAmountWarning();
+            }
+        );
+
+        /*
          * On server-validation return, preserve the administrator's
-         * submitted amount instead of overwriting it with the plan price.
+         * submitted amount instead of overwriting it with plan price.
          */
         applyPlanPrice(
             amountInput.value.trim() === ''
@@ -825,6 +1232,7 @@
             initializeHistoryModal();
             initializePhotoModal();
             initializeOfflinePaymentPlanAmount();
+            initializeOfflinePaymentCoupon();
             initializeOfflinePaymentModal();
         }
     );

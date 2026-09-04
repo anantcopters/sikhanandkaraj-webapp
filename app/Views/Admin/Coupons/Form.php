@@ -7,6 +7,9 @@ declare(strict_types=1);
  * @var array<string, mixed>|null      $coupon
  * @var list<array<string, mixed>>     $membershipPlans
  * @var list<array<string, mixed>>     $members
+ * @var list<array<string, mixed>>     $countries
+ * @var list<array<string, mixed>>     $states
+ * @var list<array<string, mixed>>     $cities
  * @var array<string, string>          $validationErrors
  * @var array<string, string>|null     $formAlert
  * @var list<string>                   $pageScripts
@@ -29,6 +32,45 @@ $resolvedMembers =
     && is_array($members)
     ? $members
     : [];
+
+$resolvedCountries =
+    isset($countries)
+    && is_array($countries)
+    ? $countries
+    : [];
+
+$resolvedStates =
+    isset($states)
+    && is_array($states)
+    ? $states
+    : [];
+
+$resolvedCities =
+    isset($cities)
+    && is_array($cities)
+    ? $cities
+    : [];
+
+$selectedCountryId =
+    (string) old(
+        'country_id',
+        $resolvedCoupon['country_id']
+            ?? ''
+    );
+
+$selectedStateId =
+    (string) old(
+        'state_id',
+        $resolvedCoupon['state_id']
+            ?? ''
+    );
+
+$selectedCityId =
+    (string) old(
+        'city_id',
+        $resolvedCoupon['city_id']
+            ?? ''
+    );
 
 $errors =
     isset($validationErrors)
@@ -702,17 +744,21 @@ $this->section(
                             class="form-label">
                             Selected Members
                         </label>
-                        <?php if ($hasRedemptions): ?>
+                        <?php if (
+                            $hasRedemptions
+                            && $selectedEligibilityType
+                            === 'SELECTED'
+                        ): ?>
 
                             <?php foreach (
-                                $resolvedMembers
-                                as $member
+                                $selectedMemberIds
+                                as $selectedMemberId
                             ): ?>
 
                                 <input
                                     type="hidden"
                                     name="member_ids[]"
-                                    value="<?= (int) $memberId ?>">
+                                    value="<?= (int) $selectedMemberId ?>">
 
                             <?php endforeach; ?>
 
@@ -805,6 +851,268 @@ $this->section(
                             Search and select one or more
                             registered members.
                         </div>
+
+                    </div>
+
+                    <!--
+    Optional coupon geography.
+
+    This intentionally follows the same Country -> State -> City master-data
+    hierarchy already used by member Basic Details.
+-->
+                    <div class="col-12">
+                        <hr class="my-2">
+
+                        <h5 class="fs-16 fw-semibold mb-1">
+                            Geographic Eligibility
+                        </h5>
+
+                        <p class="text-muted fs-13 mb-0">
+                            Optional. Leave all fields blank to allow
+                            eligible members from every location.
+                        </p>
+                    </div>
+
+                    <div class="col-12 col-md-4">
+
+                        <label
+                            for="couponCountryId"
+                            class="form-label">
+                            Country
+                        </label>
+
+                        <?php if (
+                            $hasRedemptions
+                            && $selectedCountryId !== ''
+                        ): ?>
+
+                            <input
+                                type="hidden"
+                                name="country_id"
+                                value="<?= esc(
+                                            $selectedCountryId,
+                                            'attr'
+                                        ) ?>">
+
+                        <?php endif; ?>
+
+                        <select
+                            id="couponCountryId"
+                            name="country_id"
+                            class="form-select"
+                            data-choice
+                            data-choice-search="false"
+                            data-states-url="<?= esc(
+                                                    site_url(
+                                                        'profile/master/states'
+                                                    ),
+                                                    'attr'
+                                                ) ?>"
+                            <?= $hasRedemptions
+                                ? 'disabled'
+                                : '' ?>>
+
+                            <option value="">
+                                All Countries
+                            </option>
+
+                            <?php foreach (
+                                $resolvedCountries
+                                as $countryOption
+                            ): ?>
+
+                                <?php
+                                $countryId =
+                                    (string) (
+                                        $countryOption['id']
+                                        ?? ''
+                                    );
+                                ?>
+
+                                <option
+                                    value="<?= esc(
+                                                $countryId,
+                                                'attr'
+                                            ) ?>"
+                                    <?= $selectedCountryId
+                                        === $countryId
+                                        ? 'selected'
+                                        : '' ?>>
+
+                                    <?= esc(
+                                        $countryOption['name']
+                                            ?? ''
+                                    ) ?>
+
+                                </option>
+
+                            <?php endforeach; ?>
+
+                        </select>
+
+                    </div>
+
+                    <div class="col-12 col-md-4">
+
+                        <label
+                            for="couponStateId"
+                            class="form-label">
+                            State
+                        </label>
+
+                        <?php if (
+                            $hasRedemptions
+                            && $selectedStateId !== ''
+                        ): ?>
+
+                            <input
+                                type="hidden"
+                                name="state_id"
+                                value="<?= esc(
+                                            $selectedStateId,
+                                            'attr'
+                                        ) ?>">
+
+                        <?php endif; ?>
+
+                        <select
+                            id="couponStateId"
+                            name="state_id"
+                            class="form-select"
+                            data-choice
+                            data-choice-search="true"
+                            data-choice-search-placeholder="Search state"
+                            <?= (
+                                $hasRedemptions
+                                || $selectedCountryId === ''
+                            )
+                                ? 'disabled'
+                                : '' ?>>
+
+                            <option value="">
+                                All States
+                            </option>
+
+                            <?php foreach (
+                                $resolvedStates
+                                as $state
+                            ): ?>
+
+                                <?php
+                                $stateId =
+                                    (string) (
+                                        $state['id']
+                                        ?? ''
+                                    );
+                                ?>
+
+                                <option
+                                    value="<?= esc(
+                                                $stateId,
+                                                'attr'
+                                            ) ?>"
+                                    <?= $selectedStateId
+                                        === $stateId
+                                        ? 'selected'
+                                        : '' ?>>
+
+                                    <?= esc(
+                                        $state['name']
+                                            ?? ''
+                                    ) ?>
+
+                                </option>
+
+                            <?php endforeach; ?>
+
+                        </select>
+
+                    </div>
+
+                    <div class="col-12 col-md-4">
+
+                        <label
+                            for="couponCityId"
+                            class="form-label">
+                            City
+                        </label>
+
+                        <?php if (
+                            $hasRedemptions
+                            && $selectedCityId !== ''
+                        ): ?>
+
+                            <input
+                                type="hidden"
+                                name="city_id"
+                                value="<?= esc(
+                                            $selectedCityId,
+                                            'attr'
+                                        ) ?>">
+
+                        <?php endif; ?>
+
+                        <select
+                            id="couponCityId"
+                            name="city_id"
+                            class="form-select"
+                            data-choice
+                            data-choice-search="true"
+                            data-choice-search-placeholder="Search city"
+                            data-cities-url="<?= esc(
+                                                    site_url(
+                                                        'profile/master/cities'
+                                                    ),
+                                                    'attr'
+                                                ) ?>"
+                            data-selected-city="<?= esc(
+                                                    $selectedCityId,
+                                                    'attr'
+                                                ) ?>"
+                            <?= (
+                                $hasRedemptions
+                                || $selectedStateId === ''
+                            )
+                                ? 'disabled'
+                                : '' ?>>
+
+                            <option value="">
+                                All Cities
+                            </option>
+
+                            <?php foreach (
+                                $resolvedCities
+                                as $city
+                            ): ?>
+
+                                <?php
+                                $cityId =
+                                    (string) (
+                                        $city['id']
+                                        ?? ''
+                                    );
+                                ?>
+
+                                <option
+                                    value="<?= esc(
+                                                $cityId,
+                                                'attr'
+                                            ) ?>"
+                                    <?= $selectedCityId
+                                        === $cityId
+                                        ? 'selected'
+                                        : '' ?>>
+
+                                    <?= esc(
+                                        $city['name']
+                                            ?? ''
+                                    ) ?>
+
+                                </option>
+
+                            <?php endforeach; ?>
+
+                        </select>
 
                     </div>
 

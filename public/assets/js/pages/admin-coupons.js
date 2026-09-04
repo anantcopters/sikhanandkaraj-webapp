@@ -130,6 +130,331 @@ document.addEventListener(
             syncDiscount
         );
 
+        /*
+ * Coupon geography follows the same dependent master-data flow used by
+ * member Basic Details:
+ *
+ * Country -> State -> City.
+ */
+        const countrySelect =
+            document.getElementById(
+                'couponCountryId'
+            );
+
+        const stateSelect =
+            document.getElementById(
+                'couponStateId'
+            );
+
+        const citySelect =
+            document.getElementById(
+                'couponCityId'
+            );
+
+        if (
+            countrySelect
+            && stateSelect
+            && citySelect
+        ) {
+            const statesBaseUrl =
+                countrySelect.dataset.statesUrl;
+
+            const citiesBaseUrl =
+                citySelect.dataset.citiesUrl;
+
+            let stateRequestController = null;
+            let cityRequestController = null;
+
+            function replaceStateOptions(
+                states
+            ) {
+                window.SelectChoice?.destroy(
+                    stateSelect
+                );
+
+                stateSelect.replaceChildren();
+
+                const placeholder =
+                    document.createElement(
+                        'option'
+                    );
+
+                placeholder.value = '';
+                placeholder.textContent =
+                    'All States';
+
+                stateSelect.appendChild(
+                    placeholder
+                );
+
+                states.forEach(
+                    function (state) {
+                        const option =
+                            document.createElement(
+                                'option'
+                            );
+
+                        option.value =
+                            String(
+                                state.value
+                                ?? ''
+                            );
+
+                        option.textContent =
+                            String(
+                                state.label
+                                ?? ''
+                            );
+
+                        stateSelect.appendChild(
+                            option
+                        );
+                    }
+                );
+
+                stateSelect.disabled =
+                    countrySelect.value === '';
+
+                window.SelectChoice?.create(
+                    stateSelect
+                );
+            }
+
+            function replaceCityOptions(
+                cities,
+                selectedCityId = ''
+            ) {
+                window.SelectChoice?.destroy(
+                    citySelect
+                );
+
+                citySelect.replaceChildren();
+
+                const placeholder =
+                    document.createElement(
+                        'option'
+                    );
+
+                placeholder.value = '';
+                placeholder.textContent =
+                    'All Cities';
+
+                placeholder.selected =
+                    selectedCityId === '';
+
+                citySelect.appendChild(
+                    placeholder
+                );
+
+                cities.forEach(
+                    function (city) {
+                        const option =
+                            document.createElement(
+                                'option'
+                            );
+
+                        option.value =
+                            String(
+                                city.value
+                                ?? ''
+                            );
+
+                        option.textContent =
+                            String(
+                                city.label
+                                ?? ''
+                            );
+
+                        option.selected =
+                            String(
+                                city.value
+                            )
+                            === String(
+                                selectedCityId
+                            );
+
+                        citySelect.appendChild(
+                            option
+                        );
+                    }
+                );
+
+                citySelect.disabled =
+                    stateSelect.value === '';
+
+                window.SelectChoice?.create(
+                    citySelect
+                );
+            }
+
+            async function loadCities(
+                stateId,
+                selectedCityId = ''
+            ) {
+                if (!stateId) {
+                    replaceCityOptions([]);
+                    return;
+                }
+
+                cityRequestController?.abort();
+
+                cityRequestController =
+                    new AbortController();
+
+                try {
+                    const response =
+                        await fetch(
+                            `${citiesBaseUrl}/${encodeURIComponent(stateId)}`,
+                            {
+                                headers: {
+                                    'Accept':
+                                        'application/json',
+
+                                    'X-Requested-With':
+                                        'XMLHttpRequest'
+                                },
+
+                                credentials:
+                                    'same-origin',
+
+                                signal:
+                                    cityRequestController
+                                        .signal
+                            }
+                        );
+
+                    if (!response.ok) {
+                        throw new Error(
+                            'Unable to load cities.'
+                        );
+                    }
+
+                    const payload =
+                        await response.json();
+
+                    replaceCityOptions(
+                        Array.isArray(
+                            payload.data
+                        )
+                            ? payload.data
+                            : [],
+                        selectedCityId
+                    );
+                } catch (error) {
+                    if (
+                        error?.name
+                        === 'AbortError'
+                    ) {
+                        return;
+                    }
+
+                    console.error(error);
+
+                    replaceCityOptions([]);
+                }
+            }
+
+            async function loadStates(
+                countryId
+            ) {
+                replaceCityOptions([]);
+
+                if (!countryId) {
+                    replaceStateOptions([]);
+                    return;
+                }
+
+                stateRequestController?.abort();
+
+                stateRequestController =
+                    new AbortController();
+
+                try {
+                    const response =
+                        await fetch(
+                            `${statesBaseUrl}/${encodeURIComponent(countryId)}`,
+                            {
+                                headers: {
+                                    'Accept':
+                                        'application/json',
+
+                                    'X-Requested-With':
+                                        'XMLHttpRequest'
+                                },
+
+                                credentials:
+                                    'same-origin',
+
+                                signal:
+                                    stateRequestController
+                                        .signal
+                            }
+                        );
+
+                    if (!response.ok) {
+                        throw new Error(
+                            'Unable to load states.'
+                        );
+                    }
+
+                    const payload =
+                        await response.json();
+
+                    replaceStateOptions(
+                        Array.isArray(
+                            payload.data
+                        )
+                            ? payload.data
+                            : []
+                    );
+                } catch (error) {
+                    if (
+                        error?.name
+                        === 'AbortError'
+                    ) {
+                        return;
+                    }
+
+                    console.error(error);
+
+                    replaceStateOptions([]);
+                }
+            }
+
+            countrySelect.addEventListener(
+                'change',
+                function () {
+                    void loadStates(
+                        countrySelect.value
+                    );
+                }
+            );
+
+            stateSelect.addEventListener(
+                'change',
+                function () {
+                    void loadCities(
+                        stateSelect.value
+                    );
+                }
+            );
+
+            const selectedCityId =
+                citySelect.dataset
+                    .selectedCity
+                ?? '';
+
+            if (
+                stateSelect.value
+                && citySelect.options.length <= 1
+            ) {
+                void loadCities(
+                    stateSelect.value,
+                    selectedCityId
+                );
+            }
+        }
+
         syncDiscount();
     }
 );

@@ -1139,6 +1139,12 @@ final class MemberController extends BaseController
         }
     }
 
+    /**
+     * Preview coupon eligibility and calculated pricing for an offline payment.
+     *
+     * This is presentation-only. No redemption or membership state is changed.
+     * recordOfflinePayment() performs authoritative validation again.
+     */
     public function evaluateCoupon(
         int $userId
     ): ResponseInterface {
@@ -1162,41 +1168,217 @@ final class MemberController extends BaseController
                 )
             );
 
+        if (
+            $userId <= 0
+            || $planCode === ''
+            || $couponCode === ''
+        ) {
+            return $this->response
+                ->setStatusCode(422)
+                ->setJSON([
+                    'successful' =>
+                    false,
+
+                    'message' =>
+                    'Please select a plan and enter a coupon code.',
+                ]);
+        }
+
         try {
-            $result =
+            /*
+         * Resolve the plan through the same membership-plan source used by
+         * the existing offline-payment flow. Do not accept plan price from
+         * the browser.
+         */
+            $plans =
+                service(
+                    'membershipPlanPresentationService'
+                )->memberPlans(
+                    $userId
+                );
+
+            $availablePlans =
+                isset($plans['plans'])
+                && is_array($plans['plans'])
+                ? $plans['plans']
+                : [];
+
+            $selectedPlan = null;
+
+            foreach (
+                $availablePlans
+                as $plan
+            ) {
+                if (!is_array($plan)) {
+                    continue;
+                }
+
+                if (
+                    mb_strtoupper(
+                        trim(
+                            (string) (
+                                $plan['code']
+                                ?? ''
+                            )
+                        )
+                    )
+                    !== $planCode
+                ) {
+                    continue;
+                }
+
+                $selectedPlan = $plan;
+
+                break;
+            }
+
+            if (!is_array($selectedPlan)) {
+                throw new DomainException(
+                    'The selected membership plan is not available.'
+                );
+            }
+
+            $membershipPlanId =
+                (int) (
+                    $selectedPlan['id']
+                    ?? 0
+                );
+
+            if ($membershipPlanId <= 0) {
+                throw new DomainException(
+                    'The selected membership plan is invalid.'
+                );
+            }
+
+            /*
+         * CouponService is the authoritative eligibility/pricing engine.
+         */
+            $evaluation =
                 service(
                     'couponService'
                 )->evaluate(
-                    $userId,
-                    $planCode,
-                    $couponCode
+                    couponCode: $couponCode,
+
+                    userId: $userId,
+
+                    membershipPlanId: $membershipPlanId
+                );
+
+            $planPricePaise =
+                (int) (
+                    $evaluation['original_price_paise']
+                    ?? 0
+                );
+
+            $discountPaise =
+                (int) (
+                    $evaluation['discount_amount_paise']
+                    ?? 0
+                );
+
+            $finalPaise =
+                (int) (
+                    $evaluation['final_payable_paise']
+                    ?? 0
                 );
 
             return $this->response
-                ->setJSON(
-                    [
-                        'success' =>
-                        true,
+                ->setJSON([
+                    'successful' =>
+                    true,
 
-                        'coupon' =>
-                        $result,
-                    ]
-                );
+                    'message' =>
+                    'Coupon applied successfully.',
+
+                    'pricing' => [
+                        'planPrice' =>
+                        number_format(
+                            $planPricePaise / 100,
+                            2,
+                            '.',
+                            ''
+                        ),
+
+                        'planPriceDisplay' =>
+                        '₹'
+                            . number_format(
+                                $planPricePaise / 100,
+                                2
+                            ),
+
+                        'discount' =>
+                        number_format(
+                            $discountPaise / 100,
+                            2,
+                            '.',
+                            ''
+                        ),
+
+                        'discountDisplay' =>
+                        '-₹'
+                            . number_format(
+                                $discountPaise / 100,
+                                2
+                            ),
+
+                        'finalPayable' =>
+                        number_format(
+                            $finalPaise / 100,
+                            2,
+                            '.',
+                            ''
+                        ),
+
+                        'finalPayableDisplay' =>
+                        '₹'
+                            . number_format(
+                                $finalPaise / 100,
+                                2
+                            ),
+                    ],
+                ]);
         } catch (DomainException $exception) {
             return $this->response
-                ->setStatusCode(
-                    422
-                )
-                ->setJSON(
-                    [
-                        'success' =>
-                        false,
+                ->setStatusCode(422)
+                ->setJSON([
+                    'successful' =>
+                    false,
 
-                        'message' =>
-                        $exception
-                            ->getMessage(),
+                    'message' =>
+                    $exception->getMessage(),
+                ]);
+        } catch (Throwable $exception) {
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
+                'error',
+                AdminErrorContext::forOperation(
+                    operation: 'admin_coupon_evaluate',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'member_id' =>
+                        $userId,
+
+                        'plan_code' =>
+                        $planCode,
                     ]
-                );
+                )
+            );
+
+            return $this->response
+                ->setStatusCode(500)
+                ->setJSON([
+                    'successful' =>
+                    false,
+
+                    'message' =>
+                    'Coupon could not be evaluated.',
+                ]);
         }
     }
 

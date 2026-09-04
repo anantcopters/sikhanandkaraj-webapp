@@ -751,6 +751,129 @@ final class CouponManagementService
             );
         }
 
+        /*
+ * Validate optional geography server-side.
+ *
+ * UI dependency is convenience only. Direct requests must not be able to
+ * persist a State belonging to another Country or a City belonging to
+ * another State.
+ */
+        $countryId =
+            $this->nullableId(
+                $input['country_id']
+                    ?? null
+            );
+
+        $stateId =
+            $this->nullableId(
+                $input['state_id']
+                    ?? null
+            );
+
+        $cityId =
+            $this->nullableId(
+                $input['city_id']
+                    ?? null
+            );
+
+        if (
+            $stateId !== null
+            && $countryId === null
+        ) {
+            throw new DomainException(
+                'Please select a country before selecting a state.'
+            );
+        }
+
+        if (
+            $cityId !== null
+            && $stateId === null
+        ) {
+            throw new DomainException(
+                'Please select a state before selecting a city.'
+            );
+        }
+
+        if ($countryId !== null) {
+            $countryExists =
+                $this->database
+                ->table(
+                    'master_countries'
+                )
+                ->where(
+                    'id',
+                    $countryId
+                )
+                ->where(
+                    'is_active',
+                    1
+                )
+                ->countAllResults()
+                > 0;
+
+            if (!$countryExists) {
+                throw new DomainException(
+                    'Please select a valid country.'
+                );
+            }
+        }
+
+        if ($stateId !== null) {
+            $stateExists =
+                $this->database
+                ->table(
+                    'master_states'
+                )
+                ->where(
+                    'id',
+                    $stateId
+                )
+                ->where(
+                    'country_id',
+                    $countryId
+                )
+                ->where(
+                    'is_active',
+                    1
+                )
+                ->countAllResults()
+                > 0;
+
+            if (!$stateExists) {
+                throw new DomainException(
+                    'The selected state does not belong to the selected country.'
+                );
+            }
+        }
+
+        if ($cityId !== null) {
+            $cityExists =
+                $this->database
+                ->table(
+                    'master_cities'
+                )
+                ->where(
+                    'id',
+                    $cityId
+                )
+                ->where(
+                    'state_id',
+                    $stateId
+                )
+                ->where(
+                    'is_active',
+                    1
+                )
+                ->countAllResults()
+                > 0;
+
+            if (!$cityExists) {
+                throw new DomainException(
+                    'The selected city does not belong to the selected state.'
+                );
+            }
+        }
+
         return [
             'code' =>
             $code,
@@ -801,23 +924,17 @@ final class CouponManagementService
                     'Y-m-d H:i:s'
                 ),
 
+                /*
+                * Already normalized and hierarchy-validated above.
+                */
                 'country_id' =>
-                $this->nullableId(
-                    $input['country_id']
-                        ?? null
-                ),
+                $countryId,
 
                 'state_id' =>
-                $this->nullableId(
-                    $input['state_id']
-                        ?? null
-                ),
+                $stateId,
 
                 'city_id' =>
-                $this->nullableId(
-                    $input['city_id']
-                        ?? null
-                ),
+                $cityId,
 
                 'is_active' =>
                 !empty($input['is_active'])
