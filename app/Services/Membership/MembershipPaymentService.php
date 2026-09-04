@@ -37,7 +37,10 @@ final class MembershipPaymentService
         * activation decisions.
         */
         private readonly MemberEmailService
-        $memberEmailService
+        $memberEmailService,
+
+        private readonly CouponService
+        $couponService
     ) {}
 
     /**
@@ -229,7 +232,8 @@ final class MembershipPaymentService
         string $paymentDate,
         string $externalReference,
         string $paymentNote,
-        int $adminUserId
+        int $adminUserId,
+        string $couponCode = ''
     ): array {
         if (
             $userId <= 0
@@ -464,6 +468,21 @@ final class MembershipPaymentService
             );
         }
 
+        $couponEvaluation =
+            null;
+
+        if (
+            trim($couponCode) !== ''
+        ) {
+            $couponEvaluation =
+                $this->couponService
+                ->evaluate(
+                    $userId,
+                    $requestedPlanCode,
+                    $couponCode
+                );
+        }
+
         return $this->processSuccessfulPayment(
             transactionReference: $transactionReference,
 
@@ -485,6 +504,38 @@ final class MembershipPaymentService
 
                 'recorded_by_admin_user_id' =>
                 $adminUserId,
+
+                'coupon_id' =>
+                $couponEvaluation !== null
+                    ? (int) $couponEvaluation['couponId']
+                    : null,
+
+                'plan_price_paise' =>
+                $couponEvaluation !== null
+                    ? (int) $couponEvaluation['planPricePaise']
+                    : max(
+                        0,
+                        (int) (
+                            $plan['price_paise']
+                            ?? 0
+                        )
+                    ),
+
+                'coupon_discount_paise' =>
+                $couponEvaluation !== null
+                    ? (int) $couponEvaluation['discountAmountPaise']
+                    : 0,
+
+                'final_payable_paise' =>
+                $couponEvaluation !== null
+                    ? (int) $couponEvaluation['finalPayablePaise']
+                    : max(
+                        0,
+                        (int) (
+                            $plan['price_paise']
+                            ?? 0
+                        )
+                    ),
             ],
 
             paidAt: $paymentDateObject
@@ -559,6 +610,28 @@ final class MembershipPaymentService
                 throw new RuntimeException(
                     'The payment transaction could not be found.'
                 );
+            }
+
+            $couponId =
+                max(
+                    0,
+                    (int) (
+                        $payment['coupon_id']
+                        ?? 0
+                    )
+                );
+
+            $couponEvaluation =
+                null;
+
+            if ($couponId > 0) {
+                $couponEvaluation =
+                    $this->couponService
+                    ->evaluateForRedemption(
+                        $couponId,
+                        (int) $payment['user_id'],
+                        (string) $payment['plan_code_snapshot']
+                    );
             }
 
             /*
@@ -695,6 +768,33 @@ final class MembershipPaymentService
                 throw new RuntimeException(
                     'Payment processing transaction failed.'
                 );
+            }
+
+            if (
+                $couponEvaluation !== null
+            ) {
+                $adminUserId =
+                    max(
+                        0,
+                        (int) (
+                            $payment['recorded_by_admin_user_id']
+                            ?? 0
+                        )
+                    );
+
+                if ($adminUserId <= 0) {
+                    throw new RuntimeException(
+                        'Coupon redemption administrator could not be determined.'
+                    );
+                }
+
+                $this->couponService
+                    ->recordRedemption(
+                        $couponEvaluation,
+                        (int) $payment['user_id'],
+                        (int) $payment['id'],
+                        $adminUserId
+                    );
             }
 
             $database->transCommit();

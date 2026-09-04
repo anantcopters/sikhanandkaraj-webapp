@@ -1,0 +1,538 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Services\Membership;
+
+use App\Models\CouponAuditLogModel;
+use App\Models\CouponModel;
+use App\Models\CouponRedemptionModel;
+use App\Models\MembershipPlanModel;
+use CodeIgniter\Database\BaseConnection;
+use DomainException;
+use RuntimeException;
+
+final class CouponService
+{
+    public function __construct(
+        private readonly BaseConnection
+        $database,
+
+        private readonly CouponModel
+        $couponModel,
+
+        private readonly CouponRedemptionModel
+        $redemptionModel,
+
+        private readonly CouponAuditLogModel
+        $auditModel,
+
+        private readonly MembershipPlanModel
+        $planModel
+    ) {}
+
+    /**
+     * Validate a coupon without consuming it.
+     *
+     * @return array<string, mixed>
+     */
+    public function evaluate(
+        int $userId,
+        string $planCode,
+        string $couponCode
+    ): array {
+        if ($userId <= 0) {
+            throw new DomainException(
+                'A valid member is required.'
+            );
+        }
+
+        $couponCode =
+            mb_strtoupper(
+                trim($couponCode)
+            );
+
+        if ($couponCode === '') {
+            throw new DomainException(
+                'Please enter a coupon code.'
+            );
+        }
+
+        $coupon =
+            $this->couponModel
+            ->findByCode(
+                $couponCode
+            );
+
+        if (!is_array($coupon)) {
+            throw new DomainException(
+                'Coupon does not exist.'
+            );
+        }
+
+        return $this->evaluateCoupon(
+            $coupon,
+            $userId,
+            $planCode
+        );
+    }
+
+    /**
+     * Revalidate and lock the coupon during payment completion.
+     *
+     * The caller must already own the surrounding DB transaction.
+     *
+     * @return array<string, mixed>
+     */
+    public function evaluateForRedemption(
+        int $couponId,
+        int $userId,
+        string $planCode
+    ): array {
+        $coupon =
+            $this->couponModel
+            ->lockById(
+                $couponId
+            );
+
+        if (!is_array($coupon)) {
+            throw new DomainException(
+                'Coupon does not exist.'
+            );
+        }
+
+        return $this->evaluateCoupon(
+            $coupon,
+            $userId,
+            $planCode
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function evaluateCoupon(
+        array $coupon,
+        int $userId,
+        string $planCode
+    ): array {
+        if (
+            (int) (
+                $coupon['is_active']
+                ?? 0
+            ) !== 1
+        ) {
+            throw new DomainException(
+                'Coupon is inactive.'
+            );
+        }
+
+        $now =
+            new \DateTimeImmutable(
+                'now',
+                new \DateTimeZone(
+                    'Asia/Kolkata'
+                )
+            );
+
+        $startsAt =
+            new \DateTimeImmutable(
+                (string) $coupon['starts_at'],
+                new \DateTimeZone(
+                    'Asia/Kolkata'
+                )
+            );
+
+        $expiresAt =
+            new \DateTimeImmutable(
+                (string) $coupon['expires_at'],
+                new \DateTimeZone(
+                    'Asia/Kolkata'
+                )
+            );
+
+        if ($now < $startsAt) {
+            throw new DomainException(
+                'Coupon is not active yet.'
+            );
+        }
+
+        if ($now > $expiresAt) {
+            throw new DomainException(
+                'Coupon has expired.'
+            );
+        }
+
+        $couponId =
+            (int) $coupon['id'];
+
+        $used =
+            $this->redemptionModel
+            ->completedCount(
+                $couponId
+            );
+
+        $limit =
+            (int) (
+                $coupon['usage_limit']
+                ?? 0
+            );
+
+        if (
+            $limit <= 0
+            || $used >= $limit
+        ) {
+            throw new DomainException(
+                'Coupon usage limit has been reached.'
+            );
+        }
+
+        if (
+            $this->redemptionModel
+            ->memberHasCompletedRedemption(
+                $couponId,
+                $userId
+            )
+        ) {
+            throw new DomainException(
+                'Member has already used this coupon.'
+            );
+        }
+
+        $plan =
+            $this->planModel
+            ->findActiveByCode(
+                $planCode
+            );
+
+        if (!is_array($plan)) {
+            throw new DomainException(
+                'The selected membership plan is not available.'
+            );
+        }
+
+        $planId =
+            (int) (
+                $plan['id']
+                ?? 0
+            );
+
+        $planEligible =
+            $this->database
+            ->table(
+                'coupon_plans'
+            )
+            ->where(
+                'coupon_id',
+                $couponId
+            )
+            ->where(
+                'membership_plan_id',
+                $planId
+            )
+            ->countAllResults()
+            > 0;
+
+        if (!$planEligible) {
+            throw new DomainException(
+                'Coupon is not valid for the selected plan.'
+            );
+        }
+
+        $member =
+            $this->database
+            ->table('users u')
+            ->select(
+                'u.id, u.gender, '
+                    . 'bd.country_id, '
+                    . 'bd.state_id, '
+                    . 'bd.city_id'
+            )
+            ->join(
+                'member_basic_details bd',
+                'bd.user_id = u.id',
+                'left'
+            )
+            ->where(
+                'u.id',
+                $userId
+            )
+            ->get()
+            ->getRowArray();
+
+        if (!is_array($member)) {
+            throw new DomainException(
+                'Member is not eligible for this coupon.'
+            );
+        }
+
+        $eligibilityType =
+            mb_strtoupper(
+                trim(
+                    (string) (
+                        $coupon['eligibility_type']
+                        ?? ''
+                    )
+                )
+            );
+
+        if (
+            $eligibilityType
+            === CouponModel::ELIGIBILITY_SELECTED
+        ) {
+            $selected =
+                $this->database
+                ->table(
+                    'coupon_members'
+                )
+                ->where(
+                    'coupon_id',
+                    $couponId
+                )
+                ->where(
+                    'user_id',
+                    $userId
+                )
+                ->countAllResults()
+                > 0;
+
+            if (!$selected) {
+                throw new DomainException(
+                    'Member is not eligible for this coupon.'
+                );
+            }
+        } elseif (
+            $eligibilityType
+            === CouponModel::ELIGIBILITY_GENDER
+        ) {
+            $memberGender =
+                mb_strtoupper(
+                    trim(
+                        (string) (
+                            $member['gender']
+                            ?? ''
+                        )
+                    )
+                );
+
+            $eligibleGender =
+                mb_strtoupper(
+                    trim(
+                        (string) (
+                            $coupon['eligible_gender']
+                            ?? ''
+                        )
+                    )
+                );
+
+            if (
+                $eligibleGender === ''
+                || $memberGender
+                !== $eligibleGender
+            ) {
+                throw new DomainException(
+                    'Member is not eligible for this coupon.'
+                );
+            }
+        } elseif (
+            $eligibilityType
+            !== CouponModel::ELIGIBILITY_ALL
+        ) {
+            throw new DomainException(
+                'Coupon member eligibility is invalid.'
+            );
+        }
+
+        foreach (
+            [
+                'country_id',
+                'state_id',
+                'city_id',
+            ]
+            as $field
+        ) {
+            $requiredValue =
+                (int) (
+                    $coupon[$field]
+                    ?? 0
+                );
+
+            if (
+                $requiredValue > 0
+                && (int) (
+                    $member[$field]
+                    ?? 0
+                ) !== $requiredValue
+            ) {
+                throw new DomainException(
+                    'Coupon is restricted to another location.'
+                );
+            }
+        }
+
+        $planPricePaise =
+            max(
+                0,
+                (int) (
+                    $plan['price_paise']
+                    ?? 0
+                )
+            );
+
+        $discountValue =
+            (int) (
+                $coupon['discount_value']
+                ?? 0
+            );
+
+        $discountType =
+            mb_strtoupper(
+                trim(
+                    (string) (
+                        $coupon['discount_type']
+                        ?? ''
+                    )
+                )
+            );
+
+        if (
+            $discountType
+            === CouponModel::DISCOUNT_PERCENTAGE
+        ) {
+            if (
+                $discountValue <= 0
+                || $discountValue > 90
+            ) {
+                throw new DomainException(
+                    'Coupon discount is invalid.'
+                );
+            }
+
+            $discountPaise =
+                (int) round(
+                    $planPricePaise
+                        * ($discountValue / 100)
+                );
+        } elseif (
+            $discountType
+            === CouponModel::DISCOUNT_FLAT
+        ) {
+            /*
+             * Flat coupon values are persisted in paise.
+             */
+            $discountPaise =
+                $discountValue;
+        } else {
+            throw new DomainException(
+                'Coupon discount is invalid.'
+            );
+        }
+
+        if (
+            $discountPaise <= 0
+            || $discountPaise
+            > $planPricePaise
+        ) {
+            throw new DomainException(
+                'Coupon discount is invalid for the selected plan.'
+            );
+        }
+
+        return [
+            'couponId' =>
+            $couponId,
+
+            'code' =>
+            (string) $coupon['code'],
+
+            'discountType' =>
+            $discountType,
+
+            'discountValue' =>
+            $discountValue,
+
+            'planId' =>
+            $planId,
+
+            'planPricePaise' =>
+            $planPricePaise,
+
+            'discountAmountPaise' =>
+            $discountPaise,
+
+            'finalPayablePaise' =>
+            $planPricePaise
+                - $discountPaise,
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $evaluation
+     */
+    public function recordRedemption(
+        array $evaluation,
+        int $userId,
+        int $paymentId,
+        int $adminUserId
+    ): int {
+        $id =
+            $this->redemptionModel
+            ->insert(
+                [
+                    'coupon_id' =>
+                    (int) $evaluation['couponId'],
+
+                    'user_id' =>
+                    $userId,
+
+                    'member_payment_id' =>
+                    $paymentId,
+
+                    'membership_plan_id' =>
+                    (int) $evaluation['planId'],
+
+                    'coupon_code_snapshot' =>
+                    (string) $evaluation['code'],
+
+                    'discount_type_snapshot' =>
+                    (string) $evaluation['discountType'],
+
+                    'discount_value_snapshot' =>
+                    (int) $evaluation['discountValue'],
+
+                    'plan_price_paise' =>
+                    (int) $evaluation['planPricePaise'],
+
+                    'discount_amount_paise' =>
+                    (int) $evaluation['discountAmountPaise'],
+
+                    'final_payable_paise' =>
+                    (int) $evaluation['finalPayablePaise'],
+
+                    'status' =>
+                    CouponRedemptionModel
+                    ::STATUS_COMPLETED,
+
+                    'redeemed_by_admin_user_id' =>
+                    $adminUserId,
+
+                    'redeemed_at' =>
+                    gmdate(
+                        'Y-m-d H:i:s'
+                    ),
+                ],
+                true
+            );
+
+        if (
+            !is_numeric($id)
+            || (int) $id <= 0
+        ) {
+            throw new RuntimeException(
+                'Coupon redemption could not be recorded.'
+            );
+        }
+
+        return (int) $id;
+    }
+}

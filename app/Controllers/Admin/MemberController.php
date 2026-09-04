@@ -646,6 +646,16 @@ final class MemberController extends BaseController
                     )
             ),
 
+            'coupon_code' =>
+            mb_strtoupper(
+                trim(
+                    (string) $this->request
+                        ->getPost(
+                            'coupon_code'
+                        )
+                )
+            ),
+
             'payment_method' =>
             mb_strtoupper(
                 trim(
@@ -777,7 +787,9 @@ final class MemberController extends BaseController
 
                     paymentNote: $input['payment_note'],
 
-                    adminUserId: $this->adminUserId()
+                    adminUserId: $this->adminUserId(),
+
+                    couponCode: $input['coupon_code']
                 );
 
             return redirect()
@@ -1124,6 +1136,67 @@ final class MemberController extends BaseController
                     'message' =>
                     'The photograph could not be loaded.',
                 ]);
+        }
+    }
+
+    public function evaluateCoupon(
+        int $userId
+    ): ResponseInterface {
+        $planCode =
+            mb_strtoupper(
+                trim(
+                    (string) $this->request
+                        ->getPost(
+                            'plan_code'
+                        )
+                )
+            );
+
+        $couponCode =
+            mb_strtoupper(
+                trim(
+                    (string) $this->request
+                        ->getPost(
+                            'coupon_code'
+                        )
+                )
+            );
+
+        try {
+            $result =
+                service(
+                    'couponService'
+                )->evaluate(
+                    $userId,
+                    $planCode,
+                    $couponCode
+                );
+
+            return $this->response
+                ->setJSON(
+                    [
+                        'success' =>
+                        true,
+
+                        'coupon' =>
+                        $result,
+                    ]
+                );
+        } catch (DomainException $exception) {
+            return $this->response
+                ->setStatusCode(
+                    422
+                )
+                ->setJSON(
+                    [
+                        'success' =>
+                        false,
+
+                        'message' =>
+                        $exception
+                            ->getMessage(),
+                    ]
+                );
         }
     }
 

@@ -354,6 +354,139 @@ $oldAmount = trim(
 
                         </div>
 
+                        <div class="col-12">
+
+                            <label
+                                for="offlinePaymentCoupon"
+                                class="form-label">
+
+                                Coupon Code
+
+                                <span
+                                    class="
+                text-muted
+                fw-normal
+            ">
+                                    (Optional)
+                                </span>
+
+                            </label>
+
+                            <div class="input-group">
+
+                                <input
+                                    type="text"
+                                    id="offlinePaymentCoupon"
+                                    name="coupon_code"
+                                    class="form-control"
+                                    maxlength="40"
+                                    value="<?= esc(
+                                                old(
+                                                    'coupon_code'
+                                                ),
+                                                'attr'
+                                            ) ?>"
+                                    autocomplete="off"
+                                    data-coupon-code>
+
+                                <button
+                                    type="button"
+                                    class="btn btn-outline-primary"
+                                    data-apply-coupon
+                                    data-coupon-url="<?= esc(
+                                                            route_to(
+                                                                'admin.members.coupon-evaluate',
+                                                                $memberId
+                                                            ),
+                                                            'attr'
+                                                        ) ?>">
+
+                                    Apply Coupon
+
+                                </button>
+
+                            </div>
+
+                            <div
+                                class="
+            invalid-feedback
+            d-block
+            d-none
+        "
+                                data-coupon-error>
+                            </div>
+
+                        </div>
+
+                        <div
+                            class="
+        col-12
+        d-none
+    "
+                            data-coupon-breakdown>
+
+                            <div
+                                class="
+            alert
+            alert-success
+            mb-0
+        ">
+
+                                <div
+                                    class="
+                d-flex
+                justify-content-between
+                mb-1
+            ">
+
+                                    <span>Plan Price</span>
+
+                                    <strong
+                                        data-coupon-plan-price>
+                                    </strong>
+
+                                </div>
+
+                                <div
+                                    class="
+                d-flex
+                justify-content-between
+                mb-1
+            ">
+
+                                    <span>
+                                        Coupon Discount
+                                    </span>
+
+                                    <strong
+                                        class="text-success"
+                                        data-coupon-discount>
+                                    </strong>
+
+                                </div>
+
+                                <hr class="my-2">
+
+                                <div
+                                    class="
+                d-flex
+                justify-content-between
+            ">
+
+                                    <span class="fw-semibold">
+                                        Final Payable
+                                    </span>
+
+                                    <strong
+                                        data-coupon-final>
+                                    </strong>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
                         <div class="col-12 col-md-6">
 
                             <label
