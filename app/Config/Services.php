@@ -180,6 +180,11 @@ use App\Services\Communication\EngagementDigestService;
 use App\Services\Communication\CommunicationOperationsService;
 use App\Models\AdminMemberActivityModel;
 use App\Services\Admin\AdminMemberActivityService;
+use App\Models\CouponModel;
+use App\Models\CouponRedemptionModel;
+use App\Models\CouponAuditLogModel;
+use App\Services\Admin\CouponManagementService;
+use App\Services\Membership\CouponService;
 use App\Models\EmailQueueModel;
 use App\Models\SmsDeliveryLogModel;
 use Config\ProfilePdf;
@@ -3500,12 +3505,6 @@ final class Services extends BaseService
                 $database
             ),
 
-            /*
-         * Keep the existing authoritative purchase service.
-         *
-         * Payment processing must not reproduce purchase/renewal/upgrade
-         * business rules locally.
-         */
             new MembershipPurchaseService(
                 $database,
 
@@ -3518,10 +3517,11 @@ final class Services extends BaseService
                 )
             ),
 
-            /*
-         * Optional external communication.
-         */
             static::memberEmailService(
+                false
+            ),
+
+            static::couponService(
                 false
             )
         );
@@ -3864,6 +3864,68 @@ final class Services extends BaseService
             ),
 
             $database
+        );
+    }
+
+    public static function couponService(
+        bool $getShared = true
+    ): CouponService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'couponService'
+            );
+        }
+
+        $database =
+            db_connect();
+
+        return new CouponService(
+            $database,
+
+            new CouponModel(
+                $database
+            ),
+
+            new CouponRedemptionModel(
+                $database
+            ),
+
+            new CouponAuditLogModel(
+                $database
+            ),
+
+            new MembershipPlanModel(
+                $database
+            )
+        );
+    }
+
+    public static function couponManagementService(
+        bool $getShared = true
+    ): CouponManagementService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'couponManagementService'
+            );
+        }
+
+        $database =
+            db_connect();
+
+        return new CouponManagementService(
+            $database,
+
+            new CouponModel(
+                $database
+            ),
+
+            new CouponRedemptionModel(
+                $database
+            ),
+
+            new CouponAuditLogModel(
+                $database
+            )
         );
     }
 }

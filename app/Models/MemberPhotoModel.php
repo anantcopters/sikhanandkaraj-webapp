@@ -56,6 +56,8 @@ final class MemberPhotoModel extends Model
         'status',
         'visibility',
         'is_primary',
+        'focal_x',
+        'focal_y',
         'uploaded_by_type',
         'uploaded_by_id',
         'approved_by',
@@ -234,6 +236,8 @@ final class MemberPhotoModel extends Model
                 'medium_object_key',
                 'visibility',
                 'is_primary',
+                'focal_x',
+                'focal_y',
             ])
             ->whereIn(
                 'member_id',
@@ -331,6 +335,8 @@ final class MemberPhotoModel extends Model
                 'thumbnail_object_key',
                 'is_primary',
                 'status',
+                'focal_x',
+                'focal_y',
                 'created_at',
             ])
             ->where(
@@ -378,6 +384,8 @@ final class MemberPhotoModel extends Model
                 'member_id',
                 'medium_object_key',
                 'is_primary',
+                'focal_x',
+                'focal_y',
                 'status',
             ])
             ->where(
@@ -443,6 +451,8 @@ final class MemberPhotoModel extends Model
                 'is_primary',
                 'status',
                 'visibility',
+                'focal_x',
+                'focal_y',
                 'created_at',
             ])
             ->where(

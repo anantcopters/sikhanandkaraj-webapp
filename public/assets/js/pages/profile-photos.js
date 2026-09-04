@@ -1,6 +1,52 @@
 'use strict';
 
 document.addEventListener('DOMContentLoaded', () => {
+
+    const uploadAdjuster =
+        document.getElementById(
+            'profile-photo-adjuster'
+        );
+
+    const uploadFocalX =
+        document.getElementById(
+            'profile-photo-focal-x'
+        );
+
+    const uploadFocalY =
+        document.getElementById(
+            'profile-photo-focal-y'
+        );
+
+    const positionModal =
+        document.getElementById(
+            'photo-position-modal'
+        );
+
+    const positionForm =
+        document.getElementById(
+            'photo-position-form'
+        );
+
+    const positionImage =
+        positionModal?.querySelector(
+            '[data-existing-photo-adjuster-image]'
+        );
+
+    const positionAdjuster =
+        positionModal?.querySelector(
+            '[data-existing-photo-adjuster]'
+        );
+
+    const positionX =
+        document.getElementById(
+            'photo-position-x'
+        );
+
+    const positionY =
+        document.getElementById(
+            'photo-position-y'
+        );
+
     const uploadForm = document.getElementById(
         'profile-photo-upload-form'
     );
@@ -105,6 +151,182 @@ document.addEventListener('DOMContentLoaded', () => {
                 selectElement
             );
         });
+
+    /**
+ * Make a cover image draggable by updating its CSS object-position.
+ *
+ * @param {HTMLElement|null} container
+ * @param {HTMLImageElement|null} image
+ * @param {HTMLInputElement|null} xInput
+ * @param {HTMLInputElement|null} yInput
+ */
+    function initializePhotoAdjuster(
+        container,
+        image,
+        xInput,
+        yInput
+    ) {
+        if (
+            !(container instanceof HTMLElement)
+            || !(image instanceof HTMLImageElement)
+            || !(xInput instanceof HTMLInputElement)
+            || !(yInput instanceof HTMLInputElement)
+        ) {
+            return;
+        }
+
+        let dragging = false;
+        let startClientX = 0;
+        let startClientY = 0;
+        let startX = 50;
+        let startY = 20;
+
+        const clamp = (value) =>
+            Math.max(
+                0,
+                Math.min(100, value)
+            );
+
+        const applyPosition = () => {
+            const x = clamp(
+                Number.parseInt(
+                    xInput.value || '50',
+                    10
+                )
+            );
+
+            const y = clamp(
+                Number.parseInt(
+                    yInput.value || '20',
+                    10
+                )
+            );
+
+            xInput.value =
+                String(Math.round(x));
+
+            yInput.value =
+                String(Math.round(y));
+
+            image.style.objectPosition =
+                `${xInput.value}% ${yInput.value}%`;
+        };
+
+        container.addEventListener(
+            'pointerdown',
+            (event) => {
+                dragging = true;
+
+                startClientX =
+                    event.clientX;
+
+                startClientY =
+                    event.clientY;
+
+                startX =
+                    Number.parseInt(
+                        xInput.value || '50',
+                        10
+                    );
+
+                startY =
+                    Number.parseInt(
+                        yInput.value || '20',
+                        10
+                    );
+
+                container.setPointerCapture(
+                    event.pointerId
+                );
+            }
+        );
+
+        container.addEventListener(
+            'pointermove',
+            (event) => {
+                if (!dragging) {
+                    return;
+                }
+
+                const rect =
+                    container
+                        .getBoundingClientRect();
+
+                if (
+                    rect.width <= 0
+                    || rect.height <= 0
+                ) {
+                    return;
+                }
+
+                const deltaX =
+                    (
+                        event.clientX
+                        - startClientX
+                    )
+                    / rect.width
+                    * 100;
+
+                const deltaY =
+                    (
+                        event.clientY
+                        - startClientY
+                    )
+                    / rect.height
+                    * 100;
+
+                /*
+                 * Moving the photograph right/down means the visible focal
+                 * point moves left/up inside the source image.
+                 */
+                xInput.value =
+                    String(
+                        Math.round(
+                            clamp(
+                                startX
+                                - deltaX
+                            )
+                        )
+                    );
+
+                yInput.value =
+                    String(
+                        Math.round(
+                            clamp(
+                                startY
+                                - deltaY
+                            )
+                        )
+                    );
+
+                applyPosition();
+            }
+        );
+
+        const stopDragging = () => {
+            dragging = false;
+        };
+
+        container.addEventListener(
+            'pointerup',
+            stopDragging
+        );
+
+        container.addEventListener(
+            'pointercancel',
+            stopDragging
+        );
+
+        container.addEventListener(
+            'lostpointercapture',
+            stopDragging
+        );
+
+        container.photoPositionApply =
+            applyPosition;
+
+        applyPosition();
+    }
 
     /**
      * Display or clear file validation feedback.
@@ -327,6 +549,13 @@ document.addEventListener('DOMContentLoaded', () => {
         );
     }
 
+    initializePhotoAdjuster(
+        uploadAdjuster,
+        preview,
+        uploadFocalX,
+        uploadFocalY
+    );
+
     photoInput?.addEventListener(
         'change',
         async () => {
@@ -370,7 +599,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     selectedFile
                 );
 
+            if (uploadFocalX) {
+                uploadFocalX.value = '50';
+            }
+
+            if (uploadFocalY) {
+                uploadFocalY.value = '20';
+            }
+
             preview.src = currentObjectUrl;
+
+            uploadAdjuster
+                ?.photoPositionApply?.();
 
             previewWrapper.classList.remove(
                 'd-none'
@@ -641,5 +881,105 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener(
         'beforeunload',
         clearPreview
+    );
+
+    document
+        .querySelectorAll(
+            '[data-photo-position-button]'
+        )
+        .forEach((button) => {
+            button.addEventListener(
+                'click',
+                () => {
+                    if (
+                        !positionForm
+                        || !positionImage
+                        || !positionX
+                        || !positionY
+                    ) {
+                        return;
+                    }
+
+                    const photoId =
+                        Number.parseInt(
+                            button.dataset
+                                .photoId
+                            ?? '',
+                            10
+                        );
+
+                    if (
+                        !Number.isInteger(photoId)
+                        || photoId <= 0
+                    ) {
+                        return;
+                    }
+
+                    const positionUrl =
+                        button.dataset.positionUrl
+                        ?? '';
+
+                    if (positionUrl === '') {
+                        return;
+                    }
+
+                    positionForm.action =
+                        positionUrl;
+
+                    positionImage.src =
+                        button.dataset
+                            .photoUrl
+                        ?? '';
+
+                    positionX.value =
+                        button.dataset
+                            .focalX
+                        ?? '50';
+
+                    positionY.value =
+                        button.dataset
+                            .focalY
+                        ?? '20';
+
+                    positionAdjuster
+                        ?.photoPositionApply?.();
+                }
+            );
+        });
+
+    positionForm?.addEventListener(
+        'submit',
+        (event) => {
+            if (!positionForm.checkValidity()) {
+                event.preventDefault();
+
+                positionForm.reportValidity();
+
+                return;
+            }
+
+            const button =
+                event.submitter;
+
+            if (
+                !(button
+                    instanceof HTMLButtonElement)
+            ) {
+                return;
+            }
+
+            showButtonLoading(
+                button,
+                '[data-position-label]',
+                '[data-position-loading]'
+            );
+        }
+    );
+
+    initializePhotoAdjuster(
+        positionAdjuster,
+        positionImage,
+        positionX,
+        positionY
     );
 });

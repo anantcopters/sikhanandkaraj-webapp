@@ -42,6 +42,28 @@ $image = trim(
     )
 );
 
+$photoFocalX = max(
+    0,
+    min(
+        100,
+        (int) (
+            $profile['photoFocalX']
+            ?? 50
+        )
+    )
+);
+
+$photoFocalY = max(
+    0,
+    min(
+        100,
+        (int) (
+            $profile['photoFocalY']
+            ?? 20
+        )
+    )
+);
+
 $profileUrl = trim(
     (string) (
         $profile['profileUrl']
@@ -173,7 +195,8 @@ $preferenceModalId =
                     flex-shrink-0"
                         style="width: 160px;">
 
-                        <div class="member-profile-thumbnail">
+                        <div
+                            class="member-profile-thumbnail mx-auto mb-2">
 
                             <img
                                 src="<?= esc(
@@ -185,7 +208,18 @@ $preferenceModalId =
                                                 . ' profile photo',
                                             'attr'
                                         ) ?>"
-                                loading="lazy">
+                                loading="lazy"
+                                style="--member-photo-x:
+            <?= esc(
+                (string) $photoFocalX,
+                'attr'
+            ) ?>%;
+        --member-photo-y:
+            <?= esc(
+                (string) $photoFocalY,
+                'attr'
+            ) ?>%;">
+
 
                         </div>
 

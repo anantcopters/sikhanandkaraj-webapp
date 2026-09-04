@@ -56,6 +56,8 @@ final class MemberProfilePresentationService
      *         nearestGurudwara:bool
      *     },
      *     image:string,
+     *     photoFocalX:int,
+     *     photoFocalY:int,
      *     profileUrl:string
      * }|null
      */
@@ -63,7 +65,7 @@ final class MemberProfilePresentationService
         int $viewerUserId,
         array $member,
         bool $hasInterestRelationship,
-        ?string $resolvedImage = null
+        ?array $resolvedPhoto = null
     ): ?array {
         $memberId = max(
             0,
@@ -105,23 +107,58 @@ final class MemberProfilePresentationService
          *
          * This distinction lets existing callers remain completely unchanged.
          */
-        $image =
-            $resolvedImage;
+        $photoFocalX = 50;
+        $photoFocalY = 20;
 
-        if ($image === null) {
-            $image =
+        if ($resolvedPhoto === null) {
+            $resolvedPhoto =
                 $this->photoUrlService
-                ->getApprovedPrimaryUrlForViewer(
+                ->getApprovedPrimaryPresentationForViewer(
                     memberId: $memberId,
+
                     viewerUserId: $viewerUserId,
+
                     hasInterestRelationship: $hasInterestRelationship,
+
                     variant: 'thumbnail'
                 );
         }
 
+        $image =
+            trim(
+                (string) (
+                    $resolvedPhoto['url']
+                    ?? ''
+                )
+            );
+
+        $photoFocalX =
+            max(
+                0,
+                min(
+                    100,
+                    (int) (
+                        $resolvedPhoto['focalX']
+                        ?? 50
+                    )
+                )
+            );
+
+        $photoFocalY =
+            max(
+                0,
+                min(
+                    100,
+                    (int) (
+                        $resolvedPhoto['focalY']
+                        ?? 20
+                    )
+                )
+            );
+
         /*
-         * Do not reveal why an actual photograph cannot be shown.
-         */
+        * Do not reveal why an actual photograph cannot be shown.
+        */
         if ($image === '') {
             helper(
                 'member_profile'
@@ -132,6 +169,12 @@ final class MemberProfilePresentationService
                     $member['gender']
                         ?? null
                 );
+
+            /*
+            * Placeholder images use the normal default position.
+            */
+            $photoFocalX = 50;
+            $photoFocalY = 20;
         }
 
         /*
@@ -453,9 +496,12 @@ final class MemberProfilePresentationService
             'image' =>
             $image,
 
-            /*
-             * Numeric member IDs are deliberately not exposed in the URL.
-             */
+            'photoFocalX' =>
+            $photoFocalX,
+
+            'photoFocalY' =>
+            $photoFocalY,
+
             'profileUrl' =>
             route_to(
                 'web.members.view',

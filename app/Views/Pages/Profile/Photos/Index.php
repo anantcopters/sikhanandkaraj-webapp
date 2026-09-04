@@ -256,6 +256,29 @@ $this->section('content');
                                         data-profile-photo-form>
 
                                         <?= csrf_field() ?>
+                                        <input
+                                            type="hidden"
+                                            name="focal_x"
+                                            id="profile-photo-focal-x"
+                                            value="<?= esc(
+                                                        old(
+                                                            'focal_x',
+                                                            '50'
+                                                        ),
+                                                        'attr'
+                                                    ) ?>">
+
+                                        <input
+                                            type="hidden"
+                                            name="focal_y"
+                                            id="profile-photo-focal-y"
+                                            value="<?= esc(
+                                                        old(
+                                                            'focal_y',
+                                                            '20'
+                                                        ),
+                                                        'attr'
+                                                    ) ?>">
 
                                         <div class="mb-3">
                                             <label
@@ -316,14 +339,67 @@ $this->section('content');
 
                                         <div
                                             id="profile-photo-preview-wrapper"
-                                            class="border rounded p-2 mb-3
-                                                text-center d-none">
+                                            class="mb-3 d-none">
 
-                                            <img
-                                                src=""
-                                                alt="Selected photo preview"
-                                                id="profile-photo-preview"
-                                                class="img-fluid rounded">
+                                            <div class="mb-3">
+
+                                                <div
+                                                    class="d-flex
+                align-items-center
+                gap-2 mb-1">
+
+                                                    <i
+                                                        class="ri-drag-move-2-line
+                    text-success fs-18"
+                                                        aria-hidden="true">
+                                                    </i>
+
+                                                    <h3
+                                                        class="fs-14 fw-semibold mb-0">
+
+                                                        Adjust Profile Photo
+
+                                                    </h3>
+
+                                                </div>
+
+                                                <p
+                                                    class="color-pink fs-13 mb-0">
+
+                                                    Position your photo for
+                                                    Profile Cards.
+
+                                                </p>
+
+                                            </div>
+
+                                            <div
+                                                class="profile-photo-adjuster mx-auto"
+                                                id="profile-photo-adjuster"
+                                                data-photo-adjuster>
+
+                                                <img
+                                                    src=""
+                                                    alt="Selected profile photo"
+                                                    id="profile-photo-preview"
+                                                    data-photo-adjuster-image
+                                                    draggable="false">
+
+                                            </div>
+
+                                            <p
+                                                class="form-text color-pink
+            text-center mb-0 mt-2 fs-13">
+
+                                                <i
+                                                    class="ri-drag-move-2-line me-1"
+                                                    aria-hidden="true">
+                                                </i>
+
+                                                Drag photo to reposition
+
+                                            </p>
+
                                         </div>
 
                                         <div class="mb-3">
@@ -561,6 +637,28 @@ $this->section('content');
                                                 )
                                             );
 
+                                            $focalX = max(
+                                                0,
+                                                min(
+                                                    100,
+                                                    (int) (
+                                                        $photo['focal_x']
+                                                        ?? 50
+                                                    )
+                                                )
+                                            );
+
+                                            $focalY = max(
+                                                0,
+                                                min(
+                                                    100,
+                                                    (int) (
+                                                        $photo['focal_y']
+                                                        ?? 20
+                                                    )
+                                                )
+                                            );
+
                                             $statusClass = match ($status) {
                                                 'APPROVED' => 'success',
                                                 'REJECTED' => 'danger',
@@ -587,7 +685,7 @@ $this->section('content');
                                             ?>
 
                                             <div
-                                                class="col-12 col-sm-6 col-xl-4">
+                                                class="col-12 col-sm-6 col-xl-6">
 
                                                 <article
                                                     class="card border border-danger border-opacity-25
@@ -625,8 +723,16 @@ $this->section('content');
                                                                                 'attr'
                                                                             ) ?>"
                                                                     alt="Member photo"
-                                                                    class="w-100 h-100
-                object-fit-cover"
+                                                                    class="w-100 h-100 object-fit-cover"
+                                                                    style="object-position:
+        <?= esc(
+                                                                    (string) $focalX,
+                                                                    'attr'
+                                                                ) ?>%
+        <?= esc(
+                                                                    (string) $focalY,
+                                                                    'attr'
+                                                                ) ?>%;"
                                                                     loading="lazy">
 
                                                             <?php else: ?>
@@ -732,6 +838,48 @@ $this->section('content');
                                                                     </form>
 
                                                                 <?php endif; ?>
+
+                                                                <button
+                                                                    type="button"
+                                                                    class="btn btn-light btn-sm
+        d-inline-flex
+        align-items-center
+        justify-content-center
+        gap-1"
+                                                                    data-bs-toggle="modal"
+                                                                    data-bs-target="#photo-position-modal"
+                                                                    data-photo-position-button
+                                                                    data-position-url="<?= esc(
+                                                                                            url_to(
+                                                                                                'web.profile.photos.position',
+                                                                                                $photoId
+                                                                                            ),
+                                                                                            'attr'
+                                                                                        ) ?>"
+                                                                    data-photo-id="<?= esc(
+                                                                                        (string) $photoId,
+                                                                                        'attr'
+                                                                                    ) ?>"
+                                                                    data-photo-url="<?= esc(
+                                                                                        $thumbnailUrl,
+                                                                                        'attr'
+                                                                                    ) ?>"
+                                                                    data-focal-x="<?= esc(
+                                                                                        (string) $focalX,
+                                                                                        'attr'
+                                                                                    ) ?>"
+                                                                    data-focal-y="<?= esc(
+                                                                                        (string) $focalY,
+                                                                                        'attr'
+                                                                                    ) ?>">
+
+                                                                    <i
+                                                                        class="ri-drag-move-2-line"
+                                                                        aria-hidden="true">
+                                                                    </i>
+
+                                                                    Adjust
+                                                                </button>
 
                                                                 <form
                                                                     method="post"
@@ -968,6 +1116,137 @@ $this->section('content');
 
                                 <?php endif; ?>
 
+                            </div>
+                            <div
+                                class="modal fade"
+                                id="photo-position-modal"
+                                tabindex="-1"
+                                aria-labelledby="photo-position-modal-title"
+                                aria-hidden="true">
+
+                                <div
+                                    class="modal-dialog
+            modal-dialog-centered">
+
+                                    <div class="modal-content">
+
+                                        <div class="modal-header bg-info-subtle py-2">
+                                            <h2
+                                                class="modal-title fs-16 fw-semibold"
+                                                id="photo-position-modal-title">
+
+                                                Adjust Profile Photo
+                                            </h2>
+
+                                            <button
+                                                type="button"
+                                                class="btn-close"
+                                                data-bs-dismiss="modal"
+                                                aria-label="Close">
+                                            </button>
+                                        </div>
+
+                                        <form
+                                            method="post"
+                                            action=""
+                                            id="photo-position-form"
+                                            data-photo-position-form>
+
+                                            <?= csrf_field() ?>
+
+                                            <input
+                                                type="hidden"
+                                                name="focal_x"
+                                                id="photo-position-x"
+                                                value="50">
+
+                                            <input
+                                                type="hidden"
+                                                name="focal_y"
+                                                id="photo-position-y"
+                                                value="20">
+
+                                            <div class="modal-body">
+
+                                                <div
+                                                    class="alert alert-danger d-flex align-items-start gap-2 mb-3"
+                                                    role="alert">
+
+                                                    <i
+                                                        class="ri-information-line fs-20 flex-shrink-0"
+                                                        aria-hidden="true">
+                                                    </i>
+
+                                                    <div>
+                                                        <div class="fw-medium mb-1">
+                                                            Adjust how your photo appears
+                                                        </div>
+
+                                                        <div class="fs-13">
+                                                            Drag the photo to choose its position.
+                                                            Your original uploaded photo will not be changed.
+                                                        </div>
+                                                    </div>
+
+                                                </div>
+
+                                                <div
+                                                    class="profile-photo-adjuster mx-auto"
+                                                    data-existing-photo-adjuster>
+
+                                                    <img
+                                                        src=""
+                                                        alt="Profile photo preview"
+                                                        data-existing-photo-adjuster-image
+                                                        draggable="false">
+                                                </div>
+                                            </div>
+
+                                            <div class="modal-footer">
+
+                                                <button
+                                                    type="button"
+                                                    class="btn btn-light"
+                                                    data-bs-dismiss="modal">
+
+                                                    Cancel
+                                                </button>
+
+                                                <button
+                                                    type="submit"
+                                                    class="btn registration-form__submit
+                            fs-14 fw-medium text-uppercase w-50"
+                                                    data-photo-position-submit>
+
+                                                    <span data-position-label>
+                                                        <i
+                                                            class="ri-save-line me-1"
+                                                            aria-hidden="true">
+                                                        </i>
+
+                                                        Save Position
+                                                    </span>
+
+                                                    <span
+                                                        class="registration-submit__loading
+                                d-none"
+                                                        data-position-loading
+                                                        aria-hidden="true">
+
+                                                        <span
+                                                            class="spinner-border
+                                    spinner-border-sm"
+                                                            role="status"
+                                                            aria-hidden="true">
+                                                        </span>
+
+                                                        Saving...
+                                                    </span>
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

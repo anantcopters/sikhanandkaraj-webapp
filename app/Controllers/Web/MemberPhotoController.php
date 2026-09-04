@@ -129,6 +129,18 @@ final class MemberPhotoController extends BaseController
                     ->getPost(
                         'visibility'
                     ),
+
+                'focal_x' =>
+                $this->request
+                    ->getPost(
+                        'focal_x'
+                    ),
+
+                'focal_y' =>
+                $this->request
+                    ->getPost(
+                        'focal_y'
+                    ),
             ])
         ) {
             return redirect()
@@ -173,6 +185,16 @@ final class MemberPhotoController extends BaseController
                 'make_primary'
             ) === '1';
 
+        $focalX = (int) $this->request
+            ->getPost(
+                'focal_x'
+            );
+
+        $focalY = (int) $this->request
+            ->getPost(
+                'focal_y'
+            );
+
         try {
             /** @var MemberPhotoService $service */
             $service = service(
@@ -183,7 +205,9 @@ final class MemberPhotoController extends BaseController
                 $memberId,
                 $uploadedFile,
                 $visibility,
-                $makePrimary
+                $makePrimary,
+                $focalX,
+                $focalY
             );
 
             $this->refreshMatchScoringSignals(
@@ -244,6 +268,12 @@ final class MemberPhotoController extends BaseController
 
                         'visibility' =>
                         $visibility,
+
+                        'focal_x' =>
+                        $focalX,
+
+                        'focal_y' =>
+                        $focalY,
 
                         'requested_primary' =>
                         $makePrimary,
@@ -459,6 +489,93 @@ final class MemberPhotoController extends BaseController
 
             return $this->errorRedirect(
                 'Photo not deleted',
+                'Please try again.'
+            );
+        }
+    }
+
+    /**
+     * Update the display position for one owned photo.
+     */
+    public function updateFocalPosition(
+        int $photoId
+    ): RedirectResponse {
+        $memberId = $this->authenticatedUserId();
+
+        $input = [
+            'focal_x' =>
+            $this->request
+                ->getPost(
+                    'focal_x'
+                ),
+
+            'focal_y' =>
+            $this->request
+                ->getPost(
+                    'focal_y'
+                ),
+        ];
+
+        $validation = service(
+            'validation'
+        );
+
+        $validation->setRules(
+            MemberPhotoValidation
+                ::focalPositionRules()
+        );
+
+        if (!$validation->run($input)) {
+            return $this->errorRedirect(
+                'Photo position not updated',
+                'Please select a valid photo position.'
+            );
+        }
+
+        try {
+            /** @var MemberPhotoService $service */
+            $service = service(
+                'memberPhotoService'
+            );
+
+            $service->updateFocalPosition(
+                $memberId,
+                $photoId,
+                (int) $input['focal_x'],
+                (int) $input['focal_y']
+            );
+
+            return $this->successRedirect(
+                'Photo position updated',
+                'Your profile photo position has been updated.'
+            );
+        } catch (DomainException) {
+            throw PageNotFoundException
+                ::forPageNotFound();
+        } catch (Throwable $exception) {
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
+                'error',
+                ProfileErrorContext::forMember(
+                    memberId: $memberId,
+
+                    operation: 'member_photo_focal_position_update',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'photo_id' =>
+                        $photoId,
+                    ]
+                )
+            );
+
+            return $this->errorRedirect(
+                'Photo position not updated',
                 'Please try again.'
             );
         }

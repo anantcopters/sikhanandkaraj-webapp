@@ -7,6 +7,8 @@ declare(strict_types=1);
  *
  * @var int      $memberId
  * @var string   $profileImage
+ * @var int      $photoFocalX
+ * @var int      $photoFocalY
  * @var string   $fullName
  * @var string   $profileReference
  * @var string   $accountStatus
@@ -33,6 +35,28 @@ $resolvedMemberId = max(
 
 $resolvedProfileImage = trim(
     (string) ($profileImage ?? '')
+);
+
+$resolvedPhotoFocalX = max(
+    0,
+    min(
+        100,
+        (int) (
+            $photoFocalX
+            ?? 50
+        )
+    )
+);
+
+$resolvedPhotoFocalY = max(
+    0,
+    min(
+        100,
+        (int) (
+            $photoFocalY
+            ?? 20
+        )
+    )
 );
 
 $resolvedFullName = trim(
@@ -131,7 +155,7 @@ $resolvedCanUnblock =
 
                     <div
                         class="member-profile-thumbnail
-                            flex-shrink-0">
+        mx-auto flex-shrink-0 mb-2">
 
                         <img
                             src="<?= esc(
@@ -142,7 +166,19 @@ $resolvedCanUnblock =
                                         $resolvedFullName
                                             . ' profile photo',
                                         'attr'
-                                    ) ?>">
+                                    ) ?>"
+                            loading="lazy"
+                            style="--member-photo-x:
+            <?= esc(
+                (string) $resolvedPhotoFocalX,
+                'attr'
+            ) ?>%;
+            --member-photo-y:
+            <?= esc(
+                (string) $resolvedPhotoFocalY,
+                'attr'
+            ) ?>%;">
+
                     </div>
 
                     <div class="flex-grow-1 min-w-0">
@@ -153,7 +189,7 @@ $resolvedCanUnblock =
 
                             <h2
                                 class="fs-20
-                                    fw-semibold mb-0">
+                                    fw-semibold mb-1">
 
                                 <?= esc(
                                     $resolvedFullName

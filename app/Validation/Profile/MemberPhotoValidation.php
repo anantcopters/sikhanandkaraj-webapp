@@ -29,7 +29,7 @@ final class MemberPhotoValidation
             )
         );
 
-        return [
+        $rules = [
             'photo' => [
                 'label' => 'Photo',
 
@@ -116,6 +116,11 @@ final class MemberPhotoValidation
                 ],
             ],
         ];
+
+        return array_merge(
+            $rules,
+            self::focalPositionRules()
+        );
     }
 
     /**
@@ -126,6 +131,56 @@ final class MemberPhotoValidation
         return [
             'visibility' =>
             'required|in_list[PUBLIC,INTERESTED_MEMBERS]',
+        ];
+    }
+
+    /**
+     * Validate member-selected photo focal position.
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    public static function focalPositionRules(): array
+    {
+        return [
+            'focal_x' => [
+                'label' => 'Horizontal photo position',
+                'rules' => [
+                    'required',
+                    'integer',
+                    'greater_than_equal_to[0]',
+                    'less_than_equal_to[100]',
+                ],
+                'errors' => [
+                    'required' =>
+                    'Please adjust the photo position.',
+                    'integer' =>
+                    'The photo position is invalid.',
+                    'greater_than_equal_to' =>
+                    'The photo position is invalid.',
+                    'less_than_equal_to' =>
+                    'The photo position is invalid.',
+                ],
+            ],
+
+            'focal_y' => [
+                'label' => 'Vertical photo position',
+                'rules' => [
+                    'required',
+                    'integer',
+                    'greater_than_equal_to[0]',
+                    'less_than_equal_to[100]',
+                ],
+                'errors' => [
+                    'required' =>
+                    'Please adjust the photo position.',
+                    'integer' =>
+                    'The photo position is invalid.',
+                    'greater_than_equal_to' =>
+                    'The photo position is invalid.',
+                    'less_than_equal_to' =>
+                    'The photo position is invalid.',
+                ],
+            ],
         ];
     }
 }

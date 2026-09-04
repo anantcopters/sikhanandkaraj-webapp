@@ -122,6 +122,14 @@ final class DashboardController extends BaseController
                     'profileImage' =>
                     $profileSummary['profileImage'],
 
+                    'photoFocalX' =>
+                    $profileSummary['photoFocalX']
+                        ?? 50,
+
+                    'photoFocalY' =>
+                    $profileSummary['photoFocalY']
+                        ?? 20,
+
                     'profileCompletion' =>
                     $profileSummary['profileCompletion'],
 

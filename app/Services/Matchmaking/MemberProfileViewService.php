@@ -378,10 +378,10 @@ final class MemberProfileViewService
         * - valid visibility;
         * - PUBLIC or eligible INTERESTED_MEMBERS.
         */
-        $authorizedProfileImage =
+        $authorizedPrimaryPhoto =
             $this
             ->photoUrlService
-            ->getApprovedPrimaryUrlForViewer(
+            ->getApprovedPrimaryPresentationForViewer(
                 memberId: $targetUserId,
 
                 viewerUserId: $viewerUserId,
@@ -391,8 +391,39 @@ final class MemberProfileViewService
                 variant: 'medium'
             );
 
+        $authorizedProfileImage = trim(
+            (string) (
+                $authorizedPrimaryPhoto['url']
+                ?? ''
+            )
+        );
+
         $summary['profileImage'] =
             $authorizedProfileImage;
+
+        $summary['photoFocalX'] =
+            max(
+                0,
+                min(
+                    100,
+                    (int) (
+                        $authorizedPrimaryPhoto['focalX']
+                        ?? 50
+                    )
+                )
+            );
+
+        $summary['photoFocalY'] =
+            max(
+                0,
+                min(
+                    100,
+                    (int) (
+                        $authorizedPrimaryPhoto['focalY']
+                        ?? 20
+                    )
+                )
+            );
 
         /*
         * getForUser(..., false) produced a summary without an image.

@@ -646,6 +646,16 @@ final class MemberController extends BaseController
                     )
             ),
 
+            'coupon_code' =>
+            mb_strtoupper(
+                trim(
+                    (string) $this->request
+                        ->getPost(
+                            'coupon_code'
+                        )
+                )
+            ),
+
             'payment_method' =>
             mb_strtoupper(
                 trim(
@@ -777,7 +787,11 @@ final class MemberController extends BaseController
 
                     paymentNote: $input['payment_note'],
 
-                    adminUserId: $this->adminUserId()
+                    adminUserId: (int) session(
+                        'admin_user_id'
+                    ),
+
+                    couponCode: $input['coupon_code']
                 );
 
             return redirect()
@@ -814,7 +828,7 @@ final class MemberController extends BaseController
                 ->to($returnUrl)
                 ->withInput()
                 ->with(
-                    'formAlert',
+                    'offlinePaymentAlert',
                     [
                         'type' =>
                         'danger',
@@ -854,7 +868,7 @@ final class MemberController extends BaseController
                 ->to($returnUrl)
                 ->withInput()
                 ->with(
-                    'formAlert',
+                    'offlinePaymentAlert',
                     [
                         'type' =>
                         'danger',
@@ -1128,6 +1142,362 @@ final class MemberController extends BaseController
     }
 
     /**
+     * Preview coupon eligibility and calculated pricing for an offline payment.
+     *
+     * This is presentation-only. No redemption or membership state is changed.
+     * recordOfflinePayment() performs authoritative validation again.
+     */
+    public function evaluateCoupon(
+        int $userId
+    ): ResponseInterface {
+        $planCode =
+            mb_strtoupper(
+                trim(
+                    (string) $this->request
+                        ->getPost(
+                            'plan_code'
+                        )
+                )
+            );
+
+        $couponCode =
+            mb_strtoupper(
+                trim(
+                    (string) $this->request
+                        ->getPost(
+                            'coupon_code'
+                        )
+                )
+            );
+
+        $paymentDate =
+            trim(
+                (string) $this->request
+                    ->getPost(
+                        'payment_date'
+                    )
+            );
+
+        if (
+            $userId <= 0
+            || $planCode === ''
+            || $couponCode === ''
+            || $paymentDate === ''
+        ) {
+            return $this->response
+                ->setStatusCode(422)
+                ->setJSON([
+                    'successful' =>
+                    false,
+
+                    'message' =>
+                    'Please select a plan, payment date and enter a coupon code.',
+
+                    'csrf' =>
+                    $this->csrfPayload(),
+                ]);
+        }
+
+        try {
+            /*
+         * Resolve the plan through the same membership-plan source used by
+         * the existing offline-payment flow. Do not accept plan price from
+         * the browser.
+         */
+            $plans =
+                service(
+                    'membershipPlanPresentationService'
+                )->memberPlans(
+                    $userId
+                );
+
+            $availablePlans =
+                isset($plans['plans'])
+                && is_array($plans['plans'])
+                ? $plans['plans']
+                : [];
+
+            $selectedPlan = null;
+
+            foreach (
+                $availablePlans
+                as $plan
+            ) {
+                if (!is_array($plan)) {
+                    continue;
+                }
+
+                if (
+                    mb_strtoupper(
+                        trim(
+                            (string) (
+                                $plan['code']
+                                ?? ''
+                            )
+                        )
+                    )
+                    !== $planCode
+                ) {
+                    continue;
+                }
+
+                $selectedPlan = $plan;
+
+                break;
+            }
+
+            if (!is_array($selectedPlan)) {
+                throw new DomainException(
+                    'The selected membership plan is not available.'
+                );
+            }
+
+            $membershipPlanId =
+                (int) (
+                    $selectedPlan['id']
+                    ?? 0
+                );
+
+            if ($membershipPlanId <= 0) {
+                throw new DomainException(
+                    'The selected membership plan is invalid.'
+                );
+            }
+
+            /*
+            * CouponService is the authoritative eligibility/pricing engine.
+            *
+            * Pass the selected plan code rather than a browser-supplied price or
+            * separately resolved plan ID. CouponService resolves the active plan
+            * and its authoritative price itself.
+            */
+
+            $timezone =
+                new \DateTimeZone(
+                    'Asia/Kolkata'
+                );
+
+            $paymentDateObject =
+                \DateTimeImmutable::createFromFormat(
+                    '!Y-m-d',
+                    $paymentDate,
+                    $timezone
+                );
+
+            $dateErrors =
+                \DateTimeImmutable::getLastErrors();
+
+            if (
+                !(
+                    $paymentDateObject
+                    instanceof \DateTimeImmutable
+                )
+                || (
+                    is_array($dateErrors)
+                    && (
+                        ($dateErrors['warning_count'] ?? 0) > 0
+                        || ($dateErrors['error_count'] ?? 0) > 0
+                    )
+                )
+            ) {
+                return $this->response
+                    ->setStatusCode(422)
+                    ->setJSON([
+                        'successful' =>
+                        false,
+
+                        'message' =>
+                        'Please select a valid payment date.',
+
+                        'csrf' =>
+                        $this->csrfPayload(),
+                    ]);
+            }
+
+            $today =
+                new \DateTimeImmutable(
+                    'today',
+                    $timezone
+                );
+
+            if ($paymentDateObject > $today) {
+                return $this->response
+                    ->setStatusCode(422)
+                    ->setJSON([
+                        'successful' =>
+                        false,
+
+                        'message' =>
+                        'Payment date cannot be in the future.',
+
+                        'csrf' =>
+                        $this->csrfPayload(),
+                    ]);
+            }
+
+            $evaluation =
+                service(
+                    'couponService'
+                )->evaluate(
+                    userId: $userId,
+
+                    planCode: $planCode,
+
+                    couponCode: $couponCode,
+
+                    effectiveAt: $paymentDateObject,
+
+                    effectiveDateOnly: true
+                );
+
+            $planPricePaise =
+                (int) (
+                    $evaluation['planPricePaise']
+                    ?? 0
+                );
+
+            $discountPaise =
+                (int) (
+                    $evaluation['discountAmountPaise']
+                    ?? 0
+                );
+
+            $finalPaise =
+                (int) (
+                    $evaluation['finalPayablePaise']
+                    ?? 0
+                );
+
+            return $this->response
+                ->setJSON([
+                    'successful' =>
+                    true,
+
+                    'message' =>
+                    'Coupon applied successfully.',
+
+                    'pricing' => [
+                        'planPrice' =>
+                        number_format(
+                            $planPricePaise / 100,
+                            2,
+                            '.',
+                            ''
+                        ),
+
+                        'planPriceDisplay' =>
+                        '₹'
+                            . number_format(
+                                $planPricePaise / 100,
+                                2
+                            ),
+
+                        'discount' =>
+                        number_format(
+                            $discountPaise / 100,
+                            2,
+                            '.',
+                            ''
+                        ),
+
+                        'discountDisplay' =>
+                        '-₹'
+                            . number_format(
+                                $discountPaise / 100,
+                                2
+                            ),
+
+                        'finalPayable' =>
+                        number_format(
+                            $finalPaise / 100,
+                            2,
+                            '.',
+                            ''
+                        ),
+
+                        'finalPayableDisplay' =>
+                        '₹'
+                            . number_format(
+                                $finalPaise / 100,
+                                2
+                            ),
+                    ],
+
+                    'csrf' =>
+                    $this->csrfPayload(),
+                ]);
+        } catch (DomainException $exception) {
+            return $this->response
+                ->setStatusCode(422)
+                ->setJSON([
+                    'successful' =>
+                    false,
+
+                    'message' =>
+                    $exception->getMessage(),
+
+                    'csrf' =>
+                    $this->csrfPayload(),
+                ]);
+        } catch (Throwable $exception) {
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
+                'error',
+                AdminErrorContext::forOperation(
+                    operation: 'admin_coupon_evaluate',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'member_id' =>
+                        $userId,
+
+                        'plan_code' =>
+                        $planCode,
+                    ]
+                )
+            );
+
+            return $this->response
+                ->setStatusCode(500)
+                ->setJSON([
+                    'successful' =>
+                    false,
+
+                    'message' =>
+                    'Coupon could not be evaluated.',
+
+                    'csrf' =>
+                    $this->csrfPayload(),
+                ]);
+        }
+    }
+
+    /**
+     * Return the current CSRF token after a protected AJAX request.
+     *
+     * CodeIgniter regenerates the token after successful CSRF validation,
+     * therefore the browser must replace the token stored in the parent
+     * offline-payment form before another AJAX/form POST.
+     *
+     * @return array{name:string, hash:string}
+     */
+    private function csrfPayload(): array
+    {
+        return [
+            'name' =>
+            csrf_token(),
+
+            'hash' =>
+            csrf_hash(),
+        ];
+    }
+
+    /**
      * Validate and perform a block/unblock action.
      */
     private function changeStatus(
@@ -1180,7 +1550,9 @@ final class MemberController extends BaseController
                     $userId,
                     $validation
                         ->getValidated()['reason'],
-                    $this->adminUserId()
+                    (int) session(
+                        'admin_user_id'
+                    ),
                 );
 
                 $title = 'Member blocked';
@@ -1191,7 +1563,9 @@ final class MemberController extends BaseController
                     $userId,
                     $validation
                         ->getValidated()['reason'],
-                    $this->adminUserId()
+                    (int) session(
+                        'admin_user_id'
+                    ),
                 );
 
                 $title = 'Member unblocked';
@@ -1306,22 +1680,6 @@ final class MemberController extends BaseController
         return route_to(
             'admin.members.index'
         );
-    }
-
-    private function adminUserId(): int
-    {
-        $adminUserId = session(
-            'admin_user_id'
-        );
-
-        if (!is_numeric($adminUserId)) {
-            session()->destroy();
-
-            throw PageNotFoundException
-                ::forPageNotFound();
-        }
-
-        return (int) $adminUserId;
     }
 
     private function photoNotFoundResponse(): ResponseInterface

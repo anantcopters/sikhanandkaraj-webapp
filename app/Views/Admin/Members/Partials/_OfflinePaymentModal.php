@@ -8,8 +8,17 @@ declare(strict_types=1);
  * @var string                $profileReference
  * @var array<string, mixed>  $membershipPlans
  * @var array<string, string> $validationErrors
- * @var bool                  $openModal
+ * @var bool                  $openModal * 
  */
+/**
+ * @var array<string, string>|null $paymentAlert
+ */
+
+$resolvedPaymentAlert =
+    isset($paymentAlert)
+    && is_array($paymentAlert)
+    ? $paymentAlert
+    : null;
 
 $plans = isset(
     $membershipPlans['plans']
@@ -123,18 +132,59 @@ $oldAmount = trim(
                         ) ?>"
                 data-validate
                 data-submit-loader
+                data-csrf-name="<?= esc(
+                                    csrf_token(),
+                                    'attr'
+                                ) ?>"
                 novalidate>
 
                 <?= csrf_field() ?>
 
                 <div class="modal-body">
 
+                    <?php if (
+                        is_array(
+                            $resolvedPaymentAlert
+                        )
+                    ): ?>
+
+                        <div
+                            class="
+                alert
+                alert-danger
+                fs-13
+            "
+                            role="alert">
+
+                            <div class="fw-semibold mb-1">
+
+                                <i
+                                    class="ri-error-warning-line me-1"
+                                    aria-hidden="true">
+                                </i>
+
+                                <?= esc(
+                                    $resolvedPaymentAlert['title']
+                                        ?? 'Payment not recorded'
+                                ) ?>
+
+                            </div>
+
+                            <?= esc(
+                                $resolvedPaymentAlert['message']
+                                    ?? 'The offline payment could not be recorded.'
+                            ) ?>
+
+                        </div>
+
+                    <?php endif; ?>
+
                     <div
                         class="
-                            alert
-                            alert-warning
-                            fs-13
-                        ">
+            alert
+            alert-warning
+            fs-13
+        ">
 
                         <i
                             class="ri-information-line me-1"
@@ -354,6 +404,139 @@ $oldAmount = trim(
 
                         </div>
 
+                        <div class="col-12">
+
+                            <label
+                                for="offlinePaymentCoupon"
+                                class="form-label">
+
+                                Coupon Code
+
+                                <span
+                                    class="
+                text-muted
+                fw-normal
+            ">
+                                    (Optional)
+                                </span>
+
+                            </label>
+
+                            <div class="input-group">
+
+                                <input
+                                    type="text"
+                                    id="offlinePaymentCoupon"
+                                    name="coupon_code"
+                                    class="form-control"
+                                    maxlength="40"
+                                    value="<?= esc(
+                                                old(
+                                                    'coupon_code'
+                                                ),
+                                                'attr'
+                                            ) ?>"
+                                    autocomplete="off"
+                                    data-coupon-code>
+
+                                <button
+                                    type="button"
+                                    class="btn btn-outline-primary"
+                                    data-apply-coupon
+                                    data-coupon-url="<?= esc(
+                                                            route_to(
+                                                                'admin.members.coupon-evaluate',
+                                                                $memberId
+                                                            ),
+                                                            'attr'
+                                                        ) ?>">
+
+                                    Apply Coupon
+
+                                </button>
+
+                            </div>
+
+                            <div
+                                class="
+            invalid-feedback
+            d-block
+            d-none
+        "
+                                data-coupon-error>
+                            </div>
+
+                        </div>
+
+                        <div
+                            class="
+        col-12
+        d-none
+    "
+                            data-coupon-breakdown>
+
+                            <div
+                                class="
+            alert
+            alert-success
+            mb-0
+        ">
+
+                                <div
+                                    class="
+                d-flex
+                justify-content-between
+                mb-1
+            ">
+
+                                    <span>Plan Price</span>
+
+                                    <strong
+                                        data-coupon-plan-price>
+                                    </strong>
+
+                                </div>
+
+                                <div
+                                    class="
+                d-flex
+                justify-content-between
+                mb-1
+            ">
+
+                                    <span>
+                                        Coupon Discount
+                                    </span>
+
+                                    <strong
+                                        class="text-success"
+                                        data-coupon-discount>
+                                    </strong>
+
+                                </div>
+
+                                <hr class="my-2">
+
+                                <div
+                                    class="
+                d-flex
+                justify-content-between
+            ">
+
+                                    <span class="fw-semibold">
+                                        Final Payable
+                                    </span>
+
+                                    <strong
+                                        data-coupon-final>
+                                    </strong>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
                         <div class="col-12 col-md-6">
 
                             <label
@@ -471,6 +654,28 @@ $oldAmount = trim(
                                     data-error-required="Please enter the amount received."
                                     required>
 
+                                <div
+                                    class="
+        alert
+        alert-warning
+        fs-13
+        mt-2
+        mb-0
+        d-none
+    "
+                                    data-payment-amount-warning>
+
+                                    <i
+                                        class="ri-alert-line me-1"
+                                        aria-hidden="true">
+                                    </i>
+
+                                    Amount received differs from the
+                                    calculated final payable amount.
+                                    Please verify before saving.
+
+                                </div>
+
                             </div>
 
                             <div
@@ -482,7 +687,7 @@ $oldAmount = trim(
                                     data-plan-amount-display>
                                 </strong>
 
-                                <span class="text-muted">
+                                <span class="color-pink">
                                     · Amount received can be
                                     adjusted if required.
                                 </span>

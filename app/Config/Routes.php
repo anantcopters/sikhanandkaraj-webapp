@@ -1283,6 +1283,16 @@ $routes->group('', [
         ]
     );
 
+    $routes->post(
+        'profile/photos/(:num)/position',
+        'MemberPhotoController::updateFocalPosition/$1',
+        [
+            'as' =>
+            'web.profile.photos.position',
+            'filter' => 'webAuth',
+        ]
+    );
+
     $routes->get(
         'profile/video-introduction/record',
         'MemberVideoIntroductionController::record',
@@ -1744,6 +1754,22 @@ $routes->group('admin', [
             static function (
                 RouteCollection $routes
             ): void {
+
+                /*
+                * Preview coupon eligibility and pricing for the selected member/plan.
+                *
+                * This endpoint does NOT redeem the coupon.
+                * Final validation happens again when the payment is saved.
+                */
+                $routes->post(
+                    '(:num)/coupon/evaluate',
+                    'MemberController::evaluateCoupon/$1',
+                    [
+                        'as' =>
+                        'admin.members.coupon-evaluate',
+                    ]
+                );
+
                 $routes->post(
                     '(:num)/offline-payment',
                     'MemberController::recordOfflinePayment/$1',
@@ -1967,6 +1993,94 @@ $routes->group('admin', [
                     [
                         'as' =>
                         'admin.communication-operations.index',
+                    ]
+                );
+            }
+        );
+
+        /*
+ * --------------------------------------------------------------------------
+ * Coupon Management
+ * --------------------------------------------------------------------------
+ *
+ * Coupon configuration changes membership pricing and is therefore
+ * restricted to SUPER_ADMIN.
+ *
+ * The outer /admin route group already declares:
+ *
+ *     namespace => App\Controllers\Admin
+ *
+ * Do not prefix CouponController with "Admin\" again.
+ */
+        $routes->group(
+            'coupons',
+            [
+                'filter' =>
+                'superAdmin',
+            ],
+            static function (
+                RouteCollection $routes
+            ): void {
+                $routes->get(
+                    '',
+                    'CouponController::index',
+                    [
+                        'as' =>
+                        'admin.coupons.index',
+                    ]
+                );
+
+                $routes->get(
+                    'create',
+                    'CouponController::create',
+                    [
+                        'as' =>
+                        'admin.coupons.create',
+                    ]
+                );
+
+                $routes->post(
+                    '',
+                    'CouponController::store',
+                    [
+                        'as' =>
+                        'admin.coupons.store',
+                    ]
+                );
+
+                $routes->get(
+                    '(:num)/edit',
+                    'CouponController::edit/$1',
+                    [
+                        'as' =>
+                        'admin.coupons.edit',
+                    ]
+                );
+
+                $routes->post(
+                    '(:num)',
+                    'CouponController::update/$1',
+                    [
+                        'as' =>
+                        'admin.coupons.update',
+                    ]
+                );
+
+                $routes->post(
+                    '(:num)/status',
+                    'CouponController::status/$1',
+                    [
+                        'as' =>
+                        'admin.coupons.status',
+                    ]
+                );
+
+                $routes->get(
+                    '(:num)/report',
+                    'CouponController::report/$1',
+                    [
+                        'as' =>
+                        'admin.coupons.report',
                     ]
                 );
             }

@@ -11,10 +11,15 @@ document.addEventListener('DOMContentLoaded', () => {
         '[data-about-me-count]'
     );
 
+    const errorElement = document.getElementById(
+        'aboutMeError'
+    );
+
     if (
         !(form instanceof HTMLFormElement)
         || !(textarea instanceof HTMLTextAreaElement)
         || !(counter instanceof HTMLElement)
+        || !(errorElement instanceof HTMLElement)
     ) {
         return;
     }
@@ -39,6 +44,73 @@ document.addEventListener('DOMContentLoaded', () => {
         );
     };
 
+    const showError = (message) => {
+        textarea.classList.add(
+            'is-invalid'
+        );
+
+        textarea.setAttribute(
+            'aria-invalid',
+            'true'
+        );
+
+        errorElement.textContent =
+            message;
+
+        errorElement.classList.add(
+            'd-block'
+        );
+    };
+
+    const clearError = () => {
+        textarea.classList.remove(
+            'is-invalid'
+        );
+
+        textarea.removeAttribute(
+            'aria-invalid'
+        );
+
+        errorElement.textContent = '';
+
+        errorElement.classList.remove(
+            'd-block'
+        );
+    };
+
+    const validateAboutMe = () => {
+        const count =
+            words(textarea.value).length;
+
+        if (count > maxWords) {
+            showError(
+                textarea.dataset.errorMaxWords
+                || `About Me cannot exceed ${maxWords} words.`
+            );
+
+            return false;
+        }
+
+        if (containsLink(textarea.value)) {
+            showError(
+                textarea.dataset.errorLink
+                || 'Links and website addresses are not allowed.'
+            );
+
+            return false;
+        }
+
+        /*
+         * Required-field validation remains with the
+         * application's generic FormValidator.
+         */
+        if (textarea.value.trim() !== '') {
+            clearError();
+        }
+
+        return true;
+    };
+
     const updateCount = () => {
         const count =
             words(textarea.value).length;
@@ -59,7 +131,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     textarea.addEventListener(
         'input',
-        updateCount
+        () => {
+            updateCount();
+
+            /*
+             * Revalidate immediately once this field has
+             * entered an invalid state.
+             */
+            if (
+                textarea.classList.contains(
+                    'is-invalid'
+                )
+            ) {
+                validateAboutMe();
+            }
+        }
     );
 
     updateCount();
@@ -67,27 +153,8 @@ document.addEventListener('DOMContentLoaded', () => {
     form.addEventListener(
         'submit',
         (event) => {
-            const count =
-                words(textarea.value).length;
-
-            if (count > maxWords) {
+            if (!validateAboutMe()) {
                 event.preventDefault();
-
-                textarea.classList.add(
-                    'is-invalid'
-                );
-
-                textarea.focus();
-
-                return;
-            }
-
-            if (containsLink(textarea.value)) {
-                event.preventDefault();
-
-                textarea.classList.add(
-                    'is-invalid'
-                );
 
                 textarea.focus();
 

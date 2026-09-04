@@ -144,13 +144,45 @@ final class MemberProfileSummaryService
      */
         $profileImage = '';
 
+        $photoFocalX = 50;
+        $photoFocalY = 20;
+
         if ($resolveProfileImage) {
-            $profileImage = $this
+            $primaryPhoto = $this
                 ->memberPhotoUrlService
-                ->getApprovedPrimaryUrl(
+                ->getApprovedPrimaryPresentation(
                     $userId,
                     'medium'
                 );
+
+            $profileImage = trim(
+                (string) (
+                    $primaryPhoto['url']
+                    ?? ''
+                )
+            );
+
+            $photoFocalX = max(
+                0,
+                min(
+                    100,
+                    (int) (
+                        $primaryPhoto['focalX']
+                        ?? 50
+                    )
+                )
+            );
+
+            $photoFocalY = max(
+                0,
+                min(
+                    100,
+                    (int) (
+                        $primaryPhoto['focalY']
+                        ?? 20
+                    )
+                )
+            );
         }
 
         $profileSections = $this
@@ -217,6 +249,12 @@ final class MemberProfileSummaryService
 
             'profileImage' =>
             $profileImage,
+
+            'photoFocalX' =>
+            $photoFocalX,
+
+            'photoFocalY' =>
+            $photoFocalY,
 
             'profileCompletion' =>
             $profileCompletion,

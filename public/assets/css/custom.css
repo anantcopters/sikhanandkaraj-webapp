@@ -2045,10 +2045,58 @@ form[aria-busy="true"] {
     font-weight: 600;
 }
 
+/* ==========================================================================
+   Member photo focal-position adjustment
+   ========================================================================== */
+
 /**
- * Actual member photograph.
+ * Interactive square preview used when a member selects the visible
+ * position of a profile photograph.
  *
- * Crop the photograph into the fixed square without stretching it.
+ * The underlying S3 image is never modified. Only object-position metadata
+ * is saved.
+ */
+.profile-photo-adjuster {
+    width: min(100%, 320px);
+    aspect-ratio: 1 / 1;
+
+    position: relative;
+
+    overflow: hidden;
+
+    border-radius: 18px;
+
+    background-color: var(--sak-page-background);
+
+    cursor: grab;
+
+    touch-action: none;
+
+    user-select: none;
+}
+
+.profile-photo-adjuster:active {
+    cursor: grabbing;
+}
+
+.profile-photo-adjuster img {
+    display: block;
+
+    width: 100%;
+    height: 100%;
+
+    object-fit: cover;
+
+    pointer-events: none;
+
+    user-select: none;
+}
+
+/**
+ * Shared member thumbnail.
+ *
+ * The saved focal point is supplied by the presentation layer using
+ * --member-photo-x and --member-photo-y.
  */
 .member-profile-thumbnail img {
     display: block;
@@ -2057,15 +2105,9 @@ form[aria-busy="true"] {
     height: 100%;
 
     object-fit: cover;
-    object-position: center;
-}
 
-/**
- * Fallback shown when the member does not have an available photograph.
- */
-.member-profile-thumbnail--fallback {
-    background-color: var(--vz-primary-bg-subtle);
-    color: var(--sak-primary);
+    object-position:
+        var(--member-photo-x, 50%) var(--member-photo-y, 20%);
 }
 
 /* ==========================================================================
@@ -2159,6 +2201,10 @@ form[aria-busy="true"] {
     border-radius: 0.5rem;
 }
 
+.no-height {
+    height: auto !important;
+}
+
 /*
  * Gallery thumbnails remain square and independent from the
  * medium profile-image presentation.
@@ -2167,7 +2213,7 @@ form[aria-busy="true"] {
     display: block;
     width: 100%;
     aspect-ratio: 1 / 1;
-    object-fit: cover;
+    object-fit: contain;
     object-position: center;
 }
 

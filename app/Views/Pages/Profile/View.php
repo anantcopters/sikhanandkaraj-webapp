@@ -423,7 +423,9 @@ $profileNoticeMessage = trim(
  * @var list<array{
  *     id:int,
  *     thumbnailUrl:string,
- *     isPrimary:bool
+ *     isPrimary:bool,
+ *     focalX:int,
+ *     focalY:int
  * }> $approvedPhotos
  */
 
@@ -558,6 +560,28 @@ if ($profileImage === '') {
                 ?? null
         );
 }
+
+$resolvedPhotoFocalX = max(
+    0,
+    min(
+        100,
+        (int) (
+            $photoFocalX
+            ?? 50
+        )
+    )
+);
+
+$resolvedPhotoFocalY = max(
+    0,
+    min(
+        100,
+        (int) (
+            $photoFocalY
+            ?? 20
+        )
+    )
+);
 
 $fullName = trim(
     (string) ($user['full_name'] ?? '')
@@ -1258,8 +1282,7 @@ $this->section('content');
 
 
                 <div
-                    class="row g-4
-                align-items-center">
+                    class="row g-4">
 
                     <!-- =====================================================
                  Profile image
@@ -1287,7 +1310,16 @@ $this->section('content');
                                             'attr'
                                         ) ?>"
                                 class="member-photo-medium"
-                                loading="eager">
+                                loading="eager"
+                                style="object-position:
+        <?= esc(
+            (string) $resolvedPhotoFocalX,
+            'attr'
+        ) ?>%
+        <?= esc(
+            (string) $resolvedPhotoFocalY,
+            'attr'
+        ) ?>%;">
 
                         </div>
                     </div>
@@ -1899,7 +1931,6 @@ $this->section('content');
                                 class="row
         g-3
         mt-3
-        pt-3
         border-top">
 
                                 <!-- Profile ID -->
@@ -2536,9 +2567,10 @@ $this->section('content');
                                         <button
                                             type="button"
                                             class="d-block w-100 p-0
-                                border rounded-3
-                                overflow-hidden bg-light
-                                position-relative"
+    border-0 rounded-3
+    overflow-hidden
+    position-relative
+    bg-transparent"
                                             data-profile-gallery-trigger
                                             data-slide-index="<?= esc(
                                                                     (string) $index,
@@ -2552,27 +2584,24 @@ $this->section('content');
                                                             'attr'
                                                         ) ?>">
 
-                                            <span
-                                                class="ratio ratio-16x9 d-block">
-
-                                                <img
-                                                    src="<?= esc(
-                                                                $photo['thumbnailUrl'],
-                                                                'attr'
-                                                            ) ?>"
-                                                    alt="<?= esc(
-                                                                $fullName
-                                                                    . ' profile photo '
-                                                                    . ($index + 1),
-                                                                'attr'
-                                                            ) ?>"
-                                                    class="profile-preview-gallery-photo"
-                                                    loading="lazy">
-
-                                            </span>
+                                            <img
+                                                src="<?= esc(
+                                                            $photo['thumbnailUrl'],
+                                                            'attr'
+                                                        ) ?>"
+                                                alt="<?= esc(
+                                                            $fullName
+                                                                . ' profile photo '
+                                                                . ($index + 1),
+                                                            'attr'
+                                                        ) ?>"
+                                                class="member-photo-medium no-height"
+                                                loading="lazy">
 
                                             <?php if (
-                                                $photo['isPrimary'] === true
+                                                !$isOtherMemberProfileView
+                                                && ($photo['isPrimary'] ?? false)
+                                                === true
                                             ): ?>
 
                                                 <span
