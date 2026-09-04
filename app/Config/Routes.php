@@ -1972,6 +1972,80 @@ $routes->group('admin', [
             }
         );
 
+        $routes->group(
+            'coupons',
+            [
+                'filter' =>
+                'superAdmin',
+            ],
+            static function (
+                $routes
+            ): void {
+                $routes->get(
+                    '/',
+                    'Admin\CouponController::index',
+                    [
+                        'as' =>
+                        'admin.coupons.index',
+                    ]
+                );
+
+                $routes->get(
+                    'create',
+                    'Admin\CouponController::create',
+                    [
+                        'as' =>
+                        'admin.coupons.create',
+                    ]
+                );
+
+                $routes->post(
+                    '/',
+                    'Admin\CouponController::store',
+                    [
+                        'as' =>
+                        'admin.coupons.store',
+                    ]
+                );
+
+                $routes->get(
+                    '(:num)/edit',
+                    'Admin\CouponController::edit/$1',
+                    [
+                        'as' =>
+                        'admin.coupons.edit',
+                    ]
+                );
+
+                $routes->post(
+                    '(:num)',
+                    'Admin\CouponController::update/$1',
+                    [
+                        'as' =>
+                        'admin.coupons.update',
+                    ]
+                );
+
+                $routes->post(
+                    '(:num)/status',
+                    'Admin\CouponController::status/$1',
+                    [
+                        'as' =>
+                        'admin.coupons.status',
+                    ]
+                );
+
+                $routes->get(
+                    '(:num)/report',
+                    'Admin\CouponController::report/$1',
+                    [
+                        'as' =>
+                        'admin.coupons.report',
+                    ]
+                );
+            }
+        );
+
         /*
         * --------------------------------------------------------------------------
         * SAK Volunteer management

@@ -28,54 +28,16 @@ final class CouponController extends BaseController
                 )->coupons(),
 
                 'formAlert' =>
-                session(
-                    'formAlert'
-                ),
+                session('formAlert'),
             ]
         );
     }
 
     public function create(): string
     {
-        return view(
-            'Admin/Coupons/Form',
-            [
-                'pageTitle' =>
-                'Create Coupon',
-
-                'coupon' =>
-                null,
-
-                'validationErrors' =>
-                session(
-                    'validationErrors'
-                ) ?? [],
-
-                'formAlert' =>
-                session(
-                    'formAlert'
-                ),
-
-                'membershipPlans' =>
-                model(
-                    \App\Models\MembershipPlanModel::class
-                )
-                    ->where(
-                        'is_active',
-                        1
-                    )
-                    ->orderBy(
-                        'sort_order',
-                        'ASC'
-                    )
-                    ->findAll(),
-
-                'pageScripts' => [
-                    'assets/js/pages/admin-coupons.js',
-                    'assets/js/components/form-validator.js',
-                    'assets/js/components/submit-loader.js',
-                ],
-            ]
+        return $this->formView(
+            null,
+            'Create Coupon'
         );
     }
 
@@ -85,9 +47,7 @@ final class CouponController extends BaseController
             $this->couponInput();
 
         $validation =
-            service(
-                'validation'
-            );
+            service('validation');
 
         $validation->setRules(
             CouponValidation::rules()
@@ -125,7 +85,193 @@ final class CouponController extends BaseController
                         'Coupon created',
 
                         'message' =>
-                        'The coupon is ready for use according to its validity and eligibility rules.',
+                        'The coupon has been created successfully.',
+                    ]
+                );
+        } catch (
+            DomainException
+            | RuntimeException $exception
+        ) {
+            return $this->redirectWithError(
+                $exception->getMessage()
+            );
+        } catch (Throwable $exception) {
+            $this->logException(
+                $exception,
+                'admin_coupon_create',
+                __FUNCTION__
+            );
+
+            return $this->redirectWithError(
+                'The coupon could not be created.'
+            );
+        }
+    }
+
+    public function edit(
+        int $couponId
+    ): string|RedirectResponse {
+        $coupon =
+            service(
+                'couponManagementService'
+            )->find($couponId);
+
+        if ($coupon === null) {
+            return redirect()
+                ->route(
+                    'admin.coupons.index'
+                )
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'danger',
+
+                        'title' =>
+                        'Coupon not found',
+
+                        'message' =>
+                        'The requested coupon does not exist.',
+                    ]
+                );
+        }
+
+        return $this->formView(
+            $coupon,
+            'Edit Coupon'
+        );
+    }
+
+    public function update(
+        int $couponId
+    ): RedirectResponse {
+        $input =
+            $this->couponInput();
+
+        $validation =
+            service('validation');
+
+        $validation->setRules(
+            CouponValidation::rules()
+        );
+
+        if (!$validation->run($input)) {
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with(
+                    'validationErrors',
+                    $validation->getErrors()
+                );
+        }
+
+        try {
+            service(
+                'couponManagementService'
+            )->update(
+                $couponId,
+                $input,
+                $this->adminUserId()
+            );
+
+            return redirect()
+                ->route(
+                    'admin.coupons.index'
+                )
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'success',
+
+                        'title' =>
+                        'Coupon updated',
+
+                        'message' =>
+                        'The coupon has been updated successfully.',
+                    ]
+                );
+        } catch (
+            DomainException
+            | RuntimeException $exception
+        ) {
+            return $this->redirectWithError(
+                $exception->getMessage()
+            );
+        } catch (Throwable $exception) {
+            $this->logException(
+                $exception,
+                'admin_coupon_update',
+                __FUNCTION__
+            );
+
+            return $this->redirectWithError(
+                'The coupon could not be updated.'
+            );
+        }
+    }
+
+    public function status(
+        int $couponId
+    ): RedirectResponse {
+        $requestedStatus =
+            mb_strtoupper(
+                trim(
+                    (string) $this->request
+                        ->getPost('status')
+                )
+            );
+
+        if (
+            !in_array(
+                $requestedStatus,
+                [
+                    'ACTIVE',
+                    'INACTIVE',
+                ],
+                true
+            )
+        ) {
+            return redirect()
+                ->back()
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'danger',
+
+                        'title' =>
+                        'Status not changed',
+
+                        'message' =>
+                        'Please select a valid coupon status.',
+                    ]
+                );
+        }
+
+        try {
+            service(
+                'couponManagementService'
+            )->setStatus(
+                $couponId,
+                $requestedStatus
+                    === 'ACTIVE',
+                $this->adminUserId()
+            );
+
+            return redirect()
+                ->back()
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'success',
+
+                        'title' =>
+                        'Coupon status updated',
+
+                        'message' =>
+                        'The coupon status has been updated.',
                     ]
                 );
         } catch (
@@ -134,7 +280,6 @@ final class CouponController extends BaseController
         ) {
             return redirect()
                 ->back()
-                ->withInput()
                 ->with(
                     'formAlert',
                     [
@@ -142,30 +287,47 @@ final class CouponController extends BaseController
                         'danger',
 
                         'title' =>
-                        'Coupon not created',
+                        'Status not changed',
 
                         'message' =>
                         $exception->getMessage(),
                     ]
                 );
-        } catch (Throwable $exception) {
-            service(
-                'applicationErrorLogger'
-            )->exception(
-                $exception,
-                'error',
-                AdminErrorContext::forOperation(
-                    operation: 'admin_coupon_create',
+        }
+    }
 
-                    component: self::class,
+    public function report(
+        int $couponId
+    ): string|RedirectResponse {
+        try {
+            $report =
+                service(
+                    'couponManagementService'
+                )->report(
+                    $couponId
+                );
 
-                    method: __FUNCTION__
-                )
+            return view(
+                'Admin/Coupons/Report',
+                [
+                    'pageTitle' =>
+                    'Coupon Report',
+
+                    'coupon' =>
+                    $report['coupon'],
+
+                    'redemptions' =>
+                    $report['redemptions'],
+
+                    'summary' =>
+                    $report['summary'],
+                ]
             );
-
+        } catch (DomainException) {
             return redirect()
-                ->back()
-                ->withInput()
+                ->route(
+                    'admin.coupons.index'
+                )
                 ->with(
                     'formAlert',
                     [
@@ -173,13 +335,63 @@ final class CouponController extends BaseController
                         'danger',
 
                         'title' =>
-                        'Coupon not created',
+                        'Coupon not found',
 
                         'message' =>
-                        'The coupon could not be created.',
+                        'The requested coupon does not exist.',
                     ]
                 );
         }
+    }
+
+    /**
+     * @param array<string, mixed>|null $coupon
+     */
+    private function formView(
+        ?array $coupon,
+        string $pageTitle
+    ): string {
+        $membershipPlans =
+            model(
+                \App\Models\MembershipPlanModel::class
+            )
+            ->where(
+                'is_active',
+                1
+            )
+            ->orderBy(
+                'sort_order',
+                'ASC'
+            )
+            ->findAll();
+
+        return view(
+            'Admin/Coupons/Form',
+            [
+                'pageTitle' =>
+                $pageTitle,
+
+                'coupon' =>
+                $coupon,
+
+                'membershipPlans' =>
+                $membershipPlans,
+
+                'validationErrors' =>
+                session(
+                    'validationErrors'
+                ) ?? [],
+
+                'formAlert' =>
+                session('formAlert'),
+
+                'pageScripts' => [
+                    'assets/js/pages/admin-coupons.js',
+                    'assets/js/components/form-validator.js',
+                    'assets/js/components/submit-loader.js',
+                ],
+            ]
+        );
     }
 
     /**
@@ -192,9 +404,7 @@ final class CouponController extends BaseController
             mb_strtoupper(
                 trim(
                     (string) $this->request
-                        ->getPost(
-                            'code'
-                        )
+                        ->getPost('code')
                 )
             ),
 
@@ -296,5 +506,46 @@ final class CouponController extends BaseController
                     'is_active'
                 ),
         ];
+    }
+
+    private function redirectWithError(
+        string $message
+    ): RedirectResponse {
+        return redirect()
+            ->back()
+            ->withInput()
+            ->with(
+                'formAlert',
+                [
+                    'type' =>
+                    'danger',
+
+                    'title' =>
+                    'Coupon not saved',
+
+                    'message' =>
+                    $message,
+                ]
+            );
+    }
+
+    private function logException(
+        Throwable $exception,
+        string $operation,
+        string $method
+    ): void {
+        service(
+            'applicationErrorLogger'
+        )->exception(
+            $exception,
+            'error',
+            AdminErrorContext::forOperation(
+                operation: $operation,
+
+                component: self::class,
+
+                method: $method
+            )
+        );
     }
 }

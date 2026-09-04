@@ -14,17 +14,10 @@ use RuntimeException;
 final class CouponManagementService
 {
     public function __construct(
-        private readonly BaseConnection
-        $database,
-
-        private readonly CouponModel
-        $couponModel,
-
-        private readonly CouponRedemptionModel
-        $redemptionModel,
-
-        private readonly CouponAuditLogModel
-        $auditModel
+        private readonly BaseConnection $database,
+        private readonly CouponModel $couponModel,
+        private readonly CouponRedemptionModel $redemptionModel,
+        private readonly CouponAuditLogModel $auditModel
     ) {}
 
     /**
@@ -32,24 +25,21 @@ final class CouponManagementService
      */
     public function coupons(): array
     {
-        $rows =
-            $this->couponModel
-            ->orderBy(
-                'id',
-                'DESC'
-            )
+        $rows = $this->couponModel
+            ->orderBy('id', 'DESC')
             ->findAll();
 
         foreach ($rows as &$coupon) {
-            $coupon['used_count'] =
-                $this->redemptionModel
+            $usedCount = $this->redemptionModel
                 ->completedCount(
-                    (int) $coupon['id']
+                    (int) ($coupon['id'] ?? 0)
                 );
 
+            $coupon['used_count'] = $usedCount;
             $coupon['effective_status'] =
                 $this->effectiveStatus(
-                    $coupon
+                    $coupon,
+                    $usedCount
                 );
         }
 
@@ -59,16 +49,71 @@ final class CouponManagementService
     }
 
     /**
+     * @return array<string, mixed>|null
+     */
+    public function find(int $couponId): ?array
+    {
+        if ($couponId <= 0) {
+            return null;
+        }
+
+        $coupon = $this->couponModel
+            ->find($couponId);
+
+        if (!is_array($coupon)) {
+            return null;
+        }
+
+        $coupon['plan_ids'] = array_map(
+            static fn(array $row): int =>
+            (int) $row['membership_plan_id'],
+            $this->database
+                ->table('coupon_plans')
+                ->select('membership_plan_id')
+                ->where('coupon_id', $couponId)
+                ->get()
+                ->getResultArray()
+        );
+
+        $coupon['member_ids'] = array_map(
+            static fn(array $row): int =>
+            (int) $row['user_id'],
+            $this->database
+                ->table('coupon_members')
+                ->select('user_id')
+                ->where('coupon_id', $couponId)
+                ->get()
+                ->getResultArray()
+        );
+
+        $coupon['used_count'] =
+            $this->redemptionModel
+            ->completedCount($couponId);
+
+        $coupon['effective_status'] =
+            $this->effectiveStatus(
+                $coupon,
+                (int) $coupon['used_count']
+            );
+
+        return $coupon;
+    }
+
+    /**
      * @param array<string, mixed> $input
      */
     public function create(
         array $input,
         int $adminUserId
     ): int {
-        $normalized =
-            $this->normalizeAndValidate(
-                $input
+        if ($adminUserId <= 0) {
+            throw new DomainException(
+                'A valid administrator is required.'
             );
+        }
+
+        $normalized =
+            $this->normalizeAndValidate($input);
 
         if (
             $this->couponModel
@@ -81,22 +126,20 @@ final class CouponManagementService
             );
         }
 
-        $this->database
-            ->transBegin();
+        $this->database->transBegin();
 
         try {
+            $couponData =
+                $normalized['coupon'];
+
+            $couponData['created_by_admin_user_id'] = $adminUserId;
+
+            $couponData['updated_by_admin_user_id'] = $adminUserId;
+
             $couponId =
                 $this->couponModel
                 ->insert(
-                    [
-                        ...$normalized['coupon'],
-
-                        'created_by_admin_user_id' =>
-                        $adminUserId,
-
-                        'updated_by_admin_user_id' =>
-                        $adminUserId,
-                    ],
+                    $couponData,
                     true
                 );
 
@@ -109,8 +152,7 @@ final class CouponManagementService
                 );
             }
 
-            $couponId =
-                (int) $couponId;
+            $couponId = (int) $couponId;
 
             $this->replacePlans(
                 $couponId,
@@ -132,8 +174,7 @@ final class CouponManagementService
             );
 
             if (
-                $this->database
-                ->transStatus()
+                $this->database->transStatus()
                 === false
             ) {
                 throw new RuntimeException(
@@ -141,16 +182,324 @@ final class CouponManagementService
                 );
             }
 
-            $this->database
-                ->transCommit();
+            $this->database->transCommit();
 
             return $couponId;
         } catch (\Throwable $exception) {
-            $this->database
-                ->transRollback();
+            $this->database->transRollback();
 
             throw $exception;
         }
+    }
+
+    /**
+     * @param array<string, mixed> $input
+     */
+    public function update(
+        int $couponId,
+        array $input,
+        int $adminUserId
+    ): void {
+        if (
+            $couponId <= 0
+            || $adminUserId <= 0
+        ) {
+            throw new DomainException(
+                'Invalid coupon update request.'
+            );
+        }
+
+        $existing =
+            $this->find($couponId);
+
+        if ($existing === null) {
+            throw new DomainException(
+                'Coupon was not found.'
+            );
+        }
+
+        $normalized =
+            $this->normalizeAndValidate(
+                $input,
+                false
+            );
+
+        $usedCount =
+            (int) (
+                $existing['used_count']
+                ?? 0
+            );
+
+        /*
+         * Once a coupon has been redeemed, commercial
+         * and eligibility rules become historical facts.
+         *
+         * Only expiry extension, usage-limit increase and
+         * active/inactive state are editable.
+         */
+        if ($usedCount > 0) {
+            $this->validatePostRedemptionUpdate(
+                $existing,
+                $normalized
+            );
+
+            $updateData = [
+                'usage_limit' =>
+                $normalized['coupon']['usage_limit'],
+
+                'expires_at' =>
+                $normalized['coupon']['expires_at'],
+
+                'is_active' =>
+                $normalized['coupon']['is_active'],
+
+                'updated_by_admin_user_id' =>
+                $adminUserId,
+            ];
+        } else {
+            $duplicate =
+                $this->couponModel
+                ->findByCode(
+                    $normalized['code']
+                );
+
+            if (
+                is_array($duplicate)
+                && (int) $duplicate['id']
+                !== $couponId
+            ) {
+                throw new DomainException(
+                    'This coupon code already exists.'
+                );
+            }
+
+            $updateData =
+                $normalized['coupon'];
+
+            /*
+             * Start time is historical even before
+             * redemption. Editing a coupon must not
+             * silently restart its validity.
+             */
+            unset(
+                $updateData['starts_at']
+            );
+
+            $updateData['updated_by_admin_user_id'] = $adminUserId;
+        }
+
+        $this->database->transBegin();
+
+        try {
+            if (
+                !$this->couponModel->update(
+                    $couponId,
+                    $updateData
+                )
+            ) {
+                throw new RuntimeException(
+                    'Coupon could not be updated.'
+                );
+            }
+
+            if ($usedCount === 0) {
+                $this->replacePlans(
+                    $couponId,
+                    $normalized['plan_ids']
+                );
+
+                $this->replaceMembers(
+                    $couponId,
+                    $normalized['eligibility_type'],
+                    $normalized['member_ids']
+                );
+            }
+
+            $this->audit(
+                $couponId,
+                $adminUserId,
+                'UPDATED',
+                $existing,
+                $normalized
+            );
+
+            if (
+                $this->database->transStatus()
+                === false
+            ) {
+                throw new RuntimeException(
+                    'Coupon update transaction failed.'
+                );
+            }
+
+            $this->database->transCommit();
+        } catch (\Throwable $exception) {
+            $this->database->transRollback();
+
+            throw $exception;
+        }
+    }
+
+    public function setStatus(
+        int $couponId,
+        bool $isActive,
+        int $adminUserId
+    ): void {
+        $existing =
+            $this->find($couponId);
+
+        if ($existing === null) {
+            throw new DomainException(
+                'Coupon was not found.'
+            );
+        }
+
+        $previousStatus =
+            (int) (
+                $existing['is_active']
+                ?? 0
+            );
+
+        $newStatus =
+            $isActive ? 1 : 0;
+
+        if ($previousStatus === $newStatus) {
+            return;
+        }
+
+        if (
+            !$this->couponModel->update(
+                $couponId,
+                [
+                    'is_active' =>
+                    $newStatus,
+
+                    'updated_by_admin_user_id' =>
+                    $adminUserId,
+                ]
+            )
+        ) {
+            throw new RuntimeException(
+                'Coupon status could not be updated.'
+            );
+        }
+
+        $this->audit(
+            $couponId,
+            $adminUserId,
+            $isActive
+                ? 'ACTIVATED'
+                : 'DEACTIVATED',
+            [
+                'is_active' =>
+                $previousStatus,
+            ],
+            [
+                'is_active' =>
+                $newStatus,
+            ]
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function report(
+        int $couponId
+    ): array {
+        $coupon =
+            $this->find($couponId);
+
+        if ($coupon === null) {
+            throw new DomainException(
+                'Coupon was not found.'
+            );
+        }
+
+        $redemptions =
+            $this->database
+            ->table('coupon_redemptions cr')
+            ->select(
+                'cr.*, '
+                    . 'u.profile_id, '
+                    . 'u.first_name, '
+                    . 'u.last_name, '
+                    . 'mp.name AS plan_name, '
+                    . 'mp.code AS plan_code'
+            )
+            ->join(
+                'users u',
+                'u.id = cr.user_id',
+                'left'
+            )
+            ->join(
+                'membership_plans mp',
+                'mp.id = cr.membership_plan_id',
+                'left'
+            )
+            ->where(
+                'cr.coupon_id',
+                $couponId
+            )
+            ->orderBy(
+                'cr.redeemed_at',
+                'DESC'
+            )
+            ->get()
+            ->getResultArray();
+
+        $completedCount = 0;
+        $totalDiscountPaise = 0;
+        $totalFinalPayablePaise = 0;
+
+        foreach ($redemptions as $row) {
+            if (
+                ($row['status'] ?? '')
+                !== CouponRedemptionModel
+                ::STATUS_COMPLETED
+            ) {
+                continue;
+            }
+
+            $completedCount++;
+
+            $totalDiscountPaise +=
+                (int) (
+                    $row['discount_amount_paise']
+                    ?? 0
+                );
+
+            $totalFinalPayablePaise +=
+                (int) (
+                    $row['final_payable_paise']
+                    ?? 0
+                );
+        }
+
+        return [
+            'coupon' =>
+            $coupon,
+
+            'redemptions' =>
+            $redemptions,
+
+            'summary' => [
+                'completed_count' =>
+                $completedCount,
+
+                'usage_limit' =>
+                (int) (
+                    $coupon['usage_limit']
+                    ?? 0
+                ),
+
+                'total_discount_paise' =>
+                $totalDiscountPaise,
+
+                'total_final_payable_paise' =>
+                $totalFinalPayablePaise,
+            ],
+        ];
     }
 
     /**
@@ -159,7 +508,8 @@ final class CouponManagementService
      * @return array<string, mixed>
      */
     private function normalizeAndValidate(
-        array $input
+        array $input,
+        bool $isCreate = true
     ): array {
         $code =
             mb_strtoupper(
@@ -170,6 +520,18 @@ final class CouponManagementService
                     )
                 )
             );
+
+        if (
+            $code === ''
+            || !preg_match(
+                '/^[A-Z0-9_-]+$/',
+                $code
+            )
+        ) {
+            throw new DomainException(
+                'Please enter a valid coupon code.'
+            );
+        }
 
         $discountType =
             mb_strtoupper(
@@ -224,38 +586,18 @@ final class CouponManagementService
             );
 
         $planIds =
-            array_values(
-                array_unique(
-                    array_filter(
-                        array_map(
-                            'intval',
-                            (array) (
-                                $input['plan_ids']
-                                ?? []
-                            )
-                        ),
-                        static fn(
-                            int $id
-                        ): bool => $id > 0
-                    )
+            $this->positiveIds(
+                (array) (
+                    $input['plan_ids']
+                    ?? []
                 )
             );
 
         $memberIds =
-            array_values(
-                array_unique(
-                    array_filter(
-                        array_map(
-                            'intval',
-                            (array) (
-                                $input['member_ids']
-                                ?? []
-                            )
-                        ),
-                        static fn(
-                            int $id
-                        ): bool => $id > 0
-                    )
+            $this->positiveIds(
+                (array) (
+                    $input['member_ids']
+                    ?? []
                 )
             );
 
@@ -269,11 +611,19 @@ final class CouponManagementService
             $discountType
             === CouponModel::DISCOUNT_PERCENTAGE
         ) {
+            if (
+                !ctype_digit($discountInput)
+            ) {
+                throw new DomainException(
+                    'Percentage discount must be a whole number.'
+                );
+            }
+
             $discountValue =
                 (int) $discountInput;
 
             if (
-                $discountValue <= 0
+                $discountValue < 1
                 || $discountValue > 90
             ) {
                 throw new DomainException(
@@ -284,17 +634,20 @@ final class CouponManagementService
             $discountType
             === CouponModel::DISCOUNT_FLAT
         ) {
+            if (
+                !is_numeric($discountInput)
+                || (float) $discountInput <= 0
+            ) {
+                throw new DomainException(
+                    'Flat discount must be greater than zero.'
+                );
+            }
+
             $discountValue =
                 (int) round(
                     ((float) $discountInput)
                         * 100
                 );
-
-            if ($discountValue <= 0) {
-                throw new DomainException(
-                    'Flat discount must be greater than zero.'
-                );
-            }
         } else {
             throw new DomainException(
                 'Please select a valid discount type.'
@@ -330,24 +683,22 @@ final class CouponManagementService
         if (
             $eligibilityType
             === CouponModel::ELIGIBILITY_GENDER
-            && !in_array(
-                $eligibleGender,
-                [
-                    CouponModel::GENDER_MALE,
-                    CouponModel::GENDER_FEMALE,
-                ],
-                true
-            )
         ) {
-            throw new DomainException(
-                'Please select Male or Female.'
-            );
-        }
-
-        if (
-            $eligibilityType
-            !== CouponModel::ELIGIBILITY_GENDER
-        ) {
+            if (
+                !in_array(
+                    $eligibleGender,
+                    [
+                        CouponModel::GENDER_MALE,
+                        CouponModel::GENDER_FEMALE,
+                    ],
+                    true
+                )
+            ) {
+                throw new DomainException(
+                    'Please select Male or Female.'
+                );
+            }
+        } else {
             $eligibleGender = '';
         }
 
@@ -357,13 +708,16 @@ final class CouponManagementService
             );
         }
 
+        $timezone =
+            new \DateTimeZone(
+                'Asia/Kolkata'
+            );
+
         $expiry =
             \DateTimeImmutable::createFromFormat(
                 '!Y-m-d',
                 $expiryDate,
-                new \DateTimeZone(
-                    'Asia/Kolkata'
-                )
+                $timezone
             );
 
         if (
@@ -375,14 +729,6 @@ final class CouponManagementService
             );
         }
 
-        $now =
-            new \DateTimeImmutable(
-                'now',
-                new \DateTimeZone(
-                    'Asia/Kolkata'
-                )
-            );
-
         $expiry =
             $expiry->setTime(
                 23,
@@ -390,7 +736,16 @@ final class CouponManagementService
                 59
             );
 
-        if ($expiry < $now) {
+        $now =
+            new \DateTimeImmutable(
+                'now',
+                $timezone
+            );
+
+        if (
+            $isCreate
+            && $expiry < $now
+        ) {
             throw new DomainException(
                 'Expiry date cannot be before the coupon start.'
             );
@@ -415,6 +770,13 @@ final class CouponManagementService
                 'discount_type' =>
                 $discountType,
 
+                /*
+                 * Percentage:
+                 *     integer percentage.
+                 *
+                 * Flat:
+                 *     paise.
+                 */
                 'discount_value' =>
                 $discountValue,
 
@@ -474,15 +836,158 @@ final class CouponManagementService
         ];
     }
 
+    /**
+     * @param array<string, mixed> $existing
+     * @param array<string, mixed> $normalized
+     */
+    private function validatePostRedemptionUpdate(
+        array $existing,
+        array $normalized
+    ): void {
+        $newCoupon =
+            $normalized['coupon'];
+
+        $immutableFields = [
+            'code',
+            'discount_type',
+            'discount_value',
+            'eligibility_type',
+            'eligible_gender',
+            'country_id',
+            'state_id',
+            'city_id',
+        ];
+
+        foreach (
+            $immutableFields
+            as $field
+        ) {
+            if (
+                (string) (
+                    $existing[$field]
+                    ?? ''
+                )
+                !==
+                (string) (
+                    $newCoupon[$field]
+                    ?? ''
+                )
+            ) {
+                throw new DomainException(
+                    'Coupon commercial and eligibility rules cannot be changed after the first redemption.'
+                );
+            }
+        }
+
+        $existingPlans =
+            array_map(
+                'intval',
+                (array) (
+                    $existing['plan_ids']
+                    ?? []
+                )
+            );
+
+        $newPlans =
+            array_map(
+                'intval',
+                (array) (
+                    $normalized['plan_ids']
+                    ?? []
+                )
+            );
+
+        sort($existingPlans);
+        sort($newPlans);
+
+        if ($existingPlans !== $newPlans) {
+            throw new DomainException(
+                'Applicable plans cannot be changed after the first redemption.'
+            );
+        }
+
+        $existingMembers =
+            array_map(
+                'intval',
+                (array) (
+                    $existing['member_ids']
+                    ?? []
+                )
+            );
+
+        $newMembers =
+            array_map(
+                'intval',
+                (array) (
+                    $normalized['member_ids']
+                    ?? []
+                )
+            );
+
+        sort($existingMembers);
+        sort($newMembers);
+
+        if ($existingMembers !== $newMembers) {
+            throw new DomainException(
+                'Selected members cannot be changed after the first redemption.'
+            );
+        }
+
+        $oldLimit =
+            (int) (
+                $existing['usage_limit']
+                ?? 0
+            );
+
+        $newLimit =
+            (int) (
+                $newCoupon['usage_limit']
+                ?? 0
+            );
+
+        if ($newLimit < $oldLimit) {
+            throw new DomainException(
+                'Usage limit can only be increased after the first redemption.'
+            );
+        }
+
+        $oldExpiry =
+            strtotime(
+                (string) (
+                    $existing['expires_at']
+                    ?? ''
+                )
+            );
+
+        $newExpiry =
+            strtotime(
+                (string) (
+                    $newCoupon['expires_at']
+                    ?? ''
+                )
+            );
+
+        if (
+            $oldExpiry !== false
+            && $newExpiry !== false
+            && $newExpiry < $oldExpiry
+        ) {
+            throw new DomainException(
+                'Expiry date can only be extended after the first redemption.'
+            );
+        }
+    }
+
+    /**
+     * @param list<int> $planIds
+     */
     private function replacePlans(
         int $couponId,
         array $planIds
     ): void {
         $builder =
             $this->database
-            ->table(
-                'coupon_plans'
-            );
+            ->table('coupon_plans');
 
         $builder
             ->where(
@@ -504,6 +1009,9 @@ final class CouponManagementService
         }
     }
 
+    /**
+     * @param list<int> $memberIds
+     */
     private function replaceMembers(
         int $couponId,
         string $eligibilityType,
@@ -511,9 +1019,7 @@ final class CouponManagementService
     ): void {
         $builder =
             $this->database
-            ->table(
-                'coupon_members'
-            );
+            ->table('coupon_members');
 
         $builder
             ->where(
@@ -543,7 +1049,8 @@ final class CouponManagementService
     }
 
     private function effectiveStatus(
-        array $coupon
+        array $coupon,
+        int $usedCount
     ): string {
         if (
             (int) (
@@ -554,28 +1061,27 @@ final class CouponManagementService
             return 'INACTIVE';
         }
 
+        $timezone =
+            new \DateTimeZone(
+                'Asia/Kolkata'
+            );
+
         $now =
             new \DateTimeImmutable(
                 'now',
-                new \DateTimeZone(
-                    'Asia/Kolkata'
-                )
+                $timezone
             );
 
         $startsAt =
             new \DateTimeImmutable(
                 (string) $coupon['starts_at'],
-                new \DateTimeZone(
-                    'Asia/Kolkata'
-                )
+                $timezone
             );
 
         $expiresAt =
             new \DateTimeImmutable(
                 (string) $coupon['expires_at'],
-                new \DateTimeZone(
-                    'Asia/Kolkata'
-                )
+                $timezone
             );
 
         if ($now < $startsAt) {
@@ -587,11 +1093,7 @@ final class CouponManagementService
         }
 
         if (
-            (int) (
-                $coupon['used_count']
-                ?? 0
-            )
-            >=
+            $usedCount >=
             (int) (
                 $coupon['usage_limit']
                 ?? 0
@@ -603,11 +1105,30 @@ final class CouponManagementService
         return 'ACTIVE';
     }
 
+    /**
+     * @return list<int>
+     */
+    private function positiveIds(
+        array $values
+    ): array {
+        return array_values(
+            array_unique(
+                array_filter(
+                    array_map(
+                        'intval',
+                        $values
+                    ),
+                    static fn(int $id): bool =>
+                    $id > 0
+                )
+            )
+        );
+    }
+
     private function nullableId(
         mixed $value
     ): ?int {
-        $id =
-            (int) $value;
+        $id = (int) $value;
 
         return $id > 0
             ? $id
@@ -621,7 +1142,8 @@ final class CouponManagementService
         ?array $previous,
         ?array $new
     ): void {
-        $this->auditModel
+        $result =
+            $this->auditModel
             ->insert(
                 [
                     'coupon_id' =>
@@ -652,10 +1174,16 @@ final class CouponManagementService
                         : null,
 
                     'created_at' =>
-                    gmdate(
+                    date(
                         'Y-m-d H:i:s'
                     ),
                 ]
             );
+
+        if ($result === false) {
+            throw new RuntimeException(
+                'Coupon audit history could not be recorded.'
+            );
+        }
     }
 }

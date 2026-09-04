@@ -2,10 +2,19 @@
 
 declare(strict_types=1);
 
-$errors =
-    isset($validationErrors)
-    && is_array($validationErrors)
-    ? $validationErrors
+/**
+ * @var string                         $pageTitle
+ * @var array<string, mixed>|null      $coupon
+ * @var list<array<string, mixed>>     $membershipPlans
+ * @var array<string, string>          $validationErrors
+ * @var array<string, string>|null     $formAlert
+ * @var list<string>                   $pageScripts
+ */
+
+$resolvedCoupon =
+    isset($coupon)
+    && is_array($coupon)
+    ? $coupon
     : [];
 
 $plans =
@@ -14,9 +23,158 @@ $plans =
     ? $membershipPlans
     : [];
 
+$errors =
+    isset($validationErrors)
+    && is_array($validationErrors)
+    ? $validationErrors
+    : [];
+
+$resolvedFormAlert =
+    isset($formAlert)
+    && is_array($formAlert)
+    ? $formAlert
+    : null;
+
 $isEdit =
-    isset($coupon)
-    && is_array($coupon);
+    (int) (
+        $resolvedCoupon['id']
+        ?? 0
+    ) > 0;
+
+$couponId =
+    (int) (
+        $resolvedCoupon['id']
+        ?? 0
+    );
+
+$usedCount =
+    max(
+        0,
+        (int) (
+            $resolvedCoupon['used_count']
+            ?? 0
+        )
+    );
+
+$hasRedemptions =
+    $usedCount > 0;
+
+$selectedPlanIds =
+    array_map(
+        'intval',
+        (array) (
+            $resolvedCoupon['plan_ids']
+            ?? []
+        )
+    );
+
+$selectedMemberIds =
+    array_map(
+        'intval',
+        (array) (
+            $resolvedCoupon['member_ids']
+            ?? []
+        )
+    );
+
+$selectedDiscountType =
+    mb_strtoupper(
+        trim(
+            (string) old(
+                'discount_type',
+                $resolvedCoupon['discount_type']
+                    ?? ''
+            )
+        )
+    );
+
+$selectedEligibilityType =
+    mb_strtoupper(
+        trim(
+            (string) old(
+                'eligibility_type',
+                $resolvedCoupon['eligibility_type']
+                    ?? ''
+            )
+        )
+    );
+
+$selectedGender =
+    mb_strtoupper(
+        trim(
+            (string) old(
+                'eligible_gender',
+                $resolvedCoupon['eligible_gender']
+                    ?? ''
+            )
+        )
+    );
+
+$expiryDate = '';
+
+if (
+    !empty($resolvedCoupon['expires_at'])
+) {
+    $expiryTimestamp =
+        strtotime(
+            (string) $resolvedCoupon['expires_at']
+        );
+
+    if ($expiryTimestamp !== false) {
+        $expiryDate =
+            date(
+                'Y-m-d',
+                $expiryTimestamp
+            );
+    }
+}
+
+$expiryDate =
+    (string) old(
+        'expiry_date',
+        $expiryDate
+    );
+
+$discountValue = '';
+
+if (
+    isset(
+        $resolvedCoupon['discount_value']
+    )
+) {
+    if (
+        ($resolvedCoupon['discount_type'] ?? '')
+        === 'FLAT'
+    ) {
+        $discountValue =
+            number_format(
+                ((int) $resolvedCoupon['discount_value']) / 100,
+                2,
+                '.',
+                ''
+            );
+    } else {
+        $discountValue =
+            (string) $resolvedCoupon['discount_value'];
+    }
+}
+
+$discountValue =
+    (string) old(
+        'discount_value',
+        $discountValue
+    );
+
+$isActive =
+    old(
+        'is_active',
+        $isEdit
+            ? (string) (
+                $resolvedCoupon['is_active']
+                ?? '0'
+            )
+            : '1'
+    ) === '1';
 
 $this->extend(
     'Admin/Layouts/Main'
@@ -92,7 +250,7 @@ $this->section(
         action="<?= $isEdit
                     ? route_to(
                         'admin.coupons.update',
-                        (int) $coupon['id']
+                        (int) $resolvedCoupon['id']
                     )
                     : route_to(
                         'admin.coupons.store'
@@ -112,7 +270,36 @@ $this->section(
             ">
 
             <div class="card-body">
+                <?php if ($hasRedemptions): ?>
 
+                    <div
+                        class="
+            alert
+            alert-info
+            fs-13
+        ">
+
+                        <i
+                            class="ri-information-line me-1"
+                            aria-hidden="true">
+                        </i>
+
+                        This coupon has already been used
+                        <?= $usedCount ?> time<?= $usedCount === 1
+                                                    ? ''
+                                                    : 's' ?>.
+
+                        Commercial rules, applicable plans,
+                        member eligibility and location eligibility
+                        can no longer be changed.
+
+                        You may increase the usage limit,
+                        extend the expiry date or deactivate
+                        the coupon.
+
+                    </div>
+
+                <?php endif; ?>
                 <div class="row g-3">
 
                     <div class="col-12 col-md-6">
@@ -132,7 +319,7 @@ $this->section(
                             value="<?= esc(
                                         old(
                                             'code',
-                                            $coupon['code']
+                                            $resolvedCoupon['code']
                                                 ?? ''
                                         ),
                                         'attr'
@@ -160,7 +347,7 @@ $this->section(
                             value="<?= esc(
                                         old(
                                             'usage_limit',
-                                            $coupon['usage_limit']
+                                            $resolvedCoupon['usage_limit']
                                                 ?? ''
                                         ),
                                         'attr'
@@ -197,7 +384,7 @@ $this->section(
                             value="<?= esc(
                                         old(
                                             'description',
-                                            $coupon['description']
+                                            $resolvedCoupon['description']
                                                 ?? ''
                                         ),
                                         'attr'
@@ -227,7 +414,23 @@ $this->section(
                                     value="<?= (int) (
                                                 $plan['id']
                                                 ?? 0
-                                            ) ?>">
+                                            ) ?>"
+                                    <?= in_array(
+                                        (int) (
+                                            $plan['id']
+                                            ?? 0
+                                        ),
+                                        array_map(
+                                            'intval',
+                                            (array) old(
+                                                'plan_ids',
+                                                $selectedPlanIds
+                                            )
+                                        ),
+                                        true
+                                    )
+                                        ? 'selected'
+                                        : '' ?>>
 
                                     <?= esc(
                                         $plan['name']
@@ -258,15 +461,21 @@ $this->section(
                             data-coupon-discount-type
                             required>
 
-                            <option value="">
-                                Select Discount Type
-                            </option>
-
-                            <option value="PERCENTAGE">
+                            <option
+                                value="PERCENTAGE"
+                                <?= $selectedDiscountType
+                                    === 'PERCENTAGE'
+                                    ? 'selected'
+                                    : '' ?>>
                                 Percentage
                             </option>
 
-                            <option value="FLAT">
+                            <option
+                                value="FLAT"
+                                <?= $selectedDiscountType
+                                    === 'FLAT'
+                                    ? 'selected'
+                                    : '' ?>>
                                 Flat Amount
                             </option>
 
@@ -289,7 +498,10 @@ $this->section(
                             class="form-control"
                             min="0.01"
                             step="0.01"
-                            required>
+                            required value="<?= esc(
+                                                $discountValue,
+                                                'attr'
+                                            ) ?>">
 
                     </div>
 
@@ -309,7 +521,10 @@ $this->section(
                             min="<?= date(
                                         'Y-m-d'
                                     ) ?>"
-                            required>
+                            required value="<?= esc(
+                                                $expiryDate,
+                                                'attr'
+                                            ) ?>">
 
                         <div class="form-text">
                             Coupon remains valid through
@@ -333,19 +548,30 @@ $this->section(
                             data-coupon-eligibility
                             required>
 
-                            <option value="">
-                                Select Eligibility
-                            </option>
-
-                            <option value="ALL">
+                            <option
+                                value="ALL"
+                                <?= $selectedEligibilityType
+                                    === 'ALL'
+                                    ? 'selected'
+                                    : '' ?>>
                                 All Members
                             </option>
 
-                            <option value="SELECTED">
+                            <option
+                                value="SELECTED"
+                                <?= $selectedEligibilityType
+                                    === 'SELECTED'
+                                    ? 'selected'
+                                    : '' ?>>
                                 Selected Members
                             </option>
 
-                            <option value="GENDER">
+                            <option
+                                value="GENDER"
+                                <?= $selectedEligibilityType
+                                    === 'GENDER'
+                                    ? 'selected'
+                                    : '' ?>>
                                 Male / Female Members
                             </option>
 
@@ -355,10 +581,13 @@ $this->section(
 
                     <div
                         class="
-                            col-12
-                            col-md-6
-                            d-none
-                        "
+        col-12
+        col-md-6
+        <?= $selectedEligibilityType
+            === 'GENDER'
+            ? ''
+            : 'd-none' ?>
+    "
                         data-coupon-gender-container>
 
                         <label
@@ -376,11 +605,21 @@ $this->section(
                                 Select Gender
                             </option>
 
-                            <option value="MALE">
+                            <option
+                                value="MALE"
+                                <?= $selectedGender
+                                    === 'MALE'
+                                    ? 'selected'
+                                    : '' ?>>
                                 Male
                             </option>
 
-                            <option value="FEMALE">
+                            <option
+                                value="FEMALE"
+                                <?= $selectedGender
+                                    === 'FEMALE'
+                                    ? 'selected'
+                                    : '' ?>>
                                 Female
                             </option>
 

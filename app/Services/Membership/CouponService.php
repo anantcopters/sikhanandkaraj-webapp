@@ -201,9 +201,17 @@ final class CouponService
 
         $plan =
             $this->planModel
-            ->findActiveByCode(
-                $planCode
-            );
+            ->where(
+                'code',
+                mb_strtoupper(
+                    trim($planCode)
+                )
+            )
+            ->where(
+                'is_active',
+                1
+            )
+            ->first();
 
         if (!is_array($plan)) {
             throw new DomainException(

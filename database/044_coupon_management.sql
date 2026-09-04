@@ -16,7 +16,8 @@ CREATE TABLE IF NOT EXISTS coupons (
         'FLAT'
     ) NOT NULL,
 
-    discount_value INT UNSIGNED NOT NULL,
+    discount_value INT UNSIGNED NOT NULL
+        COMMENT 'PERCENTAGE: whole percentage; FLAT: amount in paise',
 
     eligibility_type ENUM(
         'ALL',

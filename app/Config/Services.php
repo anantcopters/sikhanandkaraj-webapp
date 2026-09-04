@@ -3505,12 +3505,6 @@ final class Services extends BaseService
                 $database
             ),
 
-            /*
-         * Keep the existing authoritative purchase service.
-         *
-         * Payment processing must not reproduce purchase/renewal/upgrade
-         * business rules locally.
-         */
             new MembershipPurchaseService(
                 $database,
 
@@ -3523,10 +3517,11 @@ final class Services extends BaseService
                 )
             ),
 
-            /*
-         * Optional external communication.
-         */
             static::memberEmailService(
+                false
+            ),
+
+            static::couponService(
                 false
             )
         );
