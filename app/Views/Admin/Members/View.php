@@ -163,6 +163,9 @@ $resolvedProfileImage = trim(
  */
 $adminProfileImage = '';
 
+$adminProfileFocalX = 50;
+$adminProfileFocalY = 20;
+
 foreach ($resolvedAdminPhotos as $photo) {
     if (!is_array($photo)) {
         continue;
@@ -185,6 +188,28 @@ foreach ($resolvedAdminPhotos as $photo) {
     ) {
         $adminProfileImage =
             $thumbnailUrl;
+
+        $adminProfileFocalX = max(
+            0,
+            min(
+                100,
+                (int) (
+                    $photo['focalX']
+                    ?? 50
+                )
+            )
+        );
+
+        $adminProfileFocalY = max(
+            0,
+            min(
+                100,
+                (int) (
+                    $photo['focalY']
+                    ?? 20
+                )
+            )
+        );
 
         break;
     }
@@ -1147,6 +1172,12 @@ $this->section('content');
 
             'profileImage' =>
             $adminProfileImage,
+
+            'photoFocalX' =>
+            $adminProfileFocalX,
+
+            'photoFocalY' =>
+            $adminProfileFocalY,
 
             'fullName' =>
             $fullName,

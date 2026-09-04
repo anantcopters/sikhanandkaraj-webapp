@@ -84,6 +84,102 @@ final class MemberPhotoUrlService
     }
 
     /**
+     * Return presentation metadata for the approved primary photograph.
+     *
+     * Focal coordinates belong to the photograph itself and therefore travel
+     * with the primary-photo presentation contract.
+     *
+     * @return array{
+     *     url:string,
+     *     focalX:int,
+     *     focalY:int
+     * }
+     */
+    public function getApprovedPrimaryPresentation(
+        int $memberId,
+        string $variant = 'medium'
+    ): array {
+        $default = [
+            'url' => '',
+            'focalX' => 50,
+            'focalY' => 20,
+        ];
+
+        if ($memberId <= 0) {
+            return $default;
+        }
+
+        $photo = $this->photoModel
+            ->findApprovedPrimaryForMember(
+                $memberId
+            );
+
+        if (!is_array($photo)) {
+            return $default;
+        }
+
+        $normalizedVariant = mb_strtolower(
+            trim($variant)
+        );
+
+        $column = match ($normalizedVariant) {
+            'original' =>
+            'original_object_key',
+
+            'thumbnail' =>
+            'thumbnail_object_key',
+
+            default =>
+            'medium_object_key',
+        };
+
+        $objectKey = trim(
+            (string) (
+                $photo[$column]
+                ?? ''
+            )
+        );
+
+        if ($objectKey === '') {
+            return $default;
+        }
+
+        $url = $this->createSignedUrl(
+            objectKey: $objectKey,
+            context: 'Primary profile photo',
+            memberId: $memberId,
+            photoId: (int) (
+                $photo['id']
+                ?? 0
+            ),
+            variant: $normalizedVariant
+        );
+
+        if ($url === '') {
+            return $default;
+        }
+
+        return [
+            'url' =>
+            $url,
+
+            'focalX' =>
+            $this->normalizeFocalCoordinate(
+                $photo['focal_x']
+                    ?? null,
+                50
+            ),
+
+            'focalY' =>
+            $this->normalizeFocalCoordinate(
+                $photo['focal_y']
+                    ?? null,
+                20
+            ),
+        ];
+    }
+
+    /**
      * Return approved photographs with thumbnail URLs.
      *
      * @return list<array{
@@ -274,6 +370,20 @@ final class MemberPhotoUrlService
                 BooleanValue::fromDatabase(
                     $photo['is_primary']
                         ?? false
+                ),
+
+                'focalX' =>
+                $this->normalizeFocalCoordinate(
+                    $photo['focal_x']
+                        ?? null,
+                    50
+                ),
+
+                'focalY' =>
+                $this->normalizeFocalCoordinate(
+                    $photo['focal_y']
+                        ?? null,
+                    20
                 ),
 
                 'visibility' =>
@@ -513,6 +623,26 @@ final class MemberPhotoUrlService
     }
 
     /**
+     * Normalize persisted focal metadata defensively.
+     */
+    private function normalizeFocalCoordinate(
+        mixed $value,
+        int $default
+    ): int {
+        if (!is_numeric($value)) {
+            return $default;
+        }
+
+        return max(
+            0,
+            min(
+                100,
+                (int) $value
+            )
+        );
+    }
+
+    /**
      * Generate one short-lived signed CloudFront URL.
      */
     private function createSignedUrl(
@@ -721,6 +851,143 @@ final class MemberPhotoUrlService
             ),
             variant: $normalizedVariant
         );
+    }
+
+    /**
+     * Return an approved primary photograph presentation for another
+     * authenticated member.
+     *
+     * This preserves the same visibility authorization as
+     * getApprovedPrimaryUrlForViewer() while also returning the photograph's
+     * focal metadata.
+     *
+     * @return array{
+     *     url:string,
+     *     focalX:int,
+     *     focalY:int
+     * }
+     */
+    public function getApprovedPrimaryPresentationForViewer(
+        int $memberId,
+        int $viewerUserId,
+        bool $hasInterestRelationship,
+        string $variant = 'medium'
+    ): array {
+        $default = [
+            'url' => '',
+            'focalX' => 50,
+            'focalY' => 20,
+        ];
+
+        if (
+            $memberId <= 0
+            || $viewerUserId <= 0
+            || $memberId === $viewerUserId
+        ) {
+            return $default;
+        }
+
+        $photo = $this->photoModel
+            ->findApprovedPrimaryForMember(
+                $memberId
+            );
+
+        if (!is_array($photo)) {
+            return $default;
+        }
+
+        $visibility = mb_strtoupper(
+            trim(
+                (string) (
+                    $photo['visibility']
+                    ?? ''
+                )
+            )
+        );
+
+        if (
+            !in_array(
+                $visibility,
+                [
+                    'PUBLIC',
+                    'INTERESTED_MEMBERS',
+                ],
+                true
+            )
+        ) {
+            return $default;
+        }
+
+        if (
+            $visibility === 'INTERESTED_MEMBERS'
+            && !$hasInterestRelationship
+        ) {
+            return $default;
+        }
+
+        $normalizedVariant = mb_strtolower(
+            trim($variant)
+        );
+
+        $column = match ($normalizedVariant) {
+            'thumbnail' =>
+            'thumbnail_object_key',
+
+            'medium' =>
+            'medium_object_key',
+
+            default =>
+            null,
+        };
+
+        if ($column === null) {
+            return $default;
+        }
+
+        $objectKey = trim(
+            (string) (
+                $photo[$column]
+                ?? ''
+            )
+        );
+
+        if ($objectKey === '') {
+            return $default;
+        }
+
+        $url = $this->createSignedUrl(
+            objectKey: $objectKey,
+            context: 'Viewer-authorized primary profile photo',
+            memberId: $memberId,
+            photoId: (int) (
+                $photo['id']
+                ?? 0
+            ),
+            variant: $normalizedVariant
+        );
+
+        if ($url === '') {
+            return $default;
+        }
+
+        return [
+            'url' =>
+            $url,
+
+            'focalX' =>
+            $this->normalizeFocalCoordinate(
+                $photo['focal_x']
+                    ?? null,
+                50
+            ),
+
+            'focalY' =>
+            $this->normalizeFocalCoordinate(
+                $photo['focal_y']
+                    ?? null,
+                20
+            ),
+        ];
     }
 
     /**
