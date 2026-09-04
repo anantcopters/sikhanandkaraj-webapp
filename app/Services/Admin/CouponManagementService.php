@@ -299,16 +299,26 @@ final class CouponManagementService
             );
         }
 
-        $normalized =
-            $this->normalizeAndValidate(
-                $input,
-                false
-            );
-
+        /*
+        * Redemption history determines the edit boundary.
+        *
+        * Effective status (Active / Inactive / Expired / Exhausted)
+        * does not determine whether the coupon can be edited.
+        */
         $usedCount =
             (int) (
                 $existing['used_count']
                 ?? 0
+            );
+
+        $hasRedemptions =
+            $usedCount > 0;
+
+        $normalized =
+            $this->normalizeAndValidate(
+                $input,
+                false,
+                $hasRedemptions
             );
 
         /*
@@ -677,7 +687,8 @@ final class CouponManagementService
      */
     private function normalizeAndValidate(
         array $input,
-        bool $isCreate = true
+        bool $isCreate = true,
+        bool $hasRedemptions = false
     ): array {
         $code =
             mb_strtoupper(
@@ -776,44 +787,76 @@ final class CouponManagementService
         }
 
         /*
-        * Membership-plan IDs come from the browser and therefore cannot be
-        * trusted merely because the Coupon form only displays active plans.
+        * Applicable membership-plan validation depends on whether the coupon
+        * already has successful redemptions.
         *
-        * Validate every submitted ID against the authoritative membership-plan
-        * master. This protects direct/tampered requests from attaching an
-        * inactive, deleted or otherwise unavailable plan to a coupon.
+        * BEFORE FIRST REDEMPTION
+        * -----------------------
+        * Applicable plans are still commercially editable. Every submitted
+        * plan ID must therefore refer to a currently active membership plan.
+        *
+        * This protects create/edit endpoints against manipulated browser
+        * requests containing inactive or unavailable plan IDs.
+        *
+        * AFTER FIRST REDEMPTION
+        * ----------------------
+        * Applicable plans are historical commercial facts and are immutable.
+        * A plan may legitimately have been deactivated after the coupon was
+        * redeemed.
+        *
+        * Therefore we must NOT require those historical plans to remain active
+        * merely to allow an operational coupon change such as:
+        *
+        * - increasing usage limit,
+        * - extending expiry,
+        * - activating/deactivating the coupon.
+        *
+        * validatePostRedemptionUpdate() separately verifies that the submitted
+        * plan IDs exactly match the coupon's historical plan IDs.
         */
-        $validPlanRows =
-            $this->database
-            ->table('membership_plans')
-            ->select('id')
-            ->whereIn(
-                'id',
-                $planIds
-            )
-            ->where(
-                'is_active',
-                1
-            )
-            ->get()
-            ->getResultArray();
+        if (!$hasRedemptions) {
+            $validPlanRows =
+                $this->database
+                ->table('membership_plans')
+                ->select('id')
+                ->whereIn(
+                    'id',
+                    $planIds
+                )
+                ->where(
+                    'is_active',
+                    1
+                )
+                ->get()
+                ->getResultArray();
 
-        $validPlanIds =
-            array_map(
-                static fn(array $row): int =>
-                (int) (
-                    $row['id']
-                    ?? 0
-                ),
-                $validPlanRows
-            );
+            $validPlanIds =
+                array_map(
+                    static fn(array $row): int =>
+                    (int) (
+                        $row['id']
+                        ?? 0
+                    ),
+                    $validPlanRows
+                );
 
-        sort($validPlanIds);
+            sort($validPlanIds);
 
-        $submittedPlanIds =
-            $planIds;
+            $submittedPlanIds =
+                $planIds;
 
-        sort($submittedPlanIds);
+            sort($submittedPlanIds);
+
+            /*
+            * Require an exact set match rather than silently dropping an
+            * invalid/inactive plan supplied through a manipulated request.
+            */
+            if ($validPlanIds !== $submittedPlanIds) {
+                throw new DomainException(
+                    'One or more selected membership plans are not available.'
+                );
+            }
+        }
 
         /*
         * Require an exact set match.
