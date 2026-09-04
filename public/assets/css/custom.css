@@ -2056,45 +2056,15 @@ form[aria-busy="true"] {
     width: 100%;
     height: 100%;
 
+    /*
+     * Preserve the complete member photograph.
+     *
+     * Portrait photographs may have empty space on the
+     * left/right and landscape photographs may have empty
+     * space on the top/bottom.
+     */
     object-fit: cover;
-    object-position: center;
-}
-
-/**
- * Tall member photographs retain the standard thumbnail height.
- *
- * JavaScript calculates the corresponding thumbnail width from the
- * photograph's natural aspect ratio. The image then fills that adjusted
- * container without introducing unused space.
- */
-.member-profile-thumbnail.is-tall-photo {
-    flex-basis: var(--member-thumbnail-width);
-    width: var(--member-thumbnail-width);
-}
-
-.member-profile-thumbnail.is-tall-photo img {
-    width: 100%;
-    height: 100%;
-
-    object-fit: cover;
-}
-
-/**
- * Member photo column used by the larger profile cards.
- *
- * Standard photographs retain the existing 160px column.
- * JavaScript narrows this value only for unusually tall photographs.
- */
-.member-profile-photo-column {
-    width: var(--member-photo-column-width, 160px);
-}
-
-/**
- * Fallback shown when the member does not have an available photograph.
- */
-.member-profile-thumbnail--fallback {
-    background-color: var(--vz-primary-bg-subtle);
-    color: var(--sak-primary);
+    object-position: center 10%;
 }
 
 /* ==========================================================================
