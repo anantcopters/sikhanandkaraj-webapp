@@ -388,15 +388,7 @@ final class CouponController extends BaseController
             model(
                 \App\Models\MembershipPlanModel::class
             )
-            ->where(
-                'is_active',
-                1
-            )
-            ->orderBy(
-                'sort_order',
-                'ASC'
-            )
-            ->findAll();
+            ->activePlans();
 
         $members =
             db_connect()
@@ -406,7 +398,7 @@ final class CouponController extends BaseController
             )
             ->where(
                 'is_active',
-                1
+                true
             )
             ->orderBy(
                 'first_name',
@@ -420,12 +412,12 @@ final class CouponController extends BaseController
             ->getResultArray();
 
         /*
- * Coupon geography uses the same master location tables used by
- * Basic Details. Only countries need to be rendered initially.
- *
- * States and cities are loaded through the existing ProfileMaster
- * endpoints when the parent selection changes.
- */
+        * Coupon geography uses the same master location tables used by
+        * Basic Details. Only countries need to be rendered initially.
+        *
+        * States and cities are loaded through the existing ProfileMaster
+        * endpoints when the parent selection changes.
+        */
         $countries =
             db_connect()
             ->table('master_countries')
@@ -434,7 +426,7 @@ final class CouponController extends BaseController
             )
             ->where(
                 'is_active',
-                1
+                true
             )
             ->orderBy(
                 'name',
@@ -471,7 +463,7 @@ final class CouponController extends BaseController
                 )
                 ->where(
                     'is_active',
-                    1
+                    true
                 )
                 ->orderBy(
                     'name',
@@ -494,7 +486,7 @@ final class CouponController extends BaseController
                 )
                 ->where(
                     'is_active',
-                    1
+                    true
                 )
                 ->orderBy(
                     'name',

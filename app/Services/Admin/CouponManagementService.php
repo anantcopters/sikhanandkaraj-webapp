@@ -455,15 +455,15 @@ final class CouponManagementService
         }
 
         $previousStatus =
-            (int) (
+            (bool) (
                 $existing['is_active']
-                ?? 0
+                ?? false
             );
 
         $newStatus =
             $isActive
-            ? 1
-            : 0;
+            ? true
+            : false;
 
         /*
         * Repeating the same status is intentionally idempotent.
@@ -825,7 +825,7 @@ final class CouponManagementService
                 )
                 ->where(
                     'is_active',
-                    1
+                    true
                 )
                 ->get()
                 ->getResultArray();
@@ -1073,7 +1073,7 @@ final class CouponManagementService
                 )
                 ->where(
                     'is_active',
-                    1
+                    true
                 )
                 ->countAllResults()
                 > 0;
@@ -1101,7 +1101,7 @@ final class CouponManagementService
                 )
                 ->where(
                     'is_active',
-                    1
+                    true
                 )
                 ->countAllResults()
                 > 0;
@@ -1129,7 +1129,7 @@ final class CouponManagementService
                 )
                 ->where(
                     'is_active',
-                    1
+                    true
                 )
                 ->countAllResults()
                 > 0;
@@ -1205,8 +1205,8 @@ final class CouponManagementService
 
                 'is_active' =>
                 !empty($input['is_active'])
-                    ? 1
-                    : 0,
+                    ? true
+                    : false,
             ],
 
             'eligibility_type' =>
@@ -1437,10 +1437,10 @@ final class CouponManagementService
         int $usedCount
     ): string {
         if (
-            (int) (
+            (bool) (
                 $coupon['is_active']
-                ?? 0
-            ) !== 1
+                ?? false
+            ) !== true
         ) {
             return 'INACTIVE';
         }
