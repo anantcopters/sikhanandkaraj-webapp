@@ -53,16 +53,18 @@ document.addEventListener(
                         !isSelected
                     );
 
-                if (gender) {
+                if (
+                    gender
+                    && !gender.disabled
+                ) {
                     gender.required =
                         isGender;
-
-                    if (!isGender) {
-                        gender.value = '';
-                    }
                 }
 
-                if (members) {
+                if (
+                    members
+                    && !members.disabled
+                ) {
                     members.required =
                         isSelected;
                 }
@@ -87,7 +89,11 @@ document.addEventListener(
 
         const syncDiscount =
             () => {
-                if (!discountValue) {
+                if (
+                    !discountValue
+                    || discountValue.disabled
+                    || discountValue.readOnly
+                ) {
                     return;
                 }
 
@@ -110,9 +116,10 @@ document.addEventListener(
                 discountValue.min =
                     '0.01';
 
-                discountValue.removeAttribute(
-                    'max'
-                );
+                discountValue
+                    .removeAttribute(
+                        'max'
+                    );
 
                 discountValue.step =
                     '0.01';

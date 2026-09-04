@@ -64,11 +64,22 @@ final class CouponController extends BaseController
         }
 
         try {
+            $adminUserId =
+                (int) session(
+                    'admin_user_id'
+                );
+
+            if ($adminUserId <= 0) {
+                throw new DomainException(
+                    'Authenticated administrator could not be determined.'
+                );
+            }
+
             service(
                 'couponManagementService'
             )->create(
                 $input,
-                $this->adminUserId()
+                $adminUserId
             );
 
             return redirect()
@@ -166,12 +177,23 @@ final class CouponController extends BaseController
         }
 
         try {
+            $adminUserId =
+                (int) session(
+                    'admin_user_id'
+                );
+
+            if ($adminUserId <= 0) {
+                throw new DomainException(
+                    'Authenticated administrator could not be determined.'
+                );
+            }
+
             service(
                 'couponManagementService'
             )->update(
                 $couponId,
                 $input,
-                $this->adminUserId()
+                $adminUserId
             );
 
             return redirect()
@@ -250,13 +272,24 @@ final class CouponController extends BaseController
         }
 
         try {
+            $adminUserId =
+                (int) session(
+                    'admin_user_id'
+                );
+
+            if ($adminUserId <= 0) {
+                throw new DomainException(
+                    'Authenticated administrator could not be determined.'
+                );
+            }
+
             service(
                 'couponManagementService'
             )->setStatus(
                 $couponId,
                 $requestedStatus
                     === 'ACTIVE',
-                $this->adminUserId()
+                $adminUserId
             );
 
             return redirect()
@@ -365,6 +398,27 @@ final class CouponController extends BaseController
             )
             ->findAll();
 
+        $members =
+            db_connect()
+            ->table('users')
+            ->select(
+                'id, profile_id, first_name, last_name'
+            )
+            ->where(
+                'is_active',
+                1
+            )
+            ->orderBy(
+                'first_name',
+                'ASC'
+            )
+            ->orderBy(
+                'last_name',
+                'ASC'
+            )
+            ->get()
+            ->getResultArray();
+
         return view(
             'Admin/Coupons/Form',
             [
@@ -376,6 +430,9 @@ final class CouponController extends BaseController
 
                 'membershipPlans' =>
                 $membershipPlans,
+
+                'members' =>
+                $members,
 
                 'validationErrors' =>
                 session(

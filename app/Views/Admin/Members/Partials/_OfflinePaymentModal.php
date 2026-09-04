@@ -604,6 +604,28 @@ $oldAmount = trim(
                                     data-error-required="Please enter the amount received."
                                     required>
 
+                                <div
+                                    class="
+        alert
+        alert-warning
+        fs-13
+        mt-2
+        mb-0
+        d-none
+    "
+                                    data-payment-amount-warning>
+
+                                    <i
+                                        class="ri-alert-line me-1"
+                                        aria-hidden="true">
+                                    </i>
+
+                                    Amount received differs from the
+                                    calculated final payable amount.
+                                    Please verify before saving.
+
+                                </div>
+
                             </div>
 
                             <div
