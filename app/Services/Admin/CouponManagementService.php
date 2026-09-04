@@ -461,9 +461,7 @@ final class CouponManagementService
             );
 
         $newStatus =
-            $isActive
-            ? true
-            : false;
+            $isActive;
 
         /*
         * Repeating the same status is intentionally idempotent.
@@ -1204,9 +1202,7 @@ final class CouponManagementService
                 $cityId,
 
                 'is_active' =>
-                !empty($input['is_active'])
-                    ? true
-                    : false,
+                !empty($input['is_active']),
             ],
 
             'eligibility_type' =>
@@ -1437,10 +1433,10 @@ final class CouponManagementService
         int $usedCount
     ): string {
         if (
-            (bool) (
+            !((bool) (
                 $coupon['is_active']
                 ?? false
-            ) !== true
+            ))
         ) {
             return 'INACTIVE';
         }

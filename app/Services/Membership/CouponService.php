@@ -117,10 +117,10 @@ final class CouponService
         string $planCode
     ): array {
         if (
-            (bool) (
+            !((bool) (
                 $coupon['is_active']
                 ?? false
-            ) !== true
+            ))
         ) {
             throw new DomainException(
                 'Coupon is inactive.'
@@ -201,17 +201,9 @@ final class CouponService
 
         $plan =
             $this->planModel
-            ->where(
-                'code',
-                mb_strtoupper(
-                    trim($planCode)
-                )
-            )
-            ->where(
-                'is_active',
-                true
-            )
-            ->first();
+            ->findActiveByCode(
+                $planCode
+            );
 
         if (!is_array($plan)) {
             throw new DomainException(
