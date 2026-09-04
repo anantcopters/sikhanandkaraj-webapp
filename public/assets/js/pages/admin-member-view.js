@@ -960,6 +960,11 @@
             'offlinePaymentPlan'
         );
 
+        const paymentDateInput =
+            document.getElementById(
+                'offlinePaymentDate'
+            );
+
         const couponInput =
             document.querySelector(
                 '[data-coupon-code]'
@@ -997,6 +1002,7 @@
 
         if (
             !(planSelect instanceof HTMLSelectElement)
+            || !(paymentDateInput instanceof HTMLInputElement)
             || !(couponInput instanceof HTMLInputElement)
             || !(applyButton instanceof HTMLButtonElement)
             || !errorElement
@@ -1032,6 +1038,9 @@
                 const planCode =
                     planSelect.value.trim();
 
+                const paymentDate =
+                    paymentDateInput.value.trim();
+
                 const couponCode =
                     couponInput.value
                         .trim()
@@ -1049,6 +1058,19 @@
                     );
 
                     planSelect.focus();
+
+                    return;
+                }
+
+                if (paymentDate === '') {
+                    errorElement.textContent =
+                        'Please select the payment date first.';
+
+                    errorElement.classList.remove(
+                        'd-none'
+                    );
+
+                    paymentDateInput.focus();
 
                     return;
                 }
@@ -1116,6 +1138,11 @@
                     body.set(
                         'plan_code',
                         planCode
+                    );
+
+                    body.set(
+                        'payment_date',
+                        paymentDate
                     );
 
                     body.set(
@@ -1232,6 +1259,11 @@
          */
         couponInput.addEventListener(
             'input',
+            clearResult
+        );
+
+        paymentDateInput.addEventListener(
+            'change',
             clearResult
         );
     }

@@ -1170,10 +1170,19 @@ final class MemberController extends BaseController
                 )
             );
 
+        $paymentDate =
+            trim(
+                (string) $this->request
+                    ->getPost(
+                        'payment_date'
+                    )
+            );
+
         if (
             $userId <= 0
             || $planCode === ''
             || $couponCode === ''
+            || $paymentDate === ''
         ) {
             return $this->response
                 ->setStatusCode(422)
@@ -1182,7 +1191,7 @@ final class MemberController extends BaseController
                     false,
 
                     'message' =>
-                    'Please select a plan and enter a coupon code.',
+                    'Please select a plan, payment date and enter a coupon code.',
                 ]);
         }
 
@@ -1259,6 +1268,64 @@ final class MemberController extends BaseController
             * separately resolved plan ID. CouponService resolves the active plan
             * and its authoritative price itself.
             */
+
+            $timezone =
+                new \DateTimeZone(
+                    'Asia/Kolkata'
+                );
+
+            $paymentDateObject =
+                \DateTimeImmutable::createFromFormat(
+                    '!Y-m-d',
+                    $paymentDate,
+                    $timezone
+                );
+
+            $dateErrors =
+                \DateTimeImmutable::getLastErrors();
+
+            if (
+                !(
+                    $paymentDateObject
+                    instanceof \DateTimeImmutable
+                )
+                || (
+                    is_array($dateErrors)
+                    && (
+                        ($dateErrors['warning_count'] ?? 0) > 0
+                        || ($dateErrors['error_count'] ?? 0) > 0
+                    )
+                )
+            ) {
+                return $this->response
+                    ->setStatusCode(422)
+                    ->setJSON([
+                        'successful' =>
+                        false,
+
+                        'message' =>
+                        'Please select a valid payment date.',
+                    ]);
+            }
+
+            $today =
+                new \DateTimeImmutable(
+                    'today',
+                    $timezone
+                );
+
+            if ($paymentDateObject > $today) {
+                return $this->response
+                    ->setStatusCode(422)
+                    ->setJSON([
+                        'successful' =>
+                        false,
+
+                        'message' =>
+                        'Payment date cannot be in the future.',
+                    ]);
+            }
+            
             $evaluation =
                 service(
                     'couponService'
@@ -1267,7 +1334,11 @@ final class MemberController extends BaseController
 
                     planCode: $planCode,
 
-                    couponCode: $couponCode
+                    couponCode: $couponCode,
+
+                    effectiveAt: $paymentDateObject,
+
+                    effectiveDateOnly: true
                 );
 
             $planPricePaise =

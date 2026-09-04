@@ -41,7 +41,8 @@ final class CouponService
         int $userId,
         string $planCode,
         string $couponCode,
-        ?\DateTimeImmutable $effectiveAt = null
+        ?\DateTimeImmutable $effectiveAt = null,
+        bool $effectiveDateOnly = false
     ): array {
         if ($userId <= 0) {
             throw new DomainException(
@@ -76,7 +77,8 @@ final class CouponService
             $coupon,
             $userId,
             $planCode,
-            $effectiveAt
+            $effectiveAt,
+            $effectiveDateOnly
         );
     }
 
@@ -91,7 +93,8 @@ final class CouponService
         int $couponId,
         int $userId,
         string $planCode,
-        ?\DateTimeImmutable $effectiveAt = null
+        ?\DateTimeImmutable $effectiveAt = null,
+        bool $effectiveDateOnly = false
     ): array {
         $coupon =
             $this->couponModel
@@ -109,7 +112,8 @@ final class CouponService
             $coupon,
             $userId,
             $planCode,
-            $effectiveAt
+            $effectiveAt,
+            $effectiveDateOnly
         );
     }
 
@@ -120,7 +124,8 @@ final class CouponService
         array $coupon,
         int $userId,
         string $planCode,
-        ?\DateTimeImmutable $effectiveAt = null
+        ?\DateTimeImmutable $effectiveAt = null,
+        bool $effectiveDateOnly = false
     ): array {
         if (
             !BooleanValue::fromDatabase(
@@ -151,29 +156,62 @@ final class CouponService
         $startsAt =
             new \DateTimeImmutable(
                 (string) $coupon['starts_at'],
-                new \DateTimeZone(
-                    'Asia/Kolkata'
-                )
+                $timezone
             );
 
         $expiresAt =
             new \DateTimeImmutable(
                 (string) $coupon['expires_at'],
-                new \DateTimeZone(
-                    'Asia/Kolkata'
-                )
+                $timezone
             );
 
-        if ($effectiveAt < $startsAt) {
-            throw new DomainException(
-                'Coupon was not active on the payment date.'
-            );
-        }
+        /*
+        * Offline payment captures only a calendar date.
+        *
+        * Therefore coupon validity for an offline payment is evaluated against
+        * the whole business date rather than inventing an arbitrary payment time.
+        *
+        * Normal/current coupon evaluation continues to use exact timestamps.
+        */
+        if ($effectiveDateOnly) {
+            $effectiveDate =
+                $effectiveAt->format(
+                    'Y-m-d'
+                );
 
-        if ($effectiveAt > $expiresAt) {
-            throw new DomainException(
-                'Coupon was not valid on the payment date.'
-            );
+            $startDate =
+                $startsAt->format(
+                    'Y-m-d'
+                );
+
+            $expiryDate =
+                $expiresAt->format(
+                    'Y-m-d'
+                );
+
+            if ($effectiveDate < $startDate) {
+                throw new DomainException(
+                    'Coupon was not active on the selected payment date.'
+                );
+            }
+
+            if ($effectiveDate > $expiryDate) {
+                throw new DomainException(
+                    'Coupon had expired on the selected payment date.'
+                );
+            }
+        } else {
+            if ($effectiveAt < $startsAt) {
+                throw new DomainException(
+                    'Coupon is not active yet.'
+                );
+            }
+
+            if ($effectiveAt > $expiresAt) {
+                throw new DomainException(
+                    'Coupon has expired.'
+                );
+            }
         }
 
         $couponId =

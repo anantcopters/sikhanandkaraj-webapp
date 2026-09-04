@@ -460,15 +460,15 @@ final class MembershipPaymentService
                 $this
                 ->couponService
                 ->evaluate(
-                    $userId,
-                    $requestedPlanCode,
-                    $couponCode,
-                    $paymentDateObject
-                        ->setTime(
-                            12,
-                            0,
-                            0
-                        )
+                    userId: $userId,
+
+                    planCode: $requestedPlanCode,
+
+                    couponCode: $couponCode,
+
+                    effectiveAt: $paymentDateObject,
+
+                    effectiveDateOnly: true
                 );
         }
 
@@ -972,10 +972,15 @@ final class MembershipPaymentService
                 $couponEvaluation =
                     $this->couponService
                     ->evaluateForRedemption(
-                        $couponId,
-                        (int) $payment['user_id'],
-                        (string) $payment['plan_code_snapshot'],
-                        $couponEffectiveAt
+                        couponId: $couponId,
+
+                        userId: (int) $payment['user_id'],
+
+                        planCode: (string) $payment['plan_code_snapshot'],
+
+                        effectiveAt: $couponEffectiveAt,
+
+                        effectiveDateOnly: $couponEffectiveAt !== null
                     );
             }
 
