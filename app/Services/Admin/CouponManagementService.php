@@ -754,12 +754,28 @@ final class CouponManagementService
             $discountType
             === CouponModel::DISCOUNT_FLAT
         ) {
+            /*
+            * Flat discounts are entered in rupees but persisted in
+            * paise.
+            *
+            * Accept:
+            *
+            * 500
+            * 500.5
+            * 500.50
+            *
+            * Reject values with more than two decimal places rather
+            * than silently rounding administrator input.
+            */
             if (
-                !is_numeric($discountInput)
+                !preg_match(
+                    '/^\d+(?:\.\d{1,2})?$/',
+                    $discountInput
+                )
                 || (float) $discountInput <= 0
             ) {
                 throw new DomainException(
-                    'Flat discount must be greater than zero.'
+                    'Flat discount must be greater than zero and contain no more than two decimal places.'
                 );
             }
 

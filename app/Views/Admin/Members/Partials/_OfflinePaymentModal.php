@@ -123,6 +123,10 @@ $oldAmount = trim(
                         ) ?>"
                 data-validate
                 data-submit-loader
+                data-csrf-name="<?= esc(
+                                    csrf_token(),
+                                    'attr'
+                                ) ?>"
                 novalidate>
 
                 <?= csrf_field() ?>

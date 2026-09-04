@@ -1080,6 +1080,36 @@
                 applyButton.disabled = true;
 
                 try {
+                    /*
+                    * Apply Coupon uses POST and is protected by the same global
+                    * CSRF filter as the parent offline-payment form.
+                    *
+                    * The token name comes from CodeIgniter rather than being
+                    * hard-coded in JavaScript.
+                    */
+                    const paymentForm =
+                        couponInput.closest(
+                            'form'
+                        );
+
+                    const csrfName =
+                        paymentForm instanceof HTMLFormElement
+                            ? String(
+                                paymentForm.dataset.csrfName
+                                ?? ''
+                            ).trim()
+                            : '';
+
+                    const csrfInput =
+                        csrfName !== ''
+                            && paymentForm instanceof HTMLFormElement
+                            ? paymentForm.querySelector(
+                                'input[name="'
+                                + CSS.escape(csrfName)
+                                + '"]'
+                            )
+                            : null;
+
                     const body =
                         new URLSearchParams();
 
@@ -1092,6 +1122,16 @@
                         'coupon_code',
                         couponCode
                     );
+
+                    if (
+                        csrfInput instanceof HTMLInputElement
+                        && csrfInput.value !== ''
+                    ) {
+                        body.set(
+                            csrfName,
+                            csrfInput.value
+                        );
+                    }
 
                     const response =
                         await fetch(

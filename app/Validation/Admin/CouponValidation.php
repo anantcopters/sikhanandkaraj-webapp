@@ -37,12 +37,25 @@ final class CouponValidation
                 'required|in_list[PERCENTAGE,FLAT]',
             ],
 
+            /*
+            * Discount-value semantics depend on discount_type.
+            *
+            * Do not apply the generic "integer" rule here:
+            *
+            * - PERCENTAGE must be a whole number from 1 to 90.
+            * - FLAT represents a rupee amount and may contain paise,
+            *   for example 499.50.
+            *
+            * CouponManagementService::normalizeAndValidate() performs the
+            * authoritative type-specific validation and converts FLAT
+            * rupee values to paise before persistence.
+            */
             'discount_value' => [
                 'label' =>
                 'Discount Value',
 
                 'rules' =>
-                'required|integer|greater_than[0]',
+                'required|numeric|greater_than[0]',
             ],
 
             'eligibility_type' => [
