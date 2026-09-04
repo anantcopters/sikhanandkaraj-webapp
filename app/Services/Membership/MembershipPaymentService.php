@@ -853,37 +853,28 @@ final class MembershipPaymentService
                 );
             }
 
-            $couponId =
-                max(
-                    0,
-                    (int) (
-                        $payment['coupon_id']
-                        ?? 0
-                    )
-                );
-
-            $couponEvaluation =
-                null;
-
-            if ($couponId > 0) {
-                $couponEvaluation =
-                    $this->couponService
-                    ->evaluateForRedemption(
-                        $couponId,
-                        (int) $payment['user_id'],
-                        (string) $payment['plan_code_snapshot']
-                    );
-            }
-
             /*
-             * IDEMPOTENCY
-             * ===========
-             *
-             * Payment providers may retry the same webhook.
-             *
-             * Once the payment has produced a membership, the existing result
-             * is returned. MembershipPurchaseService is NOT called again.
-             */
+            * IDEMPOTENCY
+            * ===========
+            *
+            * This check MUST happen before coupon revalidation.
+            *
+            * A successfully processed coupon payment already has a
+            * COMPLETED coupon redemption. If a provider/admin retry reaches
+            * this method again and CouponService::evaluateForRedemption()
+            * runs first, the coupon service would correctly report that the
+            * member has already used the coupon.
+            *
+            * That would incorrectly turn a legitimate payment retry into an
+            * error.
+            *
+            * Once this payment has already produced its membership, return
+            * the existing payment without re-running:
+            *
+            * - coupon eligibility;
+            * - membership activation;
+            * - coupon redemption.
+            */
             if (
                 (string) (
                     $payment['status']
@@ -896,6 +887,10 @@ final class MembershipPaymentService
                 return $payment;
             }
 
+            /*
+            * Only CREATED and PAID payments may continue through successful
+            * payment processing.
+            */
             if (
                 !in_array(
                     (string) (
@@ -914,15 +909,58 @@ final class MembershipPaymentService
                 );
             }
 
+            /*
+            * Resolve coupon information only after idempotency has been
+            * handled.
+            */
+            $couponId =
+                max(
+                    0,
+                    (int) (
+                        $payment['coupon_id']
+                        ?? 0
+                    )
+                );
+
+            $couponEvaluation =
+                null;
+
+            /*
+            * FINAL TRANSACTIONAL COUPON VALIDATION
+            * =====================================
+            *
+            * evaluateForRedemption() locks the coupon and repeats the
+            * authoritative eligibility/capacity checks inside this payment
+            * transaction.
+            *
+            * This protects against:
+            *
+            * - coupon deactivation after Apply Coupon;
+            * - expiry after Apply Coupon;
+            * - usage-limit exhaustion;
+            * - plan/member/gender/location changes;
+            * - previous redemption;
+            * - concurrent final redemption.
+            */
+            if ($couponId > 0) {
+                $couponEvaluation =
+                    $this->couponService
+                    ->evaluateForRedemption(
+                        $couponId,
+                        (int) $payment['user_id'],
+                        (string) $payment['plan_code_snapshot']
+                    );
+            }
+
             $nowUtc =
                 gmdate(
                     'Y-m-d H:i:s'
                 );
 
             /*
-             * Persist authoritative provider success before activating the
-             * membership.
-             */
+            * Persist authoritative provider success before activating the
+            * membership.
+            */
             if (
                 !$this
                     ->paymentModel
@@ -959,10 +997,11 @@ final class MembershipPaymentService
             }
 
             /*
-             * Existing authoritative membership activation.
-             *
-             * Do not duplicate purchase/renewal/upgrade rules here.
-             */
+            * Existing authoritative membership activation.
+            *
+            * Purchase / renewal / upgrade rules continue to belong to
+            * MembershipPurchaseService.
+            */
             $activation =
                 $this
                 ->purchaseService
@@ -1011,6 +1050,12 @@ final class MembershipPaymentService
                 );
             }
 
+            /*
+            * Record coupon redemption only after membership activation and
+            * payment processing have succeeded.
+            *
+            * This remains inside the same transaction.
+            */
             if (
                 $couponEvaluation !== null
             ) {
@@ -1054,14 +1099,12 @@ final class MembershipPaymentService
             }
 
             /*
- * ------------------------------------------------------------------
- * Load the immutable membership snapshot
- * ------------------------------------------------------------------
- *
- * The activated membership contains the exact commercial values that
- * belonged to this purchase. Do not use the current plan master because
- * pricing/duration may change later.
- */
+            * Load the immutable membership snapshot.
+            *
+            * The activated membership contains the exact commercial values
+            * that belonged to this purchase. Do not use the current plan
+            * master because pricing/duration may change later.
+            */
             $membership =
                 $this
                 ->membershipModel
@@ -1072,14 +1115,10 @@ final class MembershipPaymentService
 
             if (is_array($membership)) {
                 /*
-                * ------------------------------------------------------------------
-                * Downstream transactional email
-                * ------------------------------------------------------------------
+                * Downstream transactional email.
                 *
                 * Payment and membership activation are already committed.
-                *
-                * MemberEmailService is failure-safe, therefore SES/queue/recipient
-                * problems cannot alter successful payment processing.
+                * Email failure therefore cannot alter payment processing.
                 */
                 $this
                     ->memberEmailService

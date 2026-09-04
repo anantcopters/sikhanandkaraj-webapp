@@ -38,6 +38,12 @@ $usageLimit =
         ?? 0
     );
 
+$totalOriginalPrice =
+    ((int) (
+        $resolvedSummary['total_original_price_paise']
+        ?? 0
+    )) / 100;
+
 $totalDiscount =
     ((int) (
         $resolvedSummary['total_discount_paise']
@@ -118,7 +124,7 @@ $this->section(
 
     <div class="row g-3 mb-3">
 
-        <div class="col-12 col-md-4">
+        <div class="col-12 col-md-3">
 
             <div
                 class="
@@ -156,7 +162,39 @@ $this->section(
 
         </div>
 
-        <div class="col-12 col-md-4">
+        <div class="col-12 col-md-3">
+
+            <div
+                class="
+                    card
+                    border
+                    border-danger
+                    border-opacity-25
+                    h-100
+                ">
+
+                <div class="card-body">
+
+                    <div class="text-muted fs-13 mb-1">
+                        Original Gross
+                    </div>
+
+                    <div class="fs-22 fw-semibold">
+
+                        ₹<?= number_format(
+                                $totalOriginalPrice,
+                                2
+                            ) ?>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-12 col-md-3">
 
             <div
                 class="
@@ -188,7 +226,7 @@ $this->section(
 
         </div>
 
-        <div class="col-12 col-md-4">
+        <div class="col-12 col-md-3">
 
             <div
                 class="
@@ -340,6 +378,27 @@ $this->section(
                                 ? 'bg-success-subtle text-success'
                                 : 'bg-secondary-subtle text-body';
 
+                            $paymentMethod =
+                                trim(
+                                    (string) (
+                                        $redemption['payment_method']
+                                        ?? ''
+                                    )
+                                );
+
+                            $paymentMethodDisplay =
+                                $paymentMethod !== ''
+                                ? ucwords(
+                                    strtolower(
+                                        str_replace(
+                                            '_',
+                                            ' ',
+                                            $paymentMethod
+                                        )
+                                    )
+                                )
+                                : '—';
+
                             ?>
 
                             <tr>
@@ -388,7 +447,7 @@ $this->section(
 
                                     ₹<?= number_format(
                                             ((int) (
-                                                $redemption['original_price_paise']
+                                                $redemption['plan_price_paise']
                                                 ?? 0
                                             )) / 100,
                                             2
@@ -423,8 +482,7 @@ $this->section(
                                 <td>
 
                                     <?= esc(
-                                        $redemption['payment_mode']
-                                            ?? 'Offline'
+                                        $paymentMethodDisplay
                                     ) ?>
 
                                 </td>

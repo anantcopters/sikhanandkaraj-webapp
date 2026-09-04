@@ -21,25 +21,106 @@ final class CouponManagementService
     ) {}
 
     /**
+     * Load coupons for the Superadmin Coupon Management listing.
+     *
+     * Each row includes its effective status, current successful-redemption
+     * count and applicable membership-plan names.
+     *
      * @return list<array<string, mixed>>
      */
     public function coupons(): array
     {
-        $rows = $this->couponModel
-            ->orderBy('id', 'DESC')
+        $rows =
+            $this->couponModel
+            ->orderBy(
+                'id',
+                'DESC'
+            )
             ->findAll();
 
         foreach ($rows as &$coupon) {
-            $usedCount = $this->redemptionModel
-                ->completedCount(
-                    (int) ($coupon['id'] ?? 0)
+            $couponId =
+                (int) (
+                    $coupon['id']
+                    ?? 0
                 );
 
-            $coupon['used_count'] = $usedCount;
+            $usedCount =
+                $this->redemptionModel
+                ->completedCount(
+                    $couponId
+                );
+
+            $coupon['used_count'] =
+                $usedCount;
+
             $coupon['effective_status'] =
                 $this->effectiveStatus(
                     $coupon,
                     $usedCount
+                );
+
+            /*
+            * Applicable plans are loaded for administrative visibility.
+            *
+            * The listing must not make Superadmin open Edit merely to find
+            * which membership plans a coupon applies to.
+            */
+            $planRows =
+                $this->database
+                ->table('coupon_plans cp')
+                ->select(
+                    'mp.name, mp.code'
+                )
+                ->join(
+                    'membership_plans mp',
+                    'mp.id = cp.membership_plan_id',
+                    'inner'
+                )
+                ->where(
+                    'cp.coupon_id',
+                    $couponId
+                )
+                ->orderBy(
+                    'mp.id',
+                    'ASC'
+                )
+                ->get()
+                ->getResultArray();
+
+            $coupon['plan_names'] =
+                array_values(
+                    array_filter(
+                        array_map(
+                            static function (
+                                array $plan
+                            ): string {
+                                $name =
+                                    trim(
+                                        (string) (
+                                            $plan['name']
+                                            ?? ''
+                                        )
+                                    );
+
+                                if ($name !== '') {
+                                    return $name;
+                                }
+
+                                return trim(
+                                    (string) (
+                                        $plan['code']
+                                        ?? ''
+                                    )
+                                );
+                            },
+                            $planRows
+                        ),
+                        static fn(
+                            string $value
+                        ): bool =>
+                        $value !== ''
+                    )
                 );
         }
 
@@ -402,6 +483,12 @@ final class CouponManagementService
     }
 
     /**
+     * Build the coupon utilisation and financial report.
+     *
+     * All commercial amounts come from coupon_redemptions snapshots.
+     * Current membership-plan pricing must never be used for historical
+     * financial reporting.
+     *
      * @return array<string, mixed>
      */
     public function report(
@@ -425,7 +512,9 @@ final class CouponManagementService
                     . 'u.first_name, '
                     . 'u.last_name, '
                     . 'mp.name AS plan_name, '
-                    . 'mp.code AS plan_code'
+                    . 'mp.code AS plan_code, '
+                    . 'p.payment_method, '
+                    . 'p.amount_paise AS amount_received_paise'
             )
             ->join(
                 'users u',
@@ -435,6 +524,18 @@ final class CouponManagementService
             ->join(
                 'membership_plans mp',
                 'mp.id = cr.membership_plan_id',
+                'left'
+            )
+            /*
+            * Every successful coupon redemption is tied to the authoritative
+            * member payment that caused the redemption.
+            *
+            * Load the payment source from that historical payment instead of
+            * displaying a hard-coded "Offline" value.
+            */
+            ->join(
+                'member_payments p',
+                'p.id = cr.member_payment_id',
                 'left'
             )
             ->where(
@@ -449,7 +550,11 @@ final class CouponManagementService
             ->getResultArray();
 
         $completedCount = 0;
+
+        $totalOriginalPricePaise = 0;
+
         $totalDiscountPaise = 0;
+
         $totalFinalPayablePaise = 0;
 
         foreach ($redemptions as $row) {
@@ -462,6 +567,18 @@ final class CouponManagementService
             }
 
             $completedCount++;
+
+            /*
+            * Historical values come from the redemption snapshot.
+            *
+            * Do not calculate these values using the current membership plan
+            * master because plan prices may change after redemption.
+            */
+            $totalOriginalPricePaise +=
+                (int) (
+                    $row['plan_price_paise']
+                    ?? 0
+                );
 
             $totalDiscountPaise +=
                 (int) (
@@ -492,6 +609,9 @@ final class CouponManagementService
                     $coupon['usage_limit']
                     ?? 0
                 ),
+
+                'total_original_price_paise' =>
+                $totalOriginalPricePaise,
 
                 'total_discount_paise' =>
                 $totalDiscountPaise,

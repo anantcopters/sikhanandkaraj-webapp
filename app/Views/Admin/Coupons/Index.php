@@ -110,6 +110,7 @@ $this->section(
                         <tr>
                             <th>Coupon</th>
                             <th>Discount</th>
+                            <th>Plans</th>
                             <th>Eligibility</th>
                             <th>Validity</th>
                             <th>Usage</th>
@@ -129,20 +130,20 @@ $this->section(
 
                             <tr>
                                 <td
-                                    colspan="7"
+                                    colspan="8"
                                     class="
-                                    text-center
-                                    text-muted
-                                    py-4
-                                ">
+                                        text-center
+                                        text-muted
+                                        py-4
+                                    ">
 
                                     <i
                                         class="
-                                        ri-coupon-3-line
-                                        fs-24
-                                        d-block
-                                        mb-2
-                                    "
+                                            ri-coupon-3-line
+                                            fs-24
+                                            d-block
+                                            mb-2
+                                        "
                                         aria-hidden="true">
                                     </i>
 
@@ -180,6 +181,28 @@ $this->section(
                                 . number_format(
                                     $discountValue / 100,
                                     2
+                                );
+
+                            $planNames =
+                                array_values(
+                                    array_filter(
+                                        array_map(
+                                            static fn(
+                                                mixed $planName
+                                            ): string =>
+                                            trim(
+                                                (string) $planName
+                                            ),
+                                            (array) (
+                                                $coupon['plan_names']
+                                                ?? []
+                                            )
+                                        ),
+                                        static fn(
+                                            string $planName
+                                        ): bool =>
+                                        $planName !== ''
+                                    )
                                 );
 
                             $eligibility =
@@ -267,6 +290,44 @@ $this->section(
                                 </td>
 
                                 <td>
+
+                                    <?php if (
+                                        $planNames !== []
+                                    ): ?>
+
+                                        <?php foreach (
+                                            $planNames
+                                            as $planName
+                                        ): ?>
+
+                                            <span
+                                                class="
+                                                    badge
+                                                    bg-light
+                                                    text-body
+                                                    border
+                                                    me-1
+                                                ">
+
+                                                <?= esc(
+                                                    $planName
+                                                ) ?>
+
+                                            </span>
+
+                                        <?php endforeach; ?>
+
+                                    <?php else: ?>
+
+                                        <span class="text-muted">
+                                            —
+                                        </span>
+
+                                    <?php endif; ?>
+
+                                </td>
+
+                                <td>
                                     <?= esc(
                                         $eligibility
                                     ) ?>
@@ -308,13 +369,13 @@ $this->section(
                                 <td>
                                     <span
                                         class="
-                                        badge
-                                        <?= esc(
-                                            $statusClass,
-                                            'attr'
-                                        ) ?>
-                                        p-2
-                                    ">
+                                            badge
+                                            <?= esc(
+                                                $statusClass,
+                                                'attr'
+                                            ) ?>
+                                            p-2
+                                        ">
 
                                         <?= esc($status) ?>
 
@@ -329,10 +390,10 @@ $this->section(
                                                     (int) $coupon['id']
                                                 ) ?>"
                                         class="
-                                        btn
-                                        btn-sm
-                                        btn-soft-primary
-                                    "
+                                            btn
+                                            btn-sm
+                                            btn-soft-primary
+                                        "
                                         title="Edit coupon">
 
                                         <i
@@ -372,12 +433,12 @@ $this->section(
                                         <button
                                             type="submit"
                                             class="
-            btn
-            btn-sm
-            <?= $administrativelyActive
-                                ? 'btn-soft-danger'
-                                : 'btn-soft-success' ?>
-        "
+                                                btn
+                                                btn-sm
+                                                <?= $administrativelyActive
+                                                    ? 'btn-soft-danger'
+                                                    : 'btn-soft-success' ?>
+                                            "
                                             title="<?= $administrativelyActive
                                                         ? 'Deactivate coupon'
                                                         : 'Activate coupon' ?>">
@@ -399,10 +460,10 @@ $this->section(
                                                     (int) $coupon['id']
                                                 ) ?>"
                                         class="
-                                        btn
-                                        btn-sm
-                                        btn-soft-info
-                                    "
+                                            btn
+                                            btn-sm
+                                            btn-soft-info
+                                        "
                                         title="Coupon report">
 
                                         <i
