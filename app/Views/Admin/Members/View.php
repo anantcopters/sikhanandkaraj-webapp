@@ -1913,6 +1913,11 @@ $this->section('content');
 
             'openModal' =>
             $openOfflinePaymentModal,
+
+            'paymentAlert' =>
+            session(
+                'offlinePaymentAlert'
+            ),
         ]
     ) ?>
 <?php endif; ?>

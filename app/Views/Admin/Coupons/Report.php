@@ -372,7 +372,7 @@ $this->section(
 
                             $statusClass =
                                 $status === 'COMPLETED'
-                                ? 'bg-success-subtle text-success'
+                                ? 'bg-success-subtle text-body'
                                 : 'bg-secondary-subtle text-body';
 
                             $paymentMethod =

@@ -8,8 +8,17 @@ declare(strict_types=1);
  * @var string                $profileReference
  * @var array<string, mixed>  $membershipPlans
  * @var array<string, string> $validationErrors
- * @var bool                  $openModal
+ * @var bool                  $openModal * 
  */
+/**
+ * @var array<string, string>|null $paymentAlert
+ */
+
+$resolvedPaymentAlert =
+    isset($paymentAlert)
+    && is_array($paymentAlert)
+    ? $paymentAlert
+    : null;
 
 $plans = isset(
     $membershipPlans['plans']
@@ -133,12 +142,49 @@ $oldAmount = trim(
 
                 <div class="modal-body">
 
+                    <?php if (
+                        is_array(
+                            $resolvedPaymentAlert
+                        )
+                    ): ?>
+
+                        <div
+                            class="
+                alert
+                alert-danger
+                fs-13
+            "
+                            role="alert">
+
+                            <div class="fw-semibold mb-1">
+
+                                <i
+                                    class="ri-error-warning-line me-1"
+                                    aria-hidden="true">
+                                </i>
+
+                                <?= esc(
+                                    $resolvedPaymentAlert['title']
+                                        ?? 'Payment not recorded'
+                                ) ?>
+
+                            </div>
+
+                            <?= esc(
+                                $resolvedPaymentAlert['message']
+                                    ?? 'The offline payment could not be recorded.'
+                            ) ?>
+
+                        </div>
+
+                    <?php endif; ?>
+
                     <div
                         class="
-                            alert
-                            alert-warning
-                            fs-13
-                        ">
+            alert
+            alert-warning
+            fs-13
+        ">
 
                         <i
                             class="ri-information-line me-1"

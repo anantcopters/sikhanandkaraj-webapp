@@ -828,7 +828,7 @@ final class MemberController extends BaseController
                 ->to($returnUrl)
                 ->withInput()
                 ->with(
-                    'formAlert',
+                    'offlinePaymentAlert',
                     [
                         'type' =>
                         'danger',
@@ -868,7 +868,7 @@ final class MemberController extends BaseController
                 ->to($returnUrl)
                 ->withInput()
                 ->with(
-                    'formAlert',
+                    'offlinePaymentAlert',
                     [
                         'type' =>
                         'danger',
