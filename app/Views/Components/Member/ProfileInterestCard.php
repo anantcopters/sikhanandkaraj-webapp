@@ -326,7 +326,7 @@ $profileNavigationUrl =
         Full Profile navigation path when membership/privacy policy has
         denied Full Profile access.
     -->
-                    <div class="member-profile-thumbnail">
+                    <div class="member-profile-thumbnail mx-auto" data-member-profile-thumbnail>
 
                         <img
                             src="<?= esc(
@@ -338,7 +338,7 @@ $profileNavigationUrl =
                                             . ' profile photo',
                                         'attr'
                                     ) ?>"
-                            loading="lazy">
+                            loading="lazy" data-member-profile-thumbnail-image>
                     </div>
 
                 <?php endif; ?>

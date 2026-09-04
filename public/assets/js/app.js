@@ -22,14 +22,15 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     /**
-     * Adjust unusually tall member profile photographs.
-     *
-     * Normal photographs retain the existing object-fit: cover behaviour.
-     * Tall photographs retain the standard thumbnail height while their
-     * width is allowed to reduce according to the photograph's natural
-     * aspect ratio.
-     */
+ * Adjust unusually tall member profile photographs.
+ *
+ * Standard thumbnails remain 160px × 160px.
+ * For unusually tall photographs, retain the 160px height and calculate
+ * the corresponding container width from the photograph's natural
+ * aspect ratio.
+ */
     const TALL_PHOTO_RATIO = 1.35;
+    const THUMBNAIL_HEIGHT = 160;
 
     const profileThumbnails = document.querySelectorAll(
         '[data-member-profile-thumbnail]'
@@ -56,10 +57,29 @@ document.addEventListener('DOMContentLoaded', function () {
                 image.naturalHeight
                 / image.naturalWidth;
 
-            thumbnail.classList.toggle(
-                'is-tall-photo',
-                imageRatio >= TALL_PHOTO_RATIO
+            const isTallPhoto =
+                imageRatio >= TALL_PHOTO_RATIO;
+
+            if (!isTallPhoto) {
+                thumbnail.classList.remove('is-tall-photo');
+                thumbnail.style.removeProperty(
+                    '--member-thumbnail-width'
+                );
+
+                return;
+            }
+
+            const thumbnailWidth =
+                THUMBNAIL_HEIGHT
+                * image.naturalWidth
+                / image.naturalHeight;
+
+            thumbnail.style.setProperty(
+                '--member-thumbnail-width',
+                `${thumbnailWidth}px`
             );
+
+            thumbnail.classList.add('is-tall-photo');
         };
 
         if (image.complete) {

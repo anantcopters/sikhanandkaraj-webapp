@@ -2061,18 +2061,22 @@ form[aria-busy="true"] {
 }
 
 /**
- * Preserve the full height of unusually tall member photographs.
+ * Tall member photographs retain the standard thumbnail height.
  *
- * The thumbnail container remains the standard 160px × 160px.
- * Only the photograph width is allowed to reduce according to its
- * natural aspect ratio, preventing excessive vertical cropping.
+ * JavaScript calculates the corresponding thumbnail width from the
+ * photograph's natural aspect ratio. The image then fills that adjusted
+ * container without introducing unused space.
  */
+.member-profile-thumbnail.is-tall-photo {
+    flex-basis: var(--member-thumbnail-width);
+    width: var(--member-thumbnail-width);
+}
+
 .member-profile-thumbnail.is-tall-photo img {
-    width: auto;
-    max-width: 100%;
+    width: 100%;
     height: 100%;
 
-    object-fit: contain;
+    object-fit: cover;
 }
 
 /**
