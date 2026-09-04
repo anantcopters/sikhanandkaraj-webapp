@@ -439,7 +439,10 @@ $this->section(
                                                 ?? ''
                                         ),
                                         'attr'
-                                    ) ?>">
+                                    ) ?>"
+                            <?= $hasRedemptions
+                                ? 'readonly'
+                                : '' ?>>
 
                     </div>
 

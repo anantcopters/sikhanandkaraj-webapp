@@ -426,6 +426,15 @@ final class CouponManagementService
         bool $isActive,
         int $adminUserId
     ): void {
+        if (
+            $couponId <= 0
+            || $adminUserId <= 0
+        ) {
+            throw new DomainException(
+                'Invalid coupon status request.'
+            );
+        }
+
         $existing =
             $this->find($couponId);
 
@@ -442,44 +451,83 @@ final class CouponManagementService
             );
 
         $newStatus =
-            $isActive ? 1 : 0;
+            $isActive
+            ? 1
+            : 0;
 
+        /*
+        * Repeating the same status is intentionally idempotent.
+        *
+        * Do not create duplicate ACTIVATE/DEACTIVATE audit entries when
+        * nothing actually changed.
+        */
         if ($previousStatus === $newStatus) {
             return;
         }
 
-        if (
-            !$this->couponModel->update(
+        /*
+        * Status change and its audit record are one logical administrative
+        * operation.
+        *
+        * They must commit or roll back together. Without this transaction,
+        * the coupon could become active/inactive while the mandatory audit
+        * record fails to persist.
+        */
+        $this->database->transBegin();
+
+        try {
+            if (
+                !$this->couponModel->update(
+                    $couponId,
+                    [
+                        'is_active' =>
+                        $newStatus,
+
+                        'updated_by_admin_user_id' =>
+                        $adminUserId,
+                    ]
+                )
+            ) {
+                throw new RuntimeException(
+                    'Coupon status could not be updated.'
+                );
+            }
+
+            /*
+            * Keep the audit inside the same database transaction as the
+            * status update so audit failure also rolls back the coupon.
+            */
+            $this->audit(
                 $couponId,
+                $adminUserId,
+                $isActive
+                    ? 'ACTIVATED'
+                    : 'DEACTIVATED',
+                [
+                    'is_active' =>
+                    $previousStatus,
+                ],
                 [
                     'is_active' =>
                     $newStatus,
-
-                    'updated_by_admin_user_id' =>
-                    $adminUserId,
                 ]
-            )
-        ) {
-            throw new RuntimeException(
-                'Coupon status could not be updated.'
             );
-        }
 
-        $this->audit(
-            $couponId,
-            $adminUserId,
-            $isActive
-                ? 'ACTIVATED'
-                : 'DEACTIVATED',
-            [
-                'is_active' =>
-                $previousStatus,
-            ],
-            [
-                'is_active' =>
-                $newStatus,
-            ]
-        );
+            if (
+                $this->database->transStatus()
+                === false
+            ) {
+                throw new RuntimeException(
+                    'Coupon status transaction failed.'
+                );
+            }
+
+            $this->database->transCommit();
+        } catch (\Throwable $exception) {
+            $this->database->transRollback();
+
+            throw $exception;
+        }
     }
 
     /**
@@ -724,6 +772,60 @@ final class CouponManagementService
         if ($planIds === []) {
             throw new DomainException(
                 'Please select at least one membership plan.'
+            );
+        }
+
+        /*
+        * Membership-plan IDs come from the browser and therefore cannot be
+        * trusted merely because the Coupon form only displays active plans.
+        *
+        * Validate every submitted ID against the authoritative membership-plan
+        * master. This protects direct/tampered requests from attaching an
+        * inactive, deleted or otherwise unavailable plan to a coupon.
+        */
+        $validPlanRows =
+            $this->database
+            ->table('membership_plans')
+            ->select('id')
+            ->whereIn(
+                'id',
+                $planIds
+            )
+            ->where(
+                'is_active',
+                1
+            )
+            ->get()
+            ->getResultArray();
+
+        $validPlanIds =
+            array_map(
+                static fn(array $row): int =>
+                (int) (
+                    $row['id']
+                    ?? 0
+                ),
+                $validPlanRows
+            );
+
+        sort($validPlanIds);
+
+        $submittedPlanIds =
+            $planIds;
+
+        sort($submittedPlanIds);
+
+        /*
+        * Require an exact set match.
+        *
+        * This deliberately does not silently remove invalid IDs. If even one
+        * submitted plan is unavailable, the entire administrative request is
+        * rejected so that Superadmin knows the coupon configuration was not
+        * accepted as submitted.
+        */
+        if ($validPlanIds !== $submittedPlanIds) {
+            throw new DomainException(
+                'One or more selected membership plans are not available.'
             );
         }
 

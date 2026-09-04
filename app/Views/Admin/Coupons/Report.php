@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Support\DateDisplay;
+
 /**
  * @var array<string, mixed>       $coupon
  * @var list<array<string, mixed>> $redemptions
@@ -511,9 +513,25 @@ $this->section(
 
                                 <td>
 
+                                    <?php
+                                    /*
+                                    * Redemption timestamps are persisted in UTC.
+                                    *
+                                    * Convert them through the application's existing DateDisplay
+                                    * support so Coupon Report follows the same user-facing timezone
+                                    * and date format as the rest of the Admin application.
+                                    */
+                                    $redeemedAtDisplay =
+                                        DateDisplay::formatUtcDateTime(
+                                            $redemption['redeemed_at']
+                                                ?? null
+                                        );
+                                    ?>
+
                                     <?= esc(
-                                        $redemption['redeemed_at']
-                                            ?? '—'
+                                        $redeemedAtDisplay !== ''
+                                            ? $redeemedAtDisplay
+                                            : '—'
                                     ) ?>
 
                                 </td>
