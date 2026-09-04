@@ -221,12 +221,6 @@ $resolvedAdminMembershipPlans =
     ? $adminMembershipPlans
     : [];
 
-$resolvedAdminMembershipPlans =
-    isset($adminMembershipPlans)
-    && is_array($adminMembershipPlans)
-    ? $adminMembershipPlans
-    : [];
-
 $currentMembershipAccount =
     isset(
         $resolvedAdminMembershipPlans['currentAccount']
@@ -325,6 +319,28 @@ if ($adminProfileImage === '') {
             $adminProfileImage =
                 $thumbnailUrl;
 
+            $adminProfileFocalX = max(
+                0,
+                min(
+                    100,
+                    (int) (
+                        $photo['focalX']
+                        ?? 50
+                    )
+                )
+            );
+
+            $adminProfileFocalY = max(
+                0,
+                min(
+                    100,
+                    (int) (
+                        $photo['focalY']
+                        ?? 20
+                    )
+                )
+            );
+
             break;
         }
     }
@@ -351,6 +367,28 @@ if ($adminProfileImage === '') {
         if ($thumbnailUrl !== '') {
             $adminProfileImage =
                 $thumbnailUrl;
+
+            $adminProfileFocalX = max(
+                0,
+                min(
+                    100,
+                    (int) (
+                        $photo['focalX']
+                        ?? 50
+                    )
+                )
+            );
+
+            $adminProfileFocalY = max(
+                0,
+                min(
+                    100,
+                    (int) (
+                        $photo['focalY']
+                        ?? 20
+                    )
+                )
+            );
 
             break;
         }
