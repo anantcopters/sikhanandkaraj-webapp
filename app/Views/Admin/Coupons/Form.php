@@ -1208,7 +1208,7 @@ $this->section(
                                         class="
                         mdi
                         mdi-cloud-upload-outline
-                        fs-20
+                        fs-18
                     "
                                         aria-hidden="true">
                                     </i>

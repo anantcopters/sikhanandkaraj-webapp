@@ -641,7 +641,7 @@ $oldAmount = trim(
                                     data-plan-amount-display>
                                 </strong>
 
-                                <span class="text-muted">
+                                <span class="color-pink">
                                     · Amount received can be
                                     adjusted if required.
                                 </span>
