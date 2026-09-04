@@ -436,13 +436,29 @@ final class CouponService
             );
         }
 
+        /*
+        * V1 does not support complimentary / zero-payable memberships.
+        *
+        * The coupon discount must therefore remain strictly below the
+        * selected plan price.
+        *
+        * Examples:
+        *
+        * Plan price ₹2,000 + ₹1,999 discount = valid.
+        * Plan price ₹2,000 + ₹2,000 discount = invalid.
+        * Plan price ₹2,000 + ₹2,001 discount = invalid.
+        *
+        * This validation is deliberately performed against the current
+        * authoritative plan price here rather than trusting the coupon
+        * creation form.
+        */
         if (
             $discountPaise <= 0
             || $discountPaise
-            > $planPricePaise
+            >= $planPricePaise
         ) {
             throw new DomainException(
-                'Coupon discount is invalid for the selected plan.'
+                'Coupon discount must be less than the selected plan price.'
             );
         }
 
@@ -475,6 +491,15 @@ final class CouponService
     }
 
     /**
+     * Record the successful coupon redemption.
+     *
+     * IMPORTANT:
+     *
+     * This method is called from the successful-payment transaction.
+     * The redemption row and its audit history therefore participate
+     * in the same database transaction as payment completion and
+     * membership activation.
+     *
      * @param array<string, mixed> $evaluation
      */
     public function recordRedemption(
@@ -483,12 +508,29 @@ final class CouponService
         int $paymentId,
         int $adminUserId
     ): int {
+        $couponId =
+            (int) (
+                $evaluation['couponId']
+                ?? 0
+            );
+
+        if (
+            $couponId <= 0
+            || $userId <= 0
+            || $paymentId <= 0
+            || $adminUserId <= 0
+        ) {
+            throw new RuntimeException(
+                'Coupon redemption details are invalid.'
+            );
+        }
+
         $id =
             $this->redemptionModel
             ->insert(
                 [
                     'coupon_id' =>
-                    (int) $evaluation['couponId'],
+                    $couponId,
 
                     'user_id' =>
                     $userId,
@@ -541,6 +583,100 @@ final class CouponService
             );
         }
 
-        return (int) $id;
+        $redemptionId =
+            (int) $id;
+
+        /*
+     * COUPON AUDIT:
+     *
+     * Redemption is a material coupon event and must appear in
+     * coupon_audit_logs just like CREATED, UPDATED, ACTIVATED and
+     * DEACTIVATED.
+     *
+     * Do not store member profile/contact data here. The canonical
+     * user ID, payment ID and financial snapshot are sufficient for
+     * tracing the redemption while avoiding unnecessary matrimonial PII.
+     *
+     * This insert intentionally happens after coupon_redemptions.
+     * Because the caller already owns the successful-payment database
+     * transaction, failure to write the audit record will cause the
+     * surrounding transaction to fail rather than leaving an
+     * unaudited successful redemption.
+     */
+        $auditId =
+            $this->auditModel
+            ->insert(
+                [
+                    'coupon_id' =>
+                    $couponId,
+
+                    'admin_user_id' =>
+                    $adminUserId,
+
+                    'action' =>
+                    'REDEEMED',
+
+                    'previous_values' =>
+                    null,
+
+                    'new_values' =>
+                    json_encode(
+                        [
+                            'redemption_id' =>
+                            $redemptionId,
+
+                            'user_id' =>
+                            $userId,
+
+                            'member_payment_id' =>
+                            $paymentId,
+
+                            'membership_plan_id' =>
+                            (int) $evaluation['planId'],
+
+                            'coupon_code' =>
+                            (string) $evaluation['code'],
+
+                            'discount_type' =>
+                            (string) $evaluation['discountType'],
+
+                            'discount_value' =>
+                            (int) $evaluation['discountValue'],
+
+                            'plan_price_paise' =>
+                            (int) $evaluation['planPricePaise'],
+
+                            'discount_amount_paise' =>
+                            (int) $evaluation['discountAmountPaise'],
+
+                            'final_payable_paise' =>
+                            (int) $evaluation['finalPayablePaise'],
+
+                            'status' =>
+                            CouponRedemptionModel
+                            ::STATUS_COMPLETED,
+                        ],
+                        JSON_UNESCAPED_UNICODE
+                            | JSON_UNESCAPED_SLASHES
+                    ),
+
+                    'created_at' =>
+                    date(
+                        'Y-m-d H:i:s'
+                    ),
+                ],
+                true
+            );
+
+        if (
+            !is_numeric($auditId)
+            || (int) $auditId <= 0
+        ) {
+            throw new RuntimeException(
+                'Coupon redemption audit history could not be recorded.'
+            );
+        }
+
+        return $redemptionId;
     }
 }
