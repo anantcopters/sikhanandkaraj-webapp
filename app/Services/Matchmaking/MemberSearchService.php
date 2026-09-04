@@ -1825,7 +1825,7 @@ final class MemberSearchService
         * MemberPhotoUrlService now records the internal DB, authorization and
         * CloudFront-signing stages itself.
         */
-        $thumbnailUrls =
+        $thumbnailPresentations =
             $this->photoUrlService
             ->getApprovedPrimaryThumbnailUrlsForViewer(
                 memberIds: $memberIds,
@@ -1903,13 +1903,16 @@ final class MemberSearchService
                     hasInterestRelationship: $hasInterestRelationship,
 
                     /*
-                     * Empty means placeholder.
-                     *
-                     * We deliberately pass a value even when no photo is visible
-                     * so summary() does not execute its single-member fallback query.
-                     */
-                    resolvedImage: $thumbnailUrls[$memberId]
-                        ?? ''
+                    * Supplying a presentation, including an empty URL,
+                    * tells summary() that batch photo resolution has already
+                    * completed and prevents a per-member fallback query.
+                    */
+                    resolvedPhoto: $thumbnailPresentations[$memberId]
+                        ?? [
+                            'url' => '',
+                            'focalX' => 50,
+                            'focalY' => 20,
+                        ]
                 );
 
             if ($profile === null) {

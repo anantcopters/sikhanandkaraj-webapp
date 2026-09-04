@@ -991,28 +991,24 @@ final class MemberPhotoUrlService
     }
 
     /**
-     * Return viewer-authorized thumbnail URLs for a member collection.
-     *
-    
+     * Return viewer-authorized thumbnail presentations for a member collection.
      *
      * Photo database state is loaded once for the complete card collection.
      * CloudFront signing still occurs per visible image because every private
      * media URL is independently signed.
      *
-    
-     *
-     * The optional development timeline separates:
-     *
-     * - the single approved-primary-photo DB lookup;
-     * - in-memory visibility/object-key preparation;
-     * - CloudFront signing.
-     *
-     * Normal application callers do not provide a timeline.
+     * The focal position belongs to the same approved primary photograph and
+     * must travel with its signed thumbnail URL so all card surfaces render the
+     * member-selected crop consistently.
      *
      * @param list<int>        $memberIds
      * @param array<int, bool> $interestRelationshipMap
      *
-     * @return array<int, string>
+     * @return array<int, array{
+     *     url:string,
+     *     focalX:int,
+     *     focalY:int
+     * }>
      */
     public function getApprovedPrimaryThumbnailUrlsForViewer(
         array $memberIds,
@@ -1044,30 +1040,28 @@ final class MemberPhotoUrlService
         }
 
         /*
-     
-     *
-     * This is the only photograph database read for the complete Search card
-     * collection.
-     */
+        * This remains the only photograph database read for the complete
+        * card collection.
+        */
         $photos =
             $this->photoModel
             ->findApprovedPrimaryForMembers(
                 $memberIds
             );
 
-        $urls = [];
+        $presentations = [];
 
         /*
-     * First resolve authorization and object keys entirely in memory.
-     *
-     * Keeping signing outside this loop allows Membership-28 to distinguish
-     * visibility processing from CloudFront cryptographic signing.
-     *
-     * @var array<int, array{
-     *     objectKey:string,
-     *     photoId:int
-     * }> $authorizedPhotos
-     */
+        * Resolve authorization, object keys and focal metadata entirely
+        * in memory before CloudFront signing.
+        *
+        * @var array<int, array{
+        *     objectKey:string,
+        *     photoId:int,
+        *     focalX:int,
+        *     focalY:int
+        * }> $authorizedPhotos
+        */
         $authorizedPhotos = [];
 
         foreach ($memberIds as $memberId) {
@@ -1076,7 +1070,12 @@ final class MemberPhotoUrlService
                 ?? null;
 
             if (!is_array($photo)) {
-                $urls[$memberId] = '';
+                $presentations[$memberId] = [
+                    'url' => '',
+                    'focalX' => 50,
+                    'focalY' => 20,
+                ];
+
                 continue;
             }
 
@@ -1091,8 +1090,8 @@ final class MemberPhotoUrlService
                 );
 
             /*
-         * Preserve the existing fail-closed Photo Visibility rule.
-         */
+            * Preserve the existing fail-closed Photo Visibility rule.
+            */
             if (
                 !in_array(
                     $visibility,
@@ -1103,7 +1102,12 @@ final class MemberPhotoUrlService
                     true
                 )
             ) {
-                $urls[$memberId] = '';
+                $presentations[$memberId] = [
+                    'url' => '',
+                    'focalX' => 50,
+                    'focalY' => 20,
+                ];
+
                 continue;
             }
 
@@ -1114,7 +1118,12 @@ final class MemberPhotoUrlService
                     ?? false
                 ) !== true
             ) {
-                $urls[$memberId] = '';
+                $presentations[$memberId] = [
+                    'url' => '',
+                    'focalX' => 50,
+                    'focalY' => 20,
+                ];
+
                 continue;
             }
 
@@ -1127,7 +1136,12 @@ final class MemberPhotoUrlService
                 );
 
             if ($objectKey === '') {
-                $urls[$memberId] = '';
+                $presentations[$memberId] = [
+                    'url' => '',
+                    'focalX' => 50,
+                    'focalY' => 20,
+                ];
+
                 continue;
             }
 
@@ -1140,19 +1154,32 @@ final class MemberPhotoUrlService
                     $photo['id']
                     ?? 0
                 ),
+
+                'focalX' =>
+                $this->normalizeFocalCoordinate(
+                    $photo['focal_x']
+                        ?? null,
+                    50
+                ),
+
+                'focalY' =>
+                $this->normalizeFocalCoordinate(
+                    $photo['focal_y']
+                        ?? null,
+                    20
+                ),
             ];
         }
 
         /*
-     * Signing remains deliberately centralized through createSignedUrl().
-     *
-     
-     */
+        * Signing remains deliberately centralized through createSignedUrl().
+        */
         foreach (
             $authorizedPhotos
             as $memberId => $authorizedPhoto
         ) {
-            $urls[$memberId] =
+            $presentations[$memberId] = [
+                'url' =>
                 $this->createSignedUrl(
                     objectKey: $authorizedPhoto['objectKey'],
 
@@ -1163,10 +1190,17 @@ final class MemberPhotoUrlService
                     photoId: $authorizedPhoto['photoId'],
 
                     variant: 'thumbnail'
-                );
+                ),
+
+                'focalX' =>
+                $authorizedPhoto['focalX'],
+
+                'focalY' =>
+                $authorizedPhoto['focalY'],
+            ];
         }
 
-        return $urls;
+        return $presentations;
     }
 
     /**

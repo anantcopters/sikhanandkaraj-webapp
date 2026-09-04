@@ -1280,8 +1280,7 @@ $this->section('content');
 
 
                 <div
-                    class="row g-4
-                align-items-center">
+                    class="row g-4">
 
                     <!-- =====================================================
                  Profile image
@@ -1930,7 +1929,6 @@ $this->section('content');
                                 class="row
         g-3
         mt-3
-        pt-3
         border-top">
 
                                 <!-- Profile ID -->
