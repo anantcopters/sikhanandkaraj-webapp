@@ -1,0 +1,195 @@
+name: Deploy QA
+
+on:
+  push:
+    branches:
+      - qa
+
+  # Allows an authorised user to run the deployment manually.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: sikhanandkaraj-qa-deployment
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  QA_INSTANCE_ID: ${{ vars.QA_INSTANCE_ID }}
+
+jobs:
+  validate:
+    name: Validate application
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout QA code
+        uses: actions/checkout@v5
+
+      - name: Configure PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: intl, mbstring, pgsql, pdo_pgsql, curl, xml, zip, gd
+          tools: composer:v2
+          coverage: none
+
+      - name: Validate Composer files
+        run: composer validate --no-check-publish
+
+      - name: Install development dependencies
+        run: |
+          composer install \
+            --prefer-dist \
+            --no-interaction \
+            --no-progress
+
+      # - name: Run automated tests
+      #  run: composer test
+
+      - name: Validate incremental SQL filenames
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ ! -d database ]]; then
+            echo "database directory does not exist."
+            exit 1
+          fi
+
+          INVALID_FILES="$(
+            find database \
+              -maxdepth 1 \
+              -type f \
+              -name '*.sql' \
+              ! -regextype posix-extended \
+              -regex '.*/[0-9]{3,}_[A-Za-z0-9_-]+\.sql' \
+              -print
+          )"
+
+          if [[ -n "${INVALID_FILES}" ]]; then
+            echo "Invalid database SQL filenames:"
+            echo "${INVALID_FILES}"
+            echo
+            echo "Expected format: 001_description.sql"
+            exit 1
+          fi
+
+      - name: Detect duplicate SQL sequence numbers
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          DUPLICATES="$(
+            find database -maxdepth 1 -type f -name '*.sql' -printf '%f\n' |
+            cut -d_ -f1 |
+            sort |
+            uniq -d
+          )"
+
+          if [[ -n "${DUPLICATES}" ]]; then
+            echo "Duplicate database sequence numbers found:"
+            echo "${DUPLICATES}"
+            exit 1
+          fi
+
+  deploy:
+    name: Deploy to EC2 QA
+    needs:
+      - validate
+
+    runs-on: ubuntu-latest
+    environment: qa
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Configure temporary AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          role-session-name: github-sikhanandkaraj-qa
+
+      - name: Verify EC2 is available in Systems Manager
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          STATUS="$(
+            aws ssm describe-instance-information \
+              --filters "Key=InstanceIds,Values=${QA_INSTANCE_ID}" \
+              --query 'InstanceInformationList[0].PingStatus' \
+              --output text
+          )"
+
+          if [[ "${STATUS}" != "Online" ]]; then
+            echo "EC2 instance is not online in AWS Systems Manager."
+            echo "Current status: ${STATUS}"
+            exit 1
+          fi
+
+      - name: Start deployment
+        id: deploy
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          COMMAND_ID="$(
+            aws ssm send-command \
+              --instance-ids "${QA_INSTANCE_ID}" \
+              --document-name "AWS-RunShellScript" \
+              --comment "Deploy commit ${{ github.sha }} to QA" \
+              --parameters 'commands=["sudo /var/www/deploy/deploy-qa.sh"]' \
+              --query "Command.CommandId" \
+              --output text
+          )"
+
+          echo "command_id=${COMMAND_ID}" >> "${GITHUB_OUTPUT}"
+          echo "Started SSM command: ${COMMAND_ID}"
+
+      - name: Wait for deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          aws ssm wait command-executed \
+            --command-id "${{ steps.deploy.outputs.command_id }}" \
+            --instance-id "${QA_INSTANCE_ID}"
+
+      - name: Display deployment result
+        if: always()
+        shell: bash
+        run: |
+          aws ssm get-command-invocation \
+            --command-id "${{ steps.deploy.outputs.command_id }}" \
+            --instance-id "${QA_INSTANCE_ID}" \
+            --query '{
+              Status:Status,
+              ResponseCode:ResponseCode,
+              StandardOutput:StandardOutputContent,
+              StandardError:StandardErrorContent
+            }' \
+            --output json
+
+      - name: Confirm deployment status
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          STATUS="$(
+            aws ssm get-command-invocation \
+              --command-id "${{ steps.deploy.outputs.command_id }}" \
+              --instance-id "${QA_INSTANCE_ID}" \
+              --query 'Status' \
+              --output text
+          )"
+
+          if [[ "${STATUS}" != "Success" ]]; then
+            echo "QA deployment failed with status: ${STATUS}"
+            exit 1
+          fi
