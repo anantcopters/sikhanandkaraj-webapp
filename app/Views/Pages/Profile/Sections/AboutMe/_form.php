@@ -61,6 +61,8 @@ $aboutMeValue = (string) old(
             maxlength="5000"
             data-about-me-input
             data-error-required="Please write a short introduction about yourself."
+            data-error-max-words="About Me cannot exceed 120 words."
+            data-error-link="Links and website addresses are not allowed."
             aria-describedby="aboutMeHelp aboutMeError"
             placeholder="You may write about your personality, values, family outlook, interests, career goals and what matters to you in life."
             required><?= esc($aboutMeValue) ?></textarea>
