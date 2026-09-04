@@ -559,6 +559,28 @@ if ($profileImage === '') {
         );
 }
 
+$resolvedPhotoFocalX = max(
+    0,
+    min(
+        100,
+        (int) (
+            $photoFocalX
+            ?? 50
+        )
+    )
+);
+
+$resolvedPhotoFocalY = max(
+    0,
+    min(
+        100,
+        (int) (
+            $photoFocalY
+            ?? 20
+        )
+    )
+);
+
 $fullName = trim(
     (string) ($user['full_name'] ?? '')
 );
@@ -1287,7 +1309,16 @@ $this->section('content');
                                             'attr'
                                         ) ?>"
                                 class="member-photo-medium"
-                                loading="eager">
+                                loading="eager"
+                                style="object-position:
+        <?= esc(
+            (string) $resolvedPhotoFocalX,
+            'attr'
+        ) ?>%
+        <?= esc(
+            (string) $resolvedPhotoFocalY,
+            'attr'
+        ) ?>%;">
 
                         </div>
                     </div>
