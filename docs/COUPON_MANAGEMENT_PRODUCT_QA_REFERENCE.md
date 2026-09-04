@@ -83,7 +83,7 @@ Coupon preview is a POST operation and remains protected by the application's no
 | Flat Value | Greater than zero; maximum two decimal places; cannot exceed the highest selected plan price |
 | Start | Automatically current application/business time when created |
 | Expiry | Selected date remains valid through 23:59:59 Asia/Kolkata |
-| Usage Limit | Maximum number of successful redemptions |
+| Usage Limit | Maximum number of successful redemptions; minimum 1; after redemption it may be increased or reduced but never below completed redemption count |
 | Member Eligibility | All Members OR Selected Members OR Gender |
 | Gender | Male OR Female when Gender eligibility is selected |
 | Geographic Restriction | Optional Country / State / City |
@@ -231,7 +231,7 @@ Eligibility is evaluated against the member's current Basic Details location at 
 
 ## 11. Usage Limit and Concurrency
 
-Usage limit is the maximum number of **successful completed coupon redemptions**.
+Usage limit is the maximum number of **successful completed coupon redemptions** and must always be at least 1.
 
 These do not consume usage:
 
@@ -243,6 +243,10 @@ These do not consume usage:
 - Failed payment/activation.
 
 Usage is consumed only when the successful-payment lifecycle completes the associated coupon redemption.
+
+After one or more successful redemptions, Superadmin may increase or reduce the usage limit. The new limit must never be lower than the number of completed redemptions already recorded. In code terms, the minimum permitted usage limit is `max(1, completed_redemption_count)`.
+
+Setting the usage limit equal to the completed redemption count is valid and intentionally makes the coupon **Exhausted**, preventing any further redemption while preserving the coupon and its historical usage. Example: if a coupon has limit 50 and 20 completed redemptions, changing the limit to 20 is valid and immediately exhausts the coupon; changing it to 19 must be rejected.
 
 The limit is absolute. If usage is 99 of 100, two concurrent transactions must not both become redemption #100. Final coupon evaluation locks/revalidates the coupon inside the payment transaction.
 
@@ -269,7 +273,7 @@ Creation rules include:
 - Valid type-specific discount.
 - Percentage between 1 and 100.
 - Flat discount not greater than the highest selected plan price.
-- Positive usage limit.
+- Usage limit of at least 1.
 - Valid expiry date.
 - Exactly one member-eligibility mode.
 - At least one member when Selected Members is chosen.
@@ -322,12 +326,12 @@ The following become immutable:
 
 The following operational changes remain allowed:
 
-- Increase usage limit.
+- Increase or reduce usage limit, provided the new limit is at least 1 and is not below completed redemption count.
 - Extend expiry.
 - Deactivate.
 - Reactivate when other validity rules permit use.
 
-Usage limit cannot be reduced and expiry cannot be shortened after redemption begins.
+Usage limit may be reduced after redemption begins, but never below the number of completed redemptions. Setting the limit equal to completed redemption count is valid and makes the coupon Exhausted. Expiry cannot be shortened after redemption begins.
 
 ---
 
@@ -514,6 +518,8 @@ Use safe, actionable messages appropriate to the context, including:
 - Discount is invalid for the selected plan price.
 - Payment date is invalid.
 - Payment date cannot be in the future.
+- Usage limit must be at least 1.
+- Usage limit cannot be less than the number of coupons already used.
 
 Do not expose unnecessary implementation details or sensitive member information.
 
@@ -578,26 +584,29 @@ QA should cover at least:
 28. Verify two concurrent final redemptions cannot exceed the last available usage slot.
 29. Retry an already successful/processed payment; membership/redemption are not duplicated.
 30. Verify post-redemption immutable fields cannot be changed.
-31. Increase usage limit and extend expiry after redemption.
-32. Reject usage-limit reduction and expiry shortening after redemption.
-33. Change plan price after historical redemption; report remains unchanged.
-34. Reconcile Original Gross - Total Discount = Final Payable in the report.
-35. Verify historical payment method is shown in redemption rows.
-36. Verify unauthorized roles/direct URLs cannot access Superadmin coupon functions.
-37. Verify Apply Coupon succeeds with normal CSRF protection and fails without a valid token according to application policy.
-38. Verify request tampering cannot alter authoritative discount/final payable or gender eligibility.
-39. Verify coupon-code case variations cannot create duplicates or enable reuse.
-40. Verify changing plan after Apply Coupon invalidates the preview.
-41. Verify editing coupon code after Apply Coupon invalidates the preview.
-42. Verify existing offline payment works normally without a coupon.
-43. Record an offline payment today with a coupon valid today; accept.
-44. Record an earlier Payment Date that falls inside the coupon validity window even when the coupon is expired on the admin-recording date; temporal validation should use Payment Date.
-45. Reject an offline Payment Date before the coupon start date.
-46. Reject an offline Payment Date after the coupon expiry date.
-47. Reject a future Payment Date.
-48. Verify the first final server-side coupon validation and the locked transactional revalidation use the same offline effective payment date.
-49. Verify Asia/Kolkata date boundaries around coupon start and expiry.
-50. Verify normal/current coupon evaluation still uses current business time when no offline effective date is supplied.
+31. After redemption, increase usage limit and verify additional capacity becomes available.
+32. After redemption, reduce usage limit to a value greater than completed redemption count and verify remaining capacity is recalculated.
+33. Reduce usage limit exactly to completed redemption count and verify the coupon becomes Exhausted immediately.
+34. Reject reducing usage limit below completed redemption count; always reject usage limit below 1.
+35. Extend expiry after redemption and reject expiry shortening.
+36. Change plan price after historical redemption; report remains unchanged.
+37. Reconcile Original Gross - Total Discount = Final Payable in the report.
+38. Verify historical payment method is shown in redemption rows.
+39. Verify unauthorized roles/direct URLs cannot access Superadmin coupon functions.
+40. Verify Apply Coupon succeeds with normal CSRF protection and fails without a valid token according to application policy.
+41. Verify request tampering cannot alter authoritative discount/final payable or gender eligibility.
+42. Verify coupon-code case variations cannot create duplicates or enable reuse.
+43. Verify changing plan after Apply Coupon invalidates the preview.
+44. Verify editing coupon code after Apply Coupon invalidates the preview.
+45. Verify existing offline payment works normally without a coupon.
+46. Record an offline payment today with a coupon valid today; accept.
+47. Record an earlier Payment Date that falls inside the coupon validity window even when the coupon is expired on the admin-recording date; temporal validation should use Payment Date.
+48. Reject an offline Payment Date before the coupon start date.
+49. Reject an offline Payment Date after the coupon expiry date.
+50. Reject a future Payment Date.
+51. Verify the first final server-side coupon validation and the locked transactional revalidation use the same offline effective payment date.
+52. Verify Asia/Kolkata date boundaries around coupon start and expiry.
+53. Verify normal/current coupon evaluation still uses current business time when no offline effective date is supplied.
 
 Formal payment/redemption void testing is not a V1 Coupon Management test because that workflow is deferred.
 
@@ -619,6 +628,9 @@ QA should specifically test:
 - Flat discount greater than the highest selected plan price.
 - Flat discount greater than a cheaper selected plan but not greater than the highest selected plan.
 - Zero/negative usage limit.
+- Usage-limit reduction to exactly completed redemption count.
+- Usage-limit reduction below completed redemption count.
+- Usage-limit increase after completed redemptions.
 - Selected Members with no selected member.
 - Gender mode with no gender.
 - Manipulated Gender input.
@@ -677,11 +689,12 @@ Coupon Management V1 is acceptable when:
 23. Successful-payment retries are idempotent.
 24. Historical financial reporting uses immutable transaction/redemption snapshots.
 25. Coupon listing shows applicable plans, usage and effective status.
-26. After first redemption, commercial/eligibility configuration is immutable; only allowed operational changes remain.
-27. Coupon report reconciles successful redemption count, Original Gross, Total Discount and Final Payable and shows redemption-level payment method.
-28. Material V1 coupon actions and successful redemptions are auditable.
-29. Existing offline payment without a coupon continues to work.
-30. No coupon-only hard-delete/void mechanism is treated as part of V1.
+26. After first redemption, commercial/eligibility configuration is immutable; usage limit may increase or decrease but must remain at least 1 and not below completed redemption count; expiry may only be extended; administrative status may change.
+27. Setting usage limit equal to completed redemption count is valid and makes the coupon Exhausted, preventing further redemption.
+28. Coupon report reconciles successful redemption count, Original Gross, Total Discount and Final Payable and shows redemption-level payment method.
+29. Material V1 coupon actions and successful redemptions are auditable.
+30. Existing offline payment without a coupon continues to work.
+31. No coupon-only hard-delete/void mechanism is treated as part of V1.
 
 ---
 
@@ -734,6 +747,7 @@ Coupon Management V1 development is complete when:
 - Coupon create/list/edit/status/report flows work according to the current UI contract.
 - Percentage discounts through 100% and valid zero-payable outcomes work end-to-end.
 - Flat discount configuration is bounded by the highest selected plan price and redemption remains safe for cheaper applicable plans.
+- Usage limit is always at least 1; after redemption it may be increased or reduced but never below completed redemption count, and equality produces Exhausted status.
 - Offline Apply Coupon works with CSRF protection.
 - Final offline payment revalidates coupon server-side using the recorded Payment Date for temporal validity.
 - Final locked redemption repeats validation with the same offline payment-date context.
