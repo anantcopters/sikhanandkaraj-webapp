@@ -403,57 +403,6 @@ $this->section(
 
                                     </a>
 
-                                    <form
-                                        method="post"
-                                        action="<?= route_to(
-                                                    'admin.coupons.status',
-                                                    (int) $coupon['id']
-                                                ) ?>"
-                                        class="d-inline">
-
-                                        <?= csrf_field() ?>
-
-                                        <?php
-
-                                        $administrativelyActive =
-                                            (int) (
-                                                $coupon['is_active']
-                                                ?? 0
-                                            ) === 1;
-
-                                        ?>
-
-                                        <input
-                                            type="hidden"
-                                            name="status"
-                                            value="<?= $administrativelyActive
-                                                        ? 'INACTIVE'
-                                                        : 'ACTIVE' ?>">
-
-                                        <button
-                                            type="submit"
-                                            class="
-                                                btn
-                                                btn-sm
-                                                <?= $administrativelyActive
-                                                    ? 'btn-soft-danger'
-                                                    : 'btn-soft-success' ?>
-                                            "
-                                            title="<?= $administrativelyActive
-                                                        ? 'Deactivate coupon'
-                                                        : 'Activate coupon' ?>">
-
-                                            <i
-                                                class="<?= $administrativelyActive
-                                                            ? 'ri-pause-circle-line'
-                                                            : 'ri-play-circle-line' ?>"
-                                                aria-hidden="true">
-                                            </i>
-
-                                        </button>
-
-                                    </form>
-
                                     <a
                                         href="<?= route_to(
                                                     'admin.coupons.report',

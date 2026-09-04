@@ -9,6 +9,7 @@ use App\Models\CouponModel;
 use App\Models\CouponRedemptionModel;
 use App\Models\MembershipPlanModel;
 use CodeIgniter\Database\BaseConnection;
+use App\Support\BooleanValue;
 use DomainException;
 use RuntimeException;
 
@@ -117,10 +118,10 @@ final class CouponService
         string $planCode
     ): array {
         if (
-            !((bool) (
+            !BooleanValue::fromDatabase(
                 $coupon['is_active']
-                ?? false
-            ))
+                    ?? false
+            )
         ) {
             throw new DomainException(
                 'Coupon is inactive.'
@@ -401,7 +402,7 @@ final class CouponService
         ) {
             if (
                 $discountValue <= 0
-                || $discountValue > 90
+                || $discountValue > 100
             ) {
                 throw new DomainException(
                     'Coupon discount is invalid.'
@@ -428,31 +429,27 @@ final class CouponService
             );
         }
 
-        /*
-        * V1 does not support complimentary / zero-payable memberships.
-        *
-        * The coupon discount must therefore remain strictly below the
-        * selected plan price.
-        *
-        * Examples:
-        *
-        * Plan price ₹2,000 + ₹1,999 discount = valid.
-        * Plan price ₹2,000 + ₹2,000 discount = invalid.
-        * Plan price ₹2,000 + ₹2,001 discount = invalid.
-        *
-        * This validation is deliberately performed against the current
-        * authoritative plan price here rather than trusting the coupon
-        * creation form.
-        */
-        if (
-            $discountPaise <= 0
-            || $discountPaise
-            >= $planPricePaise
-        ) {
+        if ($discountPaise <= 0) {
             throw new DomainException(
-                'Coupon discount must be less than the selected plan price.'
+                'Coupon discount is invalid.'
             );
         }
+
+        /*
+        * A flat coupon may be configured against multiple plans.
+        *
+        * Its configured amount is bounded by the highest selected plan
+        * during coupon administration. When applied to a cheaper plan,
+        * the effective discount cannot exceed that plan's price.
+        *
+        * Percentage 100 therefore also resolves naturally to a zero-payable
+        * membership.
+        */
+        $discountPaise =
+            min(
+                $discountPaise,
+                $planPricePaise
+            );
 
         return [
             'couponId' =>

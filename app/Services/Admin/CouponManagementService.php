@@ -8,6 +8,7 @@ use App\Models\CouponAuditLogModel;
 use App\Models\CouponModel;
 use App\Models\CouponRedemptionModel;
 use CodeIgniter\Database\BaseConnection;
+use App\Support\BooleanValue;
 use DomainException;
 use RuntimeException;
 
@@ -455,9 +456,9 @@ final class CouponManagementService
         }
 
         $previousStatus =
-            (bool) (
+            BooleanValue::fromDatabase(
                 $existing['is_active']
-                ?? false
+                    ?? false
             );
 
         $newStatus =
@@ -811,11 +812,12 @@ final class CouponManagementService
         * validatePostRedemptionUpdate() separately verifies that the submitted
         * plan IDs exactly match the coupon's historical plan IDs.
         */
+        $highestSelectedPlanPricePaise = 0;
         if (!$hasRedemptions) {
             $validPlanRows =
                 $this->database
                 ->table('membership_plans')
-                ->select('id')
+                ->select('id, price_paise')
                 ->whereIn(
                     'id',
                     $planIds
@@ -853,6 +855,21 @@ final class CouponManagementService
                     'One or more selected membership plans are not available.'
                 );
             }
+
+            $highestSelectedPlanPricePaise =
+                max(
+                    array_map(
+                        static fn(array $plan): int =>
+                        max(
+                            0,
+                            (int) (
+                                $plan['price_paise']
+                                ?? 0
+                            )
+                        ),
+                        $validPlanRows
+                    )
+                );
         }
 
         if (
@@ -872,10 +889,10 @@ final class CouponManagementService
 
             if (
                 $discountValue < 1
-                || $discountValue > 90
+                || $discountValue > 100
             ) {
                 throw new DomainException(
-                    'Percentage discount must be between 1 and 90.'
+                    'Percentage discount must be between 1 and 100.'
                 );
             }
         } elseif (
@@ -912,6 +929,19 @@ final class CouponManagementService
                     ((float) $discountInput)
                         * 100
                 );
+
+            if (
+                !$hasRedemptions
+                && (
+                    $highestSelectedPlanPricePaise <= 0
+                    || $discountValue
+                    > $highestSelectedPlanPricePaise
+                )
+            ) {
+                throw new DomainException(
+                    'Flat discount cannot be greater than the highest selected plan price.'
+                );
+            }
         } else {
             throw new DomainException(
                 'Please select a valid discount type.'
@@ -1432,10 +1462,10 @@ final class CouponManagementService
         int $usedCount
     ): string {
         if (
-            !((bool) (
+            !BooleanValue::fromDatabase(
                 $coupon['is_active']
-                ?? false
-            ))
+                    ?? false
+            )
         ) {
             return 'INACTIVE';
         }

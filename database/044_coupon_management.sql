@@ -335,16 +335,16 @@ CREATE TABLE IF NOT EXISTS coupon_redemptions (
         ),
 
     /*
-     * V1 does not allow complimentary/zero-payable memberships.
-     */
+    * A 100% coupon may legitimately produce a zero-payable membership.
+    */
     CONSTRAINT chk_coupon_redemption_final_payable
         CHECK (
-            final_payable_paise > 0
+            final_payable_paise >= 0
         ),
 
     CONSTRAINT chk_coupon_redemption_financials
         CHECK (
-            discount_amount_paise < plan_price_paise
+            discount_amount_paise <= plan_price_paise
             AND final_payable_paise =
                 plan_price_paise - discount_amount_paise
         ),

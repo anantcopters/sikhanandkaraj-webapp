@@ -216,11 +216,11 @@ $discountValue =
 
 $isActiveFromDatabase =
     $isEdit
-        ? \App\Support\BooleanValue::fromDatabase(
-            $resolvedCoupon['is_active']
-                ?? false
-        )
-        : true;
+    ? \App\Support\BooleanValue::fromDatabase(
+        $resolvedCoupon['is_active']
+            ?? false
+    )
+    : true;
 
 $isActive =
     (string) old(
@@ -298,390 +298,395 @@ $this->section(
             $formAlert ?? null,
         ]
     ) ?>
+    <div class="row justify-content-center">
+        <div class="col-md-10 col-lg-8 col-xl-7">
+            <form
+                method="post"
+                action="<?= $isEdit
+                            ? route_to(
+                                'admin.coupons.update',
+                                (int) $resolvedCoupon['id']
+                            )
+                            : route_to(
+                                'admin.coupons.store'
+                            ) ?>"
+                data-validate
+                data-submit-loader
+                novalidate>
 
-    <form
-        method="post"
-        action="<?= $isEdit
-                    ? route_to(
-                        'admin.coupons.update',
-                        (int) $resolvedCoupon['id']
-                    )
-                    : route_to(
-                        'admin.coupons.store'
-                    ) ?>"
-        data-validate
-        data-submit-loader
-        novalidate>
+                <?= csrf_field() ?>
 
-        <?= csrf_field() ?>
-
-        <div
-            class="
+                <div
+                    class="
                 card
                 border
                 border-danger
                 border-opacity-25
             ">
 
-            <div class="card-body">
-                <?php if ($hasRedemptions): ?>
+                    <div class="card-body">
+                        <?php if ($hasRedemptions): ?>
 
-                    <div
-                        class="
+                            <div
+                                class="
             alert
             alert-info
             fs-13
         ">
 
-                        <i
-                            class="ri-information-line me-1"
-                            aria-hidden="true">
-                        </i>
+                                <i
+                                    class="ri-information-line me-1"
+                                    aria-hidden="true">
+                                </i>
 
-                        This coupon has already been used
-                        <?= $usedCount ?> time<?= $usedCount === 1
-                                                    ? ''
-                                                    : 's' ?>.
+                                This coupon has already been used
+                                <?= $usedCount ?> time<?= $usedCount === 1
+                                                            ? ''
+                                                            : 's' ?>.
 
-                        Commercial rules, applicable plans,
-                        member eligibility and location eligibility
-                        can no longer be changed.
+                                Commercial rules, applicable plans,
+                                member eligibility and location eligibility
+                                can no longer be changed.
 
-                        You may increase the usage limit,
-                        extend the expiry date or deactivate
-                        the coupon.
+                                You may increase the usage limit,
+                                extend the expiry date or deactivate
+                                the coupon.
 
-                    </div>
+                            </div>
 
-                <?php endif; ?>
-                <div class="row g-3">
+                        <?php endif; ?>
+                        <div class="row g-3">
 
-                    <div class="col-12 col-md-6">
+                            <div class="col-12 col-md-6">
 
-                        <label
-                            for="couponCode"
-                            class="form-label">
-                            Coupon Code
-                        </label>
+                                <label
+                                    for="couponCode"
+                                    class="form-label">
+                                    Coupon Code
+                                </label>
 
-                        <input
-                            type="text"
-                            id="couponCode"
-                            name="code"
-                            class="form-control"
-                            maxlength="40"
-                            value="<?= esc(
-                                        old(
-                                            'code',
-                                            $resolvedCoupon['code']
-                                                ?? ''
-                                        ),
-                                        'attr'
-                                    ) ?>"
-                            data-error-required="Please enter the coupon code."
-                            required <?= $hasRedemptions
-                                            ? 'readonly'
-                                            : '' ?>>
+                                <input
+                                    type="text"
+                                    id="couponCode"
+                                    name="code"
+                                    class="form-control"
+                                    maxlength="40"
+                                    value="<?= esc(
+                                                old(
+                                                    'code',
+                                                    $resolvedCoupon['code']
+                                                        ?? ''
+                                                ),
+                                                'attr'
+                                            ) ?>"
+                                    data-error-required="Please enter the coupon code."
+                                    required <?= $hasRedemptions
+                                                    ? 'readonly'
+                                                    : '' ?>>
 
-                    </div>
+                            </div>
 
-                    <div class="col-12 col-md-6">
+                            <div class="col-12 col-md-6">
 
-                        <label
-                            for="couponUsageLimit"
-                            class="form-label">
-                            Usage Limit
-                        </label>
+                                <label
+                                    for="couponUsageLimit"
+                                    class="form-label">
+                                    Usage Limit
+                                </label>
 
-                        <input
-                            type="number"
-                            id="couponUsageLimit"
-                            name="usage_limit"
-                            class="form-control"
-                            min="1"
-                            step="1"
-                            value="<?= esc(
-                                        old(
-                                            'usage_limit',
-                                            $resolvedCoupon['usage_limit']
-                                                ?? ''
-                                        ),
-                                        'attr'
-                                    ) ?>"
-                            data-error-required="Please enter the usage limit."
-                            required>
+                                <input
+                                    type="number"
+                                    id="couponUsageLimit"
+                                    name="usage_limit"
+                                    class="form-control"
+                                    min="1"
+                                    step="1"
+                                    value="<?= esc(
+                                                old(
+                                                    'usage_limit',
+                                                    $resolvedCoupon['usage_limit']
+                                                        ?? ''
+                                                ),
+                                                'attr'
+                                            ) ?>"
+                                    data-error-required="Please enter the usage limit."
+                                    required>
 
-                    </div>
+                            </div>
 
-                    <div class="col-12">
+                            <div class="col-12">
 
-                        <label
-                            for="couponDescription"
-                            class="form-label">
+                                <label
+                                    for="couponDescription"
+                                    class="form-label">
 
-                            Internal Description
+                                    Internal Description
 
-                            <span
-                                class="
+                                    <span
+                                        class="
                                     text-muted
                                     fw-normal
                                 ">
-                                (Optional)
-                            </span>
+                                        (Optional)
+                                    </span>
 
-                        </label>
-
-                        <input
-                            type="text"
-                            id="couponDescription"
-                            name="description"
-                            class="form-control"
-                            maxlength="255"
-                            value="<?= esc(
-                                        old(
-                                            'description',
-                                            $resolvedCoupon['description']
-                                                ?? ''
-                                        ),
-                                        'attr'
-                                    ) ?>"
-                            <?= $hasRedemptions
-                                ? 'readonly'
-                                : '' ?>>
-
-                    </div>
-
-                    <div class="col-12">
-
-                        <label class="form-label">
-                            Applicable Plans
-                        </label>
-                        <?php if ($hasRedemptions): ?>
-
-                            <?php foreach (
-                                $selectedPlanIds
-                                as $selectedPlanId
-                            ): ?>
+                                </label>
 
                                 <input
-                                    type="hidden"
-                                    name="plan_ids[]"
-                                    value="<?= (int) $selectedPlanId ?>">
-
-                            <?php endforeach; ?>
-
-                        <?php endif; ?>
-                        <select
-                            name="plan_ids[]"
-                            class="form-select"
-                            multiple
-                            data-choice
-                            data-choice-search="false"
-                            required <?= $hasRedemptions
-                                            ? 'disabled'
-                                            : '' ?>>
-
-                            <?php foreach (
-                                $plans as $plan
-                            ): ?>
-
-                                <option
-                                    value="<?= (int) (
-                                                $plan['id']
-                                                ?? 0
+                                    type="text"
+                                    id="couponDescription"
+                                    name="description"
+                                    class="form-control"
+                                    maxlength="255"
+                                    value="<?= esc(
+                                                old(
+                                                    'description',
+                                                    $resolvedCoupon['description']
+                                                        ?? ''
+                                                ),
+                                                'attr'
                                             ) ?>"
-                                    <?= in_array(
-                                        (int) (
-                                            $plan['id']
-                                            ?? 0
-                                        ),
-                                        array_map(
-                                            'intval',
-                                            (array) old(
-                                                'plan_ids',
-                                                $selectedPlanIds
-                                            )
-                                        ),
-                                        true
-                                    )
-                                        ? 'selected'
+                                    <?= $hasRedemptions
+                                        ? 'readonly'
                                         : '' ?>>
 
-                                    <?= esc(
-                                        $plan['name']
-                                            ?? $plan['code']
-                                            ?? ''
-                                    ) ?>
+                            </div>
 
-                                </option>
+                            <div class="col-12">
 
-                            <?php endforeach; ?>
+                                <label class="form-label">
+                                    Applicable Plans
+                                </label>
+                                <?php if ($hasRedemptions): ?>
 
-                        </select>
+                                    <?php foreach (
+                                        $selectedPlanIds
+                                        as $selectedPlanId
+                                    ): ?>
 
-                    </div>
+                                        <input
+                                            type="hidden"
+                                            name="plan_ids[]"
+                                            value="<?= (int) $selectedPlanId ?>">
 
-                    <div class="col-12 col-md-6">
+                                    <?php endforeach; ?>
 
-                        <label
-                            for="couponDiscountType"
-                            class="form-label">
-                            Discount Type
-                        </label>
-                        <?php if ($hasRedemptions): ?>
+                                <?php endif; ?>
+                                <select
+                                    name="plan_ids[]"
+                                    class="form-select"
+                                    multiple
+                                    data-choice
+                                    data-choice-search="false"
+                                    required <?= $hasRedemptions
+                                                    ? 'disabled'
+                                                    : '' ?>>
 
-                            <input
-                                type="hidden"
-                                name="discount_type"
-                                value="<?= esc(
-                                            $selectedDiscountType,
-                                            'attr'
-                                        ) ?>">
+                                    <?php foreach (
+                                        $plans as $plan
+                                    ): ?>
 
-                        <?php endif; ?>
-                        <select
-                            id="couponDiscountType"
-                            name="discount_type"
-                            class="form-select"
-                            data-coupon-discount-type
-                            required <?= $hasRedemptions
-                                            ? 'disabled'
+                                        <option
+                                            value="<?= (int) (
+                                                        $plan['id']
+                                                        ?? 0
+                                                    ) ?>"
+                                            data-price-paise="<?= (int) (
+                                                                    $plan['price_paise']
+                                                                    ?? 0
+                                                                ) ?>"
+                                            <?= in_array(
+                                                (int) (
+                                                    $plan['id']
+                                                    ?? 0
+                                                ),
+                                                array_map(
+                                                    'intval',
+                                                    (array) old(
+                                                        'plan_ids',
+                                                        $selectedPlanIds
+                                                    )
+                                                ),
+                                                true
+                                            )
+                                                ? 'selected'
+                                                : '' ?>>
+
+                                            <?= esc(
+                                                $plan['name']
+                                                    ?? $plan['code']
+                                                    ?? ''
+                                            ) ?>
+
+                                        </option>
+
+                                    <?php endforeach; ?>
+
+                                </select>
+
+                            </div>
+
+                            <div class="col-12 col-md-6">
+
+                                <label
+                                    for="couponDiscountType"
+                                    class="form-label">
+                                    Discount Type
+                                </label>
+                                <?php if ($hasRedemptions): ?>
+
+                                    <input
+                                        type="hidden"
+                                        name="discount_type"
+                                        value="<?= esc(
+                                                    $selectedDiscountType,
+                                                    'attr'
+                                                ) ?>">
+
+                                <?php endif; ?>
+                                <select
+                                    id="couponDiscountType"
+                                    name="discount_type"
+                                    class="form-select"
+                                    data-coupon-discount-type
+                                    required <?= $hasRedemptions
+                                                    ? 'disabled'
+                                                    : '' ?>>
+
+                                    <option
+                                        value="PERCENTAGE"
+                                        <?= $selectedDiscountType
+                                            === 'PERCENTAGE'
+                                            ? 'selected'
                                             : '' ?>>
+                                        Percentage
+                                    </option>
 
-                            <option
-                                value="PERCENTAGE"
-                                <?= $selectedDiscountType
-                                    === 'PERCENTAGE'
-                                    ? 'selected'
-                                    : '' ?>>
-                                Percentage
-                            </option>
-
-                            <option
-                                value="FLAT"
-                                <?= $selectedDiscountType
-                                    === 'FLAT'
-                                    ? 'selected'
-                                    : '' ?>>
-                                Flat Amount
-                            </option>
-
-                        </select>
-
-                    </div>
-
-                    <div class="col-12 col-md-6">
-
-                        <label
-                            for="couponDiscountValue"
-                            class="form-label">
-                            Discount Value
-                        </label>
-
-                        <input
-                            type="number"
-                            id="couponDiscountValue"
-                            name="discount_value"
-                            class="form-control"
-                            min="0.01"
-                            step="0.01"
-                            required value="<?= esc(
-                                                $discountValue,
-                                                'attr'
-                                            ) ?>" <?= $hasRedemptions
-                                                        ? 'readonly'
-                                                        : '' ?>>
-
-                    </div>
-
-                    <div class="col-12 col-md-6">
-
-                        <label
-                            for="couponExpiryDate"
-                            class="form-label">
-                            Expiry Date
-                        </label>
-
-                        <input
-                            type="date"
-                            id="couponExpiryDate"
-                            name="expiry_date"
-                            class="form-control"
-                            min="<?= date(
-                                        'Y-m-d'
-                                    ) ?>"
-                            required value="<?= esc(
-                                                $expiryDate,
-                                                'attr'
-                                            ) ?>">
-
-                        <div class="form-text">
-                            Coupon remains valid through
-                            11:59:59 PM on this date.
-                        </div>
-
-                    </div>
-
-                    <div class="col-12 col-md-6">
-
-                        <label
-                            for="couponEligibility"
-                            class="form-label">
-                            Member Eligibility
-                        </label>
-                        <?php if ($hasRedemptions): ?>
-
-                            <input
-                                type="hidden"
-                                name="eligibility_type"
-                                value="<?= esc(
-                                            $selectedEligibilityType,
-                                            'attr'
-                                        ) ?>">
-
-                        <?php endif; ?>
-                        <select
-                            id="couponEligibility"
-                            name="eligibility_type"
-                            class="form-select"
-                            data-coupon-eligibility
-                            required <?= $hasRedemptions
-                                            ? 'disabled'
+                                    <option
+                                        value="FLAT"
+                                        <?= $selectedDiscountType
+                                            === 'FLAT'
+                                            ? 'selected'
                                             : '' ?>>
+                                        Flat Amount
+                                    </option>
 
-                            <option
-                                value="ALL"
-                                <?= $selectedEligibilityType
-                                    === 'ALL'
-                                    ? 'selected'
-                                    : '' ?>>
-                                All Members
-                            </option>
+                                </select>
 
-                            <option
-                                value="SELECTED"
-                                <?= $selectedEligibilityType
-                                    === 'SELECTED'
-                                    ? 'selected'
-                                    : '' ?>>
-                                Selected Members
-                            </option>
+                            </div>
 
-                            <option
-                                value="GENDER"
-                                <?= $selectedEligibilityType
-                                    === 'GENDER'
-                                    ? 'selected'
-                                    : '' ?>>
-                                Male / Female Members
-                            </option>
+                            <div class="col-12 col-md-6">
 
-                        </select>
+                                <label
+                                    for="couponDiscountValue"
+                                    class="form-label">
+                                    Discount Value
+                                </label>
 
-                    </div>
+                                <input
+                                    type="number"
+                                    id="couponDiscountValue"
+                                    name="discount_value"
+                                    class="form-control"
+                                    min="0.01"
+                                    step="0.01"
+                                    required value="<?= esc(
+                                                        $discountValue,
+                                                        'attr'
+                                                    ) ?>" <?= $hasRedemptions
+                                                                ? 'readonly'
+                                                                : '' ?>>
 
-                    <div
-                        class="
+                            </div>
+
+                            <div class="col-12 col-md-6">
+
+                                <label
+                                    for="couponExpiryDate"
+                                    class="form-label">
+                                    Expiry Date
+                                </label>
+
+                                <input
+                                    type="date"
+                                    id="couponExpiryDate"
+                                    name="expiry_date"
+                                    class="form-control"
+                                    min="<?= date(
+                                                'Y-m-d'
+                                            ) ?>"
+                                    required value="<?= esc(
+                                                        $expiryDate,
+                                                        'attr'
+                                                    ) ?>">
+
+                                <div class="form-text">
+                                    Coupon remains valid through
+                                    11:59:59 PM on this date.
+                                </div>
+
+                            </div>
+
+                            <div class="col-12 col-md-6">
+
+                                <label
+                                    for="couponEligibility"
+                                    class="form-label">
+                                    Member Eligibility
+                                </label>
+                                <?php if ($hasRedemptions): ?>
+
+                                    <input
+                                        type="hidden"
+                                        name="eligibility_type"
+                                        value="<?= esc(
+                                                    $selectedEligibilityType,
+                                                    'attr'
+                                                ) ?>">
+
+                                <?php endif; ?>
+                                <select
+                                    id="couponEligibility"
+                                    name="eligibility_type"
+                                    class="form-select"
+                                    data-coupon-eligibility
+                                    required <?= $hasRedemptions
+                                                    ? 'disabled'
+                                                    : '' ?>>
+
+                                    <option
+                                        value="ALL"
+                                        <?= $selectedEligibilityType
+                                            === 'ALL'
+                                            ? 'selected'
+                                            : '' ?>>
+                                        All Members
+                                    </option>
+
+                                    <option
+                                        value="SELECTED"
+                                        <?= $selectedEligibilityType
+                                            === 'SELECTED'
+                                            ? 'selected'
+                                            : '' ?>>
+                                        Selected Members
+                                    </option>
+
+                                    <option
+                                        value="GENDER"
+                                        <?= $selectedEligibilityType
+                                            === 'GENDER'
+                                            ? 'selected'
+                                            : '' ?>>
+                                        Male / Female Members
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+                            <div
+                                class="
         col-12
         col-md-6
         <?= $selectedEligibilityType
@@ -689,456 +694,565 @@ $this->section(
             ? ''
             : 'd-none' ?>
     "
-                        data-coupon-gender-container>
+                                data-coupon-gender-container>
 
-                        <label
-                            for="couponGender"
-                            class="form-label">
-                            Gender
-                        </label>
-                        <?php if ($hasRedemptions): ?>
+                                <label
+                                    for="couponGender"
+                                    class="form-label">
+                                    Gender
+                                </label>
+                                <?php if ($hasRedemptions): ?>
 
-                            <input
-                                type="hidden"
-                                name="eligible_gender"
-                                value="<?= esc(
-                                            $selectedGender,
-                                            'attr'
-                                        ) ?>">
+                                    <input
+                                        type="hidden"
+                                        name="eligible_gender"
+                                        value="<?= esc(
+                                                    $selectedGender,
+                                                    'attr'
+                                                ) ?>">
 
-                        <?php endif; ?>
-                        <select
-                            id="couponGender"
-                            name="eligible_gender"
-                            class="form-select" <?= $hasRedemptions
-                                                    ? 'disabled'
-                                                    : '' ?>>
-
-                            <option value="">
-                                Select Gender
-                            </option>
-
-                            <option
-                                value="MALE"
-                                <?= $selectedGender
-                                    === 'MALE'
-                                    ? 'selected'
-                                    : '' ?>>
-                                Male
-                            </option>
-
-                            <option
-                                value="FEMALE"
-                                <?= $selectedGender
-                                    === 'FEMALE'
-                                    ? 'selected'
-                                    : '' ?>>
-                                Female
-                            </option>
-
-                        </select>
-
-                    </div>
-
-                    <div
-                        class="
-                            col-12
-                            d-none
-                        "
-                        data-coupon-members-container>
-
-                        <label
-                            for="couponMembers"
-                            class="form-label">
-                            Selected Members
-                        </label>
-                        <?php if (
-                            $hasRedemptions
-                            && $selectedEligibilityType
-                            === 'SELECTED'
-                        ): ?>
-
-                            <?php foreach (
-                                $selectedMemberIds
-                                as $selectedMemberId
-                            ): ?>
-
-                                <input
-                                    type="hidden"
-                                    name="member_ids[]"
-                                    value="<?= (int) $selectedMemberId ?>">
-
-                            <?php endforeach; ?>
-
-                        <?php endif; ?>
-                        <select
-                            id="couponMembers"
-                            name="member_ids[]"
-                            class="form-select"
-                            multiple
-                            data-choice
-                            data-choice-search="true" <?= $hasRedemptions
+                                <?php endif; ?>
+                                <select
+                                    id="couponGender"
+                                    name="eligible_gender"
+                                    class="form-select" <?= $hasRedemptions
                                                             ? 'disabled'
                                                             : '' ?>>
 
-                            <?php foreach (
-                                $resolvedMembers
-                                as $member
-                            ): ?>
+                                    <option value="">
+                                        Select Gender
+                                    </option>
 
-                                <?php
+                                    <option
+                                        value="MALE"
+                                        <?= $selectedGender
+                                            === 'MALE'
+                                            ? 'selected'
+                                            : '' ?>>
+                                        Male
+                                    </option>
 
-                                $memberId =
-                                    (int) (
-                                        $member['id']
-                                        ?? 0
-                                    );
+                                    <option
+                                        value="FEMALE"
+                                        <?= $selectedGender
+                                            === 'FEMALE'
+                                            ? 'selected'
+                                            : '' ?>>
+                                        Female
+                                    </option>
 
-                                if ($memberId <= 0) {
-                                    continue;
-                                }
+                                </select>
 
-                                $memberName =
-                                    trim(
-                                        (string) (
-                                            $member['full_name']
-                                            ?? ''
-                                        )
+                            </div>
 
-                                    );
+                            <div
+                                class="
+                            col-12
+                            d-none
+                        "
+                                data-coupon-members-container>
 
-                                $profileId =
-                                    trim(
-                                        (string) (
-                                            $member['profile_ref_number']
-                                            ?? ''
-                                        )
-                                    );
+                                <label
+                                    for="couponMembers"
+                                    class="form-label">
+                                    Selected Members
+                                </label>
+                                <?php if (
+                                    $hasRedemptions
+                                    && $selectedEligibilityType
+                                    === 'SELECTED'
+                                ): ?>
 
-                                $selectedMembers =
-                                    array_map(
-                                        'intval',
-                                        (array) old(
-                                            'member_ids',
-                                            $selectedMemberIds
-                                        )
-                                    );
+                                    <?php foreach (
+                                        $selectedMemberIds
+                                        as $selectedMemberId
+                                    ): ?>
 
-                                ?>
+                                        <input
+                                            type="hidden"
+                                            name="member_ids[]"
+                                            value="<?= (int) $selectedMemberId ?>">
 
-                                <option
-                                    value="<?= $memberId ?>"
-                                    <?= in_array(
-                                        $memberId,
-                                        $selectedMembers,
-                                        true
-                                    )
-                                        ? 'selected'
-                                        : '' ?>>
+                                    <?php endforeach; ?>
 
-                                    <?= esc(
-                                        $memberName
-                                            . (
-                                                $profileId !== ''
-                                                ? ' · ' . $profileId
-                                                : ''
+                                <?php endif; ?>
+                                <select
+                                    id="couponMembers"
+                                    name="member_ids[]"
+                                    class="form-select"
+                                    multiple
+                                    data-choice
+                                    data-choice-search="true" <?= $hasRedemptions
+                                                                    ? 'disabled'
+                                                                    : '' ?>>
+
+                                    <?php foreach (
+                                        $resolvedMembers
+                                        as $member
+                                    ): ?>
+
+                                        <?php
+
+                                        $memberId =
+                                            (int) (
+                                                $member['id']
+                                                ?? 0
+                                            );
+
+                                        if ($memberId <= 0) {
+                                            continue;
+                                        }
+
+                                        $memberName =
+                                            trim(
+                                                (string) (
+                                                    $member['full_name']
+                                                    ?? ''
+                                                )
+
+                                            );
+
+                                        $profileId =
+                                            trim(
+                                                (string) (
+                                                    $member['profile_ref_number']
+                                                    ?? ''
+                                                )
+                                            );
+
+                                        $selectedMembers =
+                                            array_map(
+                                                'intval',
+                                                (array) old(
+                                                    'member_ids',
+                                                    $selectedMemberIds
+                                                )
+                                            );
+
+                                        ?>
+
+                                        <option
+                                            value="<?= $memberId ?>"
+                                            <?= in_array(
+                                                $memberId,
+                                                $selectedMembers,
+                                                true
                                             )
-                                    ) ?>
+                                                ? 'selected'
+                                                : '' ?>>
 
-                                </option>
+                                            <?= esc(
+                                                $memberName
+                                                    . (
+                                                        $profileId !== ''
+                                                        ? ' · ' . $profileId
+                                                        : ''
+                                                    )
+                                            ) ?>
 
-                            <?php endforeach; ?>
+                                        </option>
 
-                        </select>
+                                    <?php endforeach; ?>
 
-                        <div class="form-text">
-                            Search and select one or more
-                            registered members.
-                        </div>
+                                </select>
 
-                    </div>
+                                <div class="form-text">
+                                    Search and select one or more
+                                    registered members.
+                                </div>
 
-                    <!--
+                            </div>
+
+                            <!--
     Optional coupon geography.
 
     This intentionally follows the same Country -> State -> City master-data
     hierarchy already used by member Basic Details.
 -->
-                    <div class="col-12">
-                        <hr class="my-2">
+                            <div class="col-12">
+                                <hr class="my-2">
 
-                        <h5 class="fs-16 fw-semibold mb-1">
-                            Geographic Eligibility
-                        </h5>
+                                <h5 class="fs-16 fw-semibold mb-1">
+                                    Geographic Eligibility
+                                </h5>
 
-                        <p class="text-muted fs-13 mb-0">
-                            Optional. Leave all fields blank to allow
-                            eligible members from every location.
-                        </p>
-                    </div>
+                                <p class="text-muted fs-13 mb-0">
+                                    Optional. Leave all fields blank to allow
+                                    eligible members from every location.
+                                </p>
+                            </div>
 
-                    <div class="col-12 col-md-4">
+                            <div class="col-12 col-md-4">
 
-                        <label
-                            for="couponCountryId"
-                            class="form-label">
-                            Country
-                        </label>
+                                <label
+                                    for="couponCountryId"
+                                    class="form-label">
+                                    Country
+                                </label>
 
-                        <?php if (
-                            $hasRedemptions
-                            && $selectedCountryId !== ''
-                        ): ?>
+                                <?php if (
+                                    $hasRedemptions
+                                    && $selectedCountryId !== ''
+                                ): ?>
 
-                            <input
-                                type="hidden"
-                                name="country_id"
-                                value="<?= esc(
-                                            $selectedCountryId,
-                                            'attr'
-                                        ) ?>">
-
-                        <?php endif; ?>
-
-                        <select
-                            id="couponCountryId"
-                            name="country_id"
-                            class="form-select"
-                            data-choice
-                            data-choice-search="false"
-                            data-states-url="<?= esc(
-                                                    site_url(
-                                                        'profile/master/states'
-                                                    ),
+                                    <input
+                                        type="hidden"
+                                        name="country_id"
+                                        value="<?= esc(
+                                                    $selectedCountryId,
                                                     'attr'
-                                                ) ?>"
-                            <?= $hasRedemptions
-                                ? 'disabled'
-                                : '' ?>>
+                                                ) ?>">
 
-                            <option value="">
-                                All Countries
-                            </option>
+                                <?php endif; ?>
 
-                            <?php foreach (
-                                $resolvedCountries
-                                as $countryOption
-                            ): ?>
-
-                                <?php
-                                $countryId =
-                                    (string) (
-                                        $countryOption['id']
-                                        ?? ''
-                                    );
-                                ?>
-
-                                <option
-                                    value="<?= esc(
-                                                $countryId,
-                                                'attr'
-                                            ) ?>"
-                                    <?= $selectedCountryId
-                                        === $countryId
-                                        ? 'selected'
+                                <select
+                                    id="couponCountryId"
+                                    name="country_id"
+                                    class="form-select"
+                                    data-choice
+                                    data-choice-search="false"
+                                    data-states-url="<?= esc(
+                                                            site_url(
+                                                                'profile/master/states'
+                                                            ),
+                                                            'attr'
+                                                        ) ?>"
+                                    <?= $hasRedemptions
+                                        ? 'disabled'
                                         : '' ?>>
 
-                                    <?= esc(
-                                        $countryOption['name']
-                                            ?? ''
-                                    ) ?>
+                                    <option value="">
+                                        All Countries
+                                    </option>
 
-                                </option>
+                                    <?php foreach (
+                                        $resolvedCountries
+                                        as $countryOption
+                                    ): ?>
 
-                            <?php endforeach; ?>
+                                        <?php
+                                        $countryId =
+                                            (string) (
+                                                $countryOption['id']
+                                                ?? ''
+                                            );
+                                        ?>
 
-                        </select>
+                                        <option
+                                            value="<?= esc(
+                                                        $countryId,
+                                                        'attr'
+                                                    ) ?>"
+                                            <?= $selectedCountryId
+                                                === $countryId
+                                                ? 'selected'
+                                                : '' ?>>
 
-                    </div>
+                                            <?= esc(
+                                                $countryOption['name']
+                                                    ?? ''
+                                            ) ?>
 
-                    <div class="col-12 col-md-4">
+                                        </option>
 
-                        <label
-                            for="couponStateId"
-                            class="form-label">
-                            State
-                        </label>
+                                    <?php endforeach; ?>
 
-                        <?php if (
-                            $hasRedemptions
-                            && $selectedStateId !== ''
-                        ): ?>
+                                </select>
 
-                            <input
-                                type="hidden"
-                                name="state_id"
-                                value="<?= esc(
-                                            $selectedStateId,
-                                            'attr'
-                                        ) ?>">
+                            </div>
 
-                        <?php endif; ?>
+                            <div class="col-12 col-md-4">
 
-                        <select
-                            id="couponStateId"
-                            name="state_id"
-                            class="form-select"
-                            data-choice
-                            data-choice-search="true"
-                            data-choice-search-placeholder="Search state"
-                            <?= (
-                                $hasRedemptions
-                                || $selectedCountryId === ''
-                            )
-                                ? 'disabled'
-                                : '' ?>>
+                                <label
+                                    for="couponStateId"
+                                    class="form-label">
+                                    State
+                                </label>
 
-                            <option value="">
-                                All States
-                            </option>
+                                <?php if (
+                                    $hasRedemptions
+                                    && $selectedStateId !== ''
+                                ): ?>
 
-                            <?php foreach (
-                                $resolvedStates
-                                as $state
-                            ): ?>
+                                    <input
+                                        type="hidden"
+                                        name="state_id"
+                                        value="<?= esc(
+                                                    $selectedStateId,
+                                                    'attr'
+                                                ) ?>">
 
-                                <?php
-                                $stateId =
-                                    (string) (
-                                        $state['id']
-                                        ?? ''
-                                    );
-                                ?>
+                                <?php endif; ?>
 
-                                <option
-                                    value="<?= esc(
-                                                $stateId,
-                                                'attr'
-                                            ) ?>"
-                                    <?= $selectedStateId
-                                        === $stateId
-                                        ? 'selected'
+                                <select
+                                    id="couponStateId"
+                                    name="state_id"
+                                    class="form-select"
+                                    data-choice
+                                    data-choice-search="true"
+                                    data-choice-search-placeholder="Search state"
+                                    <?= (
+                                        $hasRedemptions
+                                        || $selectedCountryId === ''
+                                    )
+                                        ? 'disabled'
                                         : '' ?>>
 
-                                    <?= esc(
-                                        $state['name']
-                                            ?? ''
-                                    ) ?>
+                                    <option value="">
+                                        All States
+                                    </option>
 
-                                </option>
+                                    <?php foreach (
+                                        $resolvedStates
+                                        as $state
+                                    ): ?>
 
-                            <?php endforeach; ?>
+                                        <?php
+                                        $stateId =
+                                            (string) (
+                                                $state['id']
+                                                ?? ''
+                                            );
+                                        ?>
 
-                        </select>
+                                        <option
+                                            value="<?= esc(
+                                                        $stateId,
+                                                        'attr'
+                                                    ) ?>"
+                                            <?= $selectedStateId
+                                                === $stateId
+                                                ? 'selected'
+                                                : '' ?>>
 
-                    </div>
+                                            <?= esc(
+                                                $state['name']
+                                                    ?? ''
+                                            ) ?>
 
-                    <div class="col-12 col-md-4">
+                                        </option>
 
-                        <label
-                            for="couponCityId"
-                            class="form-label">
-                            City
-                        </label>
+                                    <?php endforeach; ?>
 
-                        <?php if (
-                            $hasRedemptions
-                            && $selectedCityId !== ''
-                        ): ?>
+                                </select>
 
-                            <input
-                                type="hidden"
-                                name="city_id"
-                                value="<?= esc(
-                                            $selectedCityId,
-                                            'attr'
-                                        ) ?>">
+                            </div>
 
-                        <?php endif; ?>
+                            <div class="col-12 col-md-4">
 
-                        <select
-                            id="couponCityId"
-                            name="city_id"
-                            class="form-select"
-                            data-choice
-                            data-choice-search="true"
-                            data-choice-search-placeholder="Search city"
-                            data-cities-url="<?= esc(
-                                                    site_url(
-                                                        'profile/master/cities'
-                                                    ),
-                                                    'attr'
-                                                ) ?>"
-                            data-selected-city="<?= esc(
+                                <label
+                                    for="couponCityId"
+                                    class="form-label">
+                                    City
+                                </label>
+
+                                <?php if (
+                                    $hasRedemptions
+                                    && $selectedCityId !== ''
+                                ): ?>
+
+                                    <input
+                                        type="hidden"
+                                        name="city_id"
+                                        value="<?= esc(
                                                     $selectedCityId,
                                                     'attr'
-                                                ) ?>"
-                            <?= (
-                                $hasRedemptions
-                                || $selectedStateId === ''
-                            )
-                                ? 'disabled'
-                                : '' ?>>
+                                                ) ?>">
 
-                            <option value="">
-                                All Cities
-                            </option>
+                                <?php endif; ?>
 
-                            <?php foreach (
-                                $resolvedCities
-                                as $city
-                            ): ?>
-
-                                <?php
-                                $cityId =
-                                    (string) (
-                                        $city['id']
-                                        ?? ''
-                                    );
-                                ?>
-
-                                <option
-                                    value="<?= esc(
-                                                $cityId,
-                                                'attr'
-                                            ) ?>"
-                                    <?= $selectedCityId
-                                        === $cityId
-                                        ? 'selected'
+                                <select
+                                    id="couponCityId"
+                                    name="city_id"
+                                    class="form-select"
+                                    data-choice
+                                    data-choice-search="true"
+                                    data-choice-search-placeholder="Search city"
+                                    data-cities-url="<?= esc(
+                                                            site_url(
+                                                                'profile/master/cities'
+                                                            ),
+                                                            'attr'
+                                                        ) ?>"
+                                    data-selected-city="<?= esc(
+                                                            $selectedCityId,
+                                                            'attr'
+                                                        ) ?>"
+                                    <?= (
+                                        $hasRedemptions
+                                        || $selectedStateId === ''
+                                    )
+                                        ? 'disabled'
                                         : '' ?>>
 
-                                    <?= esc(
-                                        $city['name']
-                                            ?? ''
-                                    ) ?>
+                                    <option value="">
+                                        All Cities
+                                    </option>
 
-                                </option>
+                                    <?php foreach (
+                                        $resolvedCities
+                                        as $city
+                                    ): ?>
 
-                            <?php endforeach; ?>
+                                        <?php
+                                        $cityId =
+                                            (string) (
+                                                $city['id']
+                                                ?? ''
+                                            );
+                                        ?>
 
-                        </select>
+                                        <option
+                                            value="<?= esc(
+                                                        $cityId,
+                                                        'attr'
+                                                    ) ?>"
+                                            <?= $selectedCityId
+                                                === $cityId
+                                                ? 'selected'
+                                                : '' ?>>
+
+                                            <?= esc(
+                                                $city['name']
+                                                    ?? ''
+                                            ) ?>
+
+                                        </option>
+
+                                    <?php endforeach; ?>
+
+                                </select>
+
+                            </div>
+
+                            <?php if ($isEdit): ?>
+
+                                <div class="col-12">
+
+                                    <div class="form-check form-switch">
+
+                                        <input
+                                            type="checkbox"
+                                            id="couponActive"
+                                            name="is_active"
+                                            value="1"
+                                            class="form-check-input"
+                                            <?= $isActive
+                                                ? 'checked'
+                                                : '' ?>>
+
+                                        <label
+                                            for="couponActive"
+                                            class="form-check-label">
+                                            Active
+                                        </label>
+
+                                    </div>
+
+                                    <div class="form-text">
+                                        Deactivate the coupon to prevent
+                                        further redemption without deleting
+                                        its history.
+                                    </div>
+
+                                </div>
+
+                            <?php else: ?>
+
+                                <input
+                                    type="hidden"
+                                    name="is_active"
+                                    value="1">
+
+                            <?php endif; ?>
+
+                        </div>
 
                     </div>
 
-                    <div class="col-12">
+                    <div class="card-footer">
 
-                        <div class="form-check form-switch">
+                        <div
+                            class="
+            d-flex
+            justify-content-end
+            align-items-center
+            gap-2
+        ">
 
-                            <input
-                                type="checkbox"
-                                id="couponActive"
-                                name="is_active"
-                                value="1"
-                                class="form-check-input"
-                                <?= $isActive
-                                    ? 'checked'
-                                    : '' ?>>
+                            <a
+                                href="<?= route_to(
+                                            'admin.coupons.index'
+                                        ) ?>"
+                                class="
+                btn
+                btn-soft-secondary
+                w-auto
+                px-3
+            ">
 
-                            <label
-                                for="couponActive"
-                                class="form-check-label">
-                                Active
-                            </label>
+                                Cancel
+
+                            </a>
+
+                            <button
+                                type="submit"
+                                class="
+                btn
+                registration-form__submit
+                w-auto
+                px-3
+                fs-14
+                fw-medium
+                text-uppercase
+            "
+                                data-submit-button>
+
+                                <span
+                                    class="
+                    registration-submit__idle
+                    d-inline-flex
+                    align-items-center
+                    gap-2
+                "
+                                    data-submit-idle>
+
+                                    <i
+                                        class="
+                        mdi
+                        mdi-cloud-upload-outline
+                        fs-20
+                    "
+                                        aria-hidden="true">
+                                    </i>
+
+                                    Save Coupon
+
+                                </span>
+
+                                <span
+                                    class="
+                    registration-submit__loading
+                    d-none
+                "
+                                    data-submit-loading>
+
+                                    <span
+                                        class="
+                        spinner-border
+                        spinner-border-sm
+                    "
+                                        role="status"
+                                        aria-hidden="true">
+                                    </span>
+
+                                    <span class="ms-1">
+                                        Saving...
+                                    </span>
+
+                                </span>
+
+                            </button>
 
                         </div>
 
@@ -1146,66 +1260,9 @@ $this->section(
 
                 </div>
 
-            </div>
-
-            <div class="card-footer text-end">
-
-                <button
-                    type="submit"
-                    class="
-                        btn
-                        registration-form__submit
-                        fs-14
-                        fw-medium
-                        text-uppercase
-                    "
-                    data-submit-button>
-
-                    <span
-                        class="registration-submit__idle"
-                        data-submit-idle>
-
-                        <i
-                            class="
-                                mdi
-                                mdi-cloud-upload-outline
-                                fs-20
-                            "
-                            aria-hidden="true">
-                        </i>
-
-                        Save Coupon
-
-                    </span>
-
-                    <span
-                        class="
-                            registration-submit__loading
-                            d-none
-                        "
-                        data-submit-loading>
-
-                        <span
-                            class="
-                                spinner-border
-                                spinner-border-sm
-                            "
-                            role="status"
-                            aria-hidden="true">
-                        </span>
-
-                        Saving...
-
-                    </span>
-
-                </button>
-
-            </div>
-
+            </form>
         </div>
-
-    </form>
-
+    </div>
 </div>
 
 <?php

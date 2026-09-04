@@ -87,6 +87,45 @@ document.addEventListener(
                 '[name="discount_value"]'
             );
 
+        const planSelect =
+            document.querySelector(
+                '[name="plan_ids[]"]'
+            );
+
+        const highestSelectedPlanPrice =
+            () => {
+                if (!planSelect) {
+                    return 0;
+                }
+
+                return Array.from(
+                    planSelect.selectedOptions
+                ).reduce(
+                    function (
+                        highest,
+                        option
+                    ) {
+                        const pricePaise =
+                            Number.parseInt(
+                                option.dataset
+                                    .pricePaise
+                                ?? '0',
+                                10
+                            );
+
+                        return Math.max(
+                            highest,
+                            Number.isFinite(
+                                pricePaise
+                            )
+                                ? pricePaise
+                                : 0
+                        );
+                    },
+                    0
+                );
+            };
+
         const syncDiscount =
             () => {
                 if (
@@ -101,29 +140,43 @@ document.addEventListener(
                     discountType?.value
                     === 'PERCENTAGE'
                 ) {
-                    discountValue.min =
-                        '1';
-
-                    discountValue.max =
-                        '90';
-
-                    discountValue.step =
-                        '1';
+                    discountValue.min = '1';
+                    discountValue.max = '100';
+                    discountValue.step = '1';
 
                     return;
                 }
 
-                discountValue.min =
-                    '0.01';
+                discountValue.min = '0.01';
+                discountValue.step = '0.01';
 
-                discountValue
-                    .removeAttribute(
-                        'max'
-                    );
+                const highestPricePaise =
+                    highestSelectedPlanPrice();
 
-                discountValue.step =
-                    '0.01';
+                if (highestPricePaise > 0) {
+                    discountValue.max =
+                        (
+                            highestPricePaise
+                            / 100
+                        ).toFixed(2);
+
+                    return;
+                }
+
+                discountValue.removeAttribute(
+                    'max'
+                );
             };
+
+        discountType?.addEventListener(
+            'change',
+            syncDiscount
+        );
+
+        planSelect?.addEventListener(
+            'change',
+            syncDiscount
+        );
 
         discountType?.addEventListener(
             'change',
