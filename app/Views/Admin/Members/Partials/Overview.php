@@ -130,8 +130,8 @@ $resolvedCanUnblock =
                         flex-sm-row gap-3">
 
                     <div
-                        class="member-profile-thumbnail
-                            flex-shrink-0">
+                        class="member-profile-thumbnail mx-auto flex-shrink-0"
+                        data-member-profile-thumbnail>
 
                         <img
                             src="<?= esc(
@@ -142,7 +142,8 @@ $resolvedCanUnblock =
                                         $resolvedFullName
                                             . ' profile photo',
                                         'attr'
-                                    ) ?>">
+                                    ) ?>" loading="lazy"
+                            data-member-profile-thumbnail-image>
                     </div>
 
                     <div class="flex-grow-1 min-w-0">

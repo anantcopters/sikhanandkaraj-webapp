@@ -167,7 +167,9 @@ $canOpenModal =
                 <!-- Profile thumbnail -->
                 <div class="position-relative mx-auto mb-3">
 
-                    <div class="member-profile-thumbnail mx-auto">
+                    <div
+                        class="member-profile-thumbnail mx-auto"
+                        data-member-profile-thumbnail>
 
                         <img
                             src="<?= esc(
@@ -179,7 +181,8 @@ $canOpenModal =
                                             . ' profile photo',
                                         'attr'
                                     ) ?>"
-                            loading="lazy">
+                            loading="lazy"
+                            data-member-profile-thumbnail-image>
 
                     </div>
 

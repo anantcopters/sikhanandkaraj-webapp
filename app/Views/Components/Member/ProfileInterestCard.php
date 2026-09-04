@@ -298,7 +298,9 @@ $profileNavigationUrl =
                                 ) ?>"
                         class="text-decoration-none">
 
-                        <div class="member-profile-thumbnail">
+                        <div
+                            class="member-profile-thumbnail mx-auto"
+                            data-member-profile-thumbnail>
 
                             <img
                                 src="<?= esc(
@@ -310,7 +312,8 @@ $profileNavigationUrl =
                                                 . ' profile photo',
                                             'attr'
                                         ) ?>"
-                                loading="lazy">
+                                loading="lazy"
+                                data-member-profile-thumbnail-image>
 
                         </div>
 

@@ -313,7 +313,9 @@ $blockModalId =
                     flex-shrink-0"
                 style="width: 160px;">
 
-                <div class="member-profile-thumbnail">
+                <div
+                    class="member-profile-thumbnail mx-auto"
+                    data-member-profile-thumbnail>
 
                     <img
                         src="<?= esc(
@@ -325,7 +327,8 @@ $blockModalId =
                                         . ' profile photo',
                                     'attr'
                                 ) ?>"
-                        loading="lazy">
+                        loading="lazy"
+                        data-member-profile-thumbnail-image>
 
                 </div>
 

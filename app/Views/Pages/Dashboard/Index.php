@@ -411,8 +411,9 @@ $matchSections = [
                 <div class="dashboard-sidebar">
                     <div class="card border border-danger border-opacity-25 shadow-sm">
                         <div class="card-body p-3 text-center">
-
-                            <div class="member-profile-thumbnail mx-auto mb-2">
+                            <div
+                                class="member-profile-thumbnail mx-auto"
+                                data-member-profile-thumbnail>
 
                                 <img
                                     src="<?= esc(
@@ -423,7 +424,9 @@ $matchSections = [
                                                 $resolvedName
                                                     . ' profile photo',
                                                 'attr'
-                                            ) ?>">
+                                            ) ?>"
+                                    loading="lazy"
+                                    data-member-profile-thumbnail-image>
 
                             </div>
 
