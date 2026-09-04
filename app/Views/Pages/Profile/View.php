@@ -2567,9 +2567,9 @@ $this->section('content');
                                         <button
                                             type="button"
                                             class="d-block w-100 p-0
-                                border rounded-3
-                                overflow-hidden bg-light
-                                position-relative"
+    border rounded-3
+    overflow-hidden
+    position-relative"
                                             data-profile-gallery-trigger
                                             data-slide-index="<?= esc(
                                                                     (string) $index,
@@ -2630,7 +2630,9 @@ $this->section('content');
                                             </span>
 
                                             <?php if (
-                                                $photo['isPrimary'] === true
+                                                !$isOtherMemberProfileView
+                                                && ($photo['isPrimary'] ?? false)
+                                                === true
                                             ): ?>
 
                                                 <span
