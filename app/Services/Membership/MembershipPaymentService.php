@@ -222,6 +222,20 @@ final class MembershipPaymentService
      * Membership purchase/renewal/upgrade rules remain owned exclusively
      * by MembershipPurchaseService.
      *
+     * IMPORTANT:
+     *
+     * Coupon validation performed by the browser/AJAX "Apply Coupon"
+     * action is only a preview.
+     *
+     * The coupon MUST be evaluated again here before the payment record is
+     * created. This prevents a coupon that has expired, become exhausted,
+     * become inactive, become ineligible for the member/plan/location, or
+     * already been redeemed from being trusted merely because it was
+     * successfully previewed earlier.
+     *
+     * processSuccessfulPayment() performs the final locked redemption check
+     * again inside the successful-payment transaction.
+     *
      * @return array<string, mixed>
      */
     public function recordOfflinePayment(
@@ -250,16 +264,49 @@ final class MembershipPaymentService
             );
         }
 
+        /*
+        * Normalize values before any business-rule evaluation.
+        */
+        $requestedPlanCode =
+            mb_strtoupper(
+                trim(
+                    $requestedPlanCode
+                )
+            );
+
+        $couponCode =
+            mb_strtoupper(
+                trim(
+                    $couponCode
+                )
+            );
+
+        $paymentMethod =
+            mb_strtoupper(
+                trim(
+                    $paymentMethod
+                )
+            );
+
+        $externalReference =
+            trim(
+                $externalReference
+            );
+
+        $paymentNote =
+            trim(
+                $paymentNote
+            );
+
+        /*
+        * Validate the administrator-selected offline payment source.
+        */
         $allowedMethods = [
             MemberPaymentModel::PAYMENT_METHOD_BANK_TRANSFER,
             MemberPaymentModel::PAYMENT_METHOD_UPI,
             MemberPaymentModel::PAYMENT_METHOD_CASH,
             MemberPaymentModel::PAYMENT_METHOD_OTHER,
         ];
-
-        $paymentMethod = mb_strtoupper(
-            trim($paymentMethod)
-        );
 
         if (
             !in_array(
@@ -273,11 +320,18 @@ final class MembershipPaymentService
             );
         }
 
+        /*
+        * Validate the payment date.
+        */
         $paymentDateObject =
             \DateTimeImmutable::createFromFormat(
                 '!Y-m-d',
-                trim($paymentDate),
-                new \DateTimeZone('UTC')
+                trim(
+                    $paymentDate
+                ),
+                new \DateTimeZone(
+                    'UTC'
+                )
             );
 
         if (
@@ -289,23 +343,35 @@ final class MembershipPaymentService
             );
         }
 
-        $todayUtc = new \DateTimeImmutable(
-            'today',
-            new \DateTimeZone('UTC')
-        );
+        $todayUtc =
+            new \DateTimeImmutable(
+                'today',
+                new \DateTimeZone(
+                    'UTC'
+                )
+            );
 
-        if ($paymentDateObject > $todayUtc) {
+        if (
+            $paymentDateObject
+            > $todayUtc
+        ) {
             throw new RuntimeException(
                 'The payment date cannot be in the future.'
             );
         }
 
         /*
-     * Reuse the authoritative purchase decision.
-     *
-     * This blocks an active-plan downgrade and determines whether the
-     * transaction is PURCHASE, RENEWAL or UPGRADE.
-     */
+        * Reuse the authoritative membership purchase decision.
+        *
+        * This determines whether the operation is:
+        *
+        * - PURCHASE
+        * - RENEWAL
+        * - UPGRADE
+        *
+        * and prevents an invalid downgrade or otherwise disallowed
+        * membership transition.
+        */
         $decision =
             $this
             ->purchaseService
@@ -320,6 +386,11 @@ final class MembershipPaymentService
             );
         }
 
+        /*
+        * Resolve the plan from the server-side membership plan master.
+        *
+        * Never trust plan price or plan ID supplied by the browser.
+        */
         $plan =
             $this
             ->planModel
@@ -333,13 +404,14 @@ final class MembershipPaymentService
             );
         }
 
-        $planId = max(
-            0,
-            (int) (
-                $plan['id']
-                ?? 0
-            )
-        );
+        $planId =
+            max(
+                0,
+                (int) (
+                    $plan['id']
+                    ?? 0
+                )
+            );
 
         if ($planId <= 0) {
             throw new RuntimeException(
@@ -347,14 +419,166 @@ final class MembershipPaymentService
             );
         }
 
-        $transactionReference =
-            $this->createTransactionReference();
+        $planPricePaise =
+            max(
+                0,
+                (int) (
+                    $plan['price_paise']
+                    ?? 0
+                )
+            );
 
         /*
-     * provider_payment_id/provider_event_id are generated internally for
-     * idempotency. The administrator-entered bank/UPI reference remains
-     * separate and may legitimately be blank for cash.
-     */
+        * ------------------------------------------------------------------
+        * FINAL SERVER-SIDE COUPON VALIDATION BEFORE PAYMENT CREATION
+        * ------------------------------------------------------------------
+        *
+        * The Apply Coupon AJAX request is NOT authoritative.
+        *
+        * Re-evaluate the coupon now against the current database state.
+        *
+        * CouponService owns:
+        *
+        * - active/inactive check;
+        * - start date;
+        * - expiry;
+        * - usage limit;
+        * - applicable membership plan;
+        * - All / Selected / Gender eligibility;
+        * - geographic eligibility;
+        * - previous member redemption;
+        * - discount calculation.
+        *
+        * If any rule has changed since the AJAX preview, evaluate()
+        * throws and NO payment record is created.
+        */
+        $couponEvaluation =
+            null;
+
+        if ($couponCode !== '') {
+            $couponEvaluation =
+                $this
+                ->couponService
+                ->evaluate(
+                    $userId,
+                    $requestedPlanCode,
+                    $couponCode
+                );
+        }
+
+        /*
+        * Build authoritative pricing snapshots.
+        *
+        * Amount Received remains separate because an administrator may
+        * legitimately record an amount different from Final Payable.
+        *
+        * The browser-calculated value is never trusted.
+        */
+        $couponId =
+            $couponEvaluation !== null
+            ? max(
+                0,
+                (int) (
+                    $couponEvaluation['couponId']
+                    ?? 0
+                )
+            )
+            : 0;
+
+        $pricingPlanPricePaise =
+            $couponEvaluation !== null
+            ? max(
+                0,
+                (int) (
+                    $couponEvaluation['planPricePaise']
+                    ?? 0
+                )
+            )
+            : $planPricePaise;
+
+        $couponDiscountPaise =
+            $couponEvaluation !== null
+            ? max(
+                0,
+                (int) (
+                    $couponEvaluation['discountAmountPaise']
+                    ?? 0
+                )
+            )
+            : 0;
+
+        $finalPayablePaise =
+            $couponEvaluation !== null
+            ? max(
+                0,
+                (int) (
+                    $couponEvaluation['finalPayablePaise']
+                    ?? 0
+                )
+            )
+            : $planPricePaise;
+
+        /*
+        * Defensive pricing checks.
+        *
+        * CouponService should already guarantee these invariants, but
+        * payment creation must not persist an impossible financial
+        * snapshot even if CouponService is changed later.
+        */
+        if (
+            $couponEvaluation !== null
+            && $couponId <= 0
+        ) {
+            throw new RuntimeException(
+                'The coupon evaluation is invalid.'
+            );
+        }
+
+        if (
+            $pricingPlanPricePaise
+            !== $planPricePaise
+        ) {
+            throw new RuntimeException(
+                'The coupon pricing does not match the selected membership plan.'
+            );
+        }
+
+        if (
+            $couponDiscountPaise
+            > $pricingPlanPricePaise
+        ) {
+            throw new RuntimeException(
+                'The coupon discount is invalid.'
+            );
+        }
+
+        if (
+            $finalPayablePaise
+            !== (
+                $pricingPlanPricePaise
+                - $couponDiscountPaise
+            )
+        ) {
+            throw new RuntimeException(
+                'The calculated coupon amount is invalid.'
+            );
+        }
+
+        /*
+        * Generate payment identifiers only after every request-level and
+        * coupon-level validation has passed.
+        */
+        $transactionReference =
+            $this
+            ->createTransactionReference();
+
+        /*
+        * provider_payment_id/provider_event_id are generated internally
+        * for idempotency.
+        *
+        * The administrator-entered Bank/UPI reference remains separate
+        * and may legitimately be blank for Cash.
+        */
         $offlinePaymentId =
             'OFFLINE-'
             . mb_strtoupper(
@@ -371,6 +595,12 @@ final class MembershipPaymentService
                 )
             );
 
+        /*
+        * Create the payment only AFTER the coupon has successfully passed
+        * the current server-side eligibility/pricing validation.
+        *
+        * This avoids orphan CREATED payments for invalid coupons.
+        */
         $paymentId =
             $this
             ->paymentModel
@@ -422,11 +652,11 @@ final class MembershipPaymentService
                     ),
 
                     /*
-                 * Actual amount received is authoritative for the
-                 * payment ledger. Plan pricing remains preserved by
-                 * the membership snapshot created by the existing
-                 * purchase service.
-                 */
+                    * Amount Received is the actual money recorded by
+                    * Superadmin.
+                    *
+                    * Do not replace this with Final Payable.
+                    */
                     'amount_paise' =>
                     $amountPaise,
 
@@ -443,9 +673,30 @@ final class MembershipPaymentService
                     $adminUserId,
 
                     'payment_note' =>
-                    trim($paymentNote) !== ''
-                        ? trim($paymentNote)
+                    $paymentNote !== ''
+                        ? $paymentNote
                         : null,
+
+                    /*
+                    * Persist the coupon/pricing snapshot on the payment.
+                    *
+                    * processSuccessfulPayment() reads coupon_id from the
+                    * locked payment row and performs the final redemption
+                    * validation inside its transaction.
+                    */
+                    'coupon_id' =>
+                    $couponId > 0
+                        ? $couponId
+                        : null,
+
+                    'plan_price_paise' =>
+                    $pricingPlanPricePaise,
+
+                    'coupon_discount_paise' =>
+                    $couponDiscountPaise,
+
+                    'final_payable_paise' =>
+                    $finalPayablePaise,
 
                     'provider_response' =>
                     null,
@@ -468,85 +719,75 @@ final class MembershipPaymentService
             );
         }
 
-        $couponEvaluation =
-            null;
+        /*
+        * processSuccessfulPayment() now becomes the FINAL authority.
+        *
+        * It:
+        *
+        * 1. starts the DB transaction;
+        * 2. locks the payment;
+        * 3. sees payment.coupon_id;
+        * 4. calls CouponService::evaluateForRedemption();
+        * 5. rechecks the coupon under the final transaction;
+        * 6. activates/renews/upgrades membership;
+        * 7. records coupon redemption.
+        *
+        * Therefore the coupon is checked twice server-side:
+        *
+        *     evaluate()
+        *         -> before payment creation
+        *
+        *     evaluateForRedemption()
+        *         -> inside final payment transaction
+        */
+        return $this
+            ->processSuccessfulPayment(
+                transactionReference: $transactionReference,
 
-        if (
-            trim($couponCode) !== ''
-        ) {
-            $couponEvaluation =
-                $this->couponService
-                ->evaluate(
-                    $userId,
-                    $requestedPlanCode,
-                    $couponCode
-                );
-        }
+                providerPaymentId: $offlinePaymentId,
 
-        return $this->processSuccessfulPayment(
-            transactionReference: $transactionReference,
+                providerEventId: $offlineEventId,
 
-            providerPaymentId: $offlinePaymentId,
+                providerResponse: [
+                    'payment_source' =>
+                    $paymentMethod,
 
-            providerEventId: $offlineEventId,
+                    'external_reference' =>
+                    $externalReference,
 
-            providerResponse: [
-                'payment_source' =>
-                $paymentMethod,
+                    'payment_date' =>
+                    $paymentDateObject
+                        ->format(
+                            'Y-m-d'
+                        ),
 
-                'external_reference' =>
-                trim($externalReference),
+                    'recorded_by_admin_user_id' =>
+                    $adminUserId,
 
-                'payment_date' =>
-                $paymentDateObject->format(
-                    'Y-m-d'
-                ),
+                    'coupon_id' =>
+                    $couponId > 0
+                        ? $couponId
+                        : null,
 
-                'recorded_by_admin_user_id' =>
-                $adminUserId,
+                    'plan_price_paise' =>
+                    $pricingPlanPricePaise,
 
-                'coupon_id' =>
-                $couponEvaluation !== null
-                    ? (int) $couponEvaluation['couponId']
-                    : null,
+                    'coupon_discount_paise' =>
+                    $couponDiscountPaise,
 
-                'plan_price_paise' =>
-                $couponEvaluation !== null
-                    ? (int) $couponEvaluation['planPricePaise']
-                    : max(
-                        0,
-                        (int) (
-                            $plan['price_paise']
-                            ?? 0
-                        )
-                    ),
+                    'final_payable_paise' =>
+                    $finalPayablePaise,
+                ],
 
-                'coupon_discount_paise' =>
-                $couponEvaluation !== null
-                    ? (int) $couponEvaluation['discountAmountPaise']
-                    : 0,
-
-                'final_payable_paise' =>
-                $couponEvaluation !== null
-                    ? (int) $couponEvaluation['finalPayablePaise']
-                    : max(
-                        0,
-                        (int) (
-                            $plan['price_paise']
-                            ?? 0
-                        )
-                    ),
-            ],
-
-            paidAt: $paymentDateObject
-                ->setTime(
-                    12,
-                    0
-                )
-                ->format(
-                    'Y-m-d H:i:s'
-                )
-        );
+                paidAt: $paymentDateObject
+                    ->setTime(
+                        12,
+                        0
+                    )
+                    ->format(
+                        'Y-m-d H:i:s'
+                    )
+            );
     }
 
     /**
