@@ -1253,34 +1253,38 @@ final class MemberController extends BaseController
             }
 
             /*
-         * CouponService is the authoritative eligibility/pricing engine.
-         */
+            * CouponService is the authoritative eligibility/pricing engine.
+            *
+            * Pass the selected plan code rather than a browser-supplied price or
+            * separately resolved plan ID. CouponService resolves the active plan
+            * and its authoritative price itself.
+            */
             $evaluation =
                 service(
                     'couponService'
                 )->evaluate(
-                    couponCode: $couponCode,
-
                     userId: $userId,
 
-                    membershipPlanId: $membershipPlanId
+                    planCode: $planCode,
+
+                    couponCode: $couponCode
                 );
 
             $planPricePaise =
                 (int) (
-                    $evaluation['original_price_paise']
+                    $evaluation['planPricePaise']
                     ?? 0
                 );
 
             $discountPaise =
                 (int) (
-                    $evaluation['discount_amount_paise']
+                    $evaluation['discountAmountPaise']
                     ?? 0
                 );
 
             $finalPaise =
                 (int) (
-                    $evaluation['final_payable_paise']
+                    $evaluation['finalPayablePaise']
                     ?? 0
                 );
 
