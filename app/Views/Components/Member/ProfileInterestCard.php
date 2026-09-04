@@ -282,10 +282,10 @@ $profileNavigationUrl =
 
             <!-- Member photo, account type and professional summary -->
             <div
-                class="d-flex flex-column
+                class="member-profile-photo-column
+        d-flex flex-column
         align-items-center
-        flex-shrink-0"
-                style="width: 160px;">
+        flex-shrink-0">
 
                 <?php if (
                     $profileNavigationUrl !== ''

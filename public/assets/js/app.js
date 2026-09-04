@@ -68,6 +68,10 @@ document.addEventListener('DOMContentLoaded', function () {
             const isTallPhoto =
                 imageRatio >= TALL_PHOTO_RATIO;
 
+            const photoColumn = thumbnail.closest(
+                '.member-profile-photo-column'
+            );
+
             if (!isTallPhoto) {
                 thumbnail.classList.remove(
                     'is-tall-photo'
@@ -76,6 +80,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 thumbnail.style.removeProperty(
                     '--member-thumbnail-width'
                 );
+
+                if (photoColumn) {
+                    photoColumn.style.removeProperty(
+                        '--member-photo-column-width'
+                    );
+                }
 
                 return;
             }
@@ -93,6 +103,13 @@ document.addEventListener('DOMContentLoaded', function () {
             thumbnail.classList.add(
                 'is-tall-photo'
             );
+
+            if (photoColumn) {
+                photoColumn.style.setProperty(
+                    '--member-photo-column-width',
+                    `${thumbnailWidth}px`
+                );
+            }
         };
 
         if (

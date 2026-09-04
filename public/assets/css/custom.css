@@ -2080,6 +2080,16 @@ form[aria-busy="true"] {
 }
 
 /**
+ * Member photo column used by the larger profile cards.
+ *
+ * Standard photographs retain the existing 160px column.
+ * JavaScript narrows this value only for unusually tall photographs.
+ */
+.member-profile-photo-column {
+    width: var(--member-photo-column-width, 160px);
+}
+
+/**
  * Fallback shown when the member does not have an available photograph.
  */
 .member-profile-thumbnail--fallback {
