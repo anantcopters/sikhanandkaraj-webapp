@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use CodeIgniter\I18n\Time;
+
 /**
  * @var int                   $memberId
  * @var string                $memberName
@@ -58,6 +60,10 @@ $oldAmount = trim(
     )
 );
 
+$todayIndia =
+    Time::now(
+        'Asia/Kolkata'
+    )->toDateString();
 ?>
 
 <div
@@ -378,8 +384,9 @@ $oldAmount = trim(
                                             ),
                                             'attr'
                                         ) ?>"
-                                max="<?= date(
-                                            'Y-m-d'
+                                max="<?= esc(
+                                            $todayIndia,
+                                            'attr'
                                         ) ?>"
                                 data-error-required="Please select the payment date."
                                 required>
