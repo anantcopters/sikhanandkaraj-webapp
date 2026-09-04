@@ -330,7 +330,15 @@ final class MembershipPaymentService
                     $paymentDate
                 ),
                 new \DateTimeZone(
-                    'UTC'
+                    'Asia/Kolkata'
+                )
+            );
+
+        $today =
+            new \DateTimeImmutable(
+                'today',
+                new \DateTimeZone(
+                    'Asia/Kolkata'
                 )
             );
 
@@ -343,17 +351,9 @@ final class MembershipPaymentService
             );
         }
 
-        $todayUtc =
-            new \DateTimeImmutable(
-                'today',
-                new \DateTimeZone(
-                    'UTC'
-                )
-            );
-
         if (
             $paymentDateObject
-            > $todayUtc
+            > $today
         ) {
             throw new RuntimeException(
                 'The payment date cannot be in the future.'
@@ -462,7 +462,13 @@ final class MembershipPaymentService
                 ->evaluate(
                     $userId,
                     $requestedPlanCode,
-                    $couponCode
+                    $couponCode,
+                    $paymentDateObject
+                        ->setTime(
+                            12,
+                            0,
+                            0
+                        )
                 );
         }
 
@@ -942,13 +948,34 @@ final class MembershipPaymentService
             * - previous redemption;
             * - concurrent final redemption.
             */
+            $couponEffectiveAt = null;
+
+            if (
+                (string) (
+                    $payment['provider']
+                    ?? ''
+                )
+                === MemberPaymentModel::PROVIDER_OFFLINE
+                && $paidAt !== null
+                && trim($paidAt) !== ''
+            ) {
+                $couponEffectiveAt =
+                    new \DateTimeImmutable(
+                        $paidAt,
+                        new \DateTimeZone(
+                            'Asia/Kolkata'
+                        )
+                    );
+            }
+
             if ($couponId > 0) {
                 $couponEvaluation =
                     $this->couponService
                     ->evaluateForRedemption(
                         $couponId,
                         (int) $payment['user_id'],
-                        (string) $payment['plan_code_snapshot']
+                        (string) $payment['plan_code_snapshot'],
+                        $couponEffectiveAt
                     );
             }
 

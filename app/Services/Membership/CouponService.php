@@ -40,7 +40,8 @@ final class CouponService
     public function evaluate(
         int $userId,
         string $planCode,
-        string $couponCode
+        string $couponCode,
+        ?\DateTimeImmutable $effectiveAt = null
     ): array {
         if ($userId <= 0) {
             throw new DomainException(
@@ -74,7 +75,8 @@ final class CouponService
         return $this->evaluateCoupon(
             $coupon,
             $userId,
-            $planCode
+            $planCode,
+            $effectiveAt
         );
     }
 
@@ -88,7 +90,8 @@ final class CouponService
     public function evaluateForRedemption(
         int $couponId,
         int $userId,
-        string $planCode
+        string $planCode,
+        ?\DateTimeImmutable $effectiveAt = null
     ): array {
         $coupon =
             $this->couponModel
@@ -105,7 +108,8 @@ final class CouponService
         return $this->evaluateCoupon(
             $coupon,
             $userId,
-            $planCode
+            $planCode,
+            $effectiveAt
         );
     }
 
@@ -115,7 +119,8 @@ final class CouponService
     private function evaluateCoupon(
         array $coupon,
         int $userId,
-        string $planCode
+        string $planCode,
+        ?\DateTimeImmutable $effectiveAt = null
     ): array {
         if (
             !BooleanValue::fromDatabase(
@@ -128,12 +133,19 @@ final class CouponService
             );
         }
 
-        $now =
-            new \DateTimeImmutable(
+        $timezone =
+            new \DateTimeZone(
+                'Asia/Kolkata'
+            );
+
+        $effectiveAt =
+            $effectiveAt !== null
+            ? $effectiveAt->setTimezone(
+                $timezone
+            )
+            : new \DateTimeImmutable(
                 'now',
-                new \DateTimeZone(
-                    'Asia/Kolkata'
-                )
+                $timezone
             );
 
         $startsAt =
@@ -152,15 +164,15 @@ final class CouponService
                 )
             );
 
-        if ($now < $startsAt) {
+        if ($effectiveAt < $startsAt) {
             throw new DomainException(
-                'Coupon is not active yet.'
+                'Coupon was not active on the payment date.'
             );
         }
 
-        if ($now > $expiresAt) {
+        if ($effectiveAt > $expiresAt) {
             throw new DomainException(
-                'Coupon has expired.'
+                'Coupon was not valid on the payment date.'
             );
         }
 
