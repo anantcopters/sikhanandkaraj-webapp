@@ -423,7 +423,9 @@ $profileNoticeMessage = trim(
  * @var list<array{
  *     id:int,
  *     thumbnailUrl:string,
- *     isPrimary:bool
+ *     isPrimary:bool,
+ *     focalX:int,
+ *     focalY:int
  * }> $approvedPhotos
  */
 
@@ -2582,7 +2584,7 @@ $this->section('content');
                                                         ) ?>">
 
                                             <span
-                                                class="ratio ratio-16x9 d-block">
+                                                class="ratio ratio-1x1 d-block">
 
                                                 <img
                                                     src="<?= esc(
@@ -2596,7 +2598,34 @@ $this->section('content');
                                                                 'attr'
                                                             ) ?>"
                                                     class="profile-preview-gallery-photo"
-                                                    loading="lazy">
+                                                    loading="lazy"
+                                                    style="object-position:
+            <?= esc(
+                                        (string) max(
+                                            0,
+                                            min(
+                                                100,
+                                                (int) (
+                                                    $photo['focalX']
+                                                    ?? 50
+                                                )
+                                            )
+                                        ),
+                                        'attr'
+                                    ) ?>%
+            <?= esc(
+                                        (string) max(
+                                            0,
+                                            min(
+                                                100,
+                                                (int) (
+                                                    $photo['focalY']
+                                                    ?? 20
+                                                )
+                                            )
+                                        ),
+                                        'attr'
+                                    ) ?>%;">
 
                                             </span>
 

@@ -2209,7 +2209,7 @@ form[aria-busy="true"] {
     display: block;
     width: 100%;
     aspect-ratio: 1 / 1;
-    object-fit: cover;
+    object-fit: contain;
     object-position: center;
 }
 

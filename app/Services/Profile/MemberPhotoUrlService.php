@@ -1215,7 +1215,9 @@ final class MemberPhotoUrlService
      * @return list<array{
      *     id:int,
      *     thumbnailUrl:string,
-     *     isPrimary:bool
+     *     isPrimary:bool,
+     *     focalX:int,
+     *     focalY:int
      * }>
      */
     public function getApprovedGalleryForViewer(
@@ -1266,8 +1268,8 @@ final class MemberPhotoUrlService
             );
 
             /*
-         * Unknown values fail closed.
-         */
+            * Unknown values fail closed.
+            */
             if (
                 !in_array(
                     $visibility,
@@ -1322,6 +1324,20 @@ final class MemberPhotoUrlService
                 BooleanValue::fromDatabase(
                     $photo['is_primary']
                         ?? false
+                ),
+
+                'focalX' =>
+                $this->normalizeFocalCoordinate(
+                    $photo['focal_x']
+                        ?? null,
+                    50
+                ),
+
+                'focalY' =>
+                $this->normalizeFocalCoordinate(
+                    $photo['focal_y']
+                        ?? null,
+                    20
                 ),
             ];
         }
