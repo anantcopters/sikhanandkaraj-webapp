@@ -1,0 +1,514 @@
+<?php
+
+declare(strict_types=1);
+
+/**
+ * @var array<string, mixed> $liveIntroductionUsage
+ */
+
+$usageData =
+    isset($liveIntroductionUsage)
+    && is_array($liveIntroductionUsage)
+    ? $liveIntroductionUsage
+    : [];
+
+$rows =
+    isset($usageData['rows'])
+    && is_array($usageData['rows'])
+    ? $usageData['rows']
+    : [];
+
+$search =
+    trim(
+        (string) (
+            $usageData['search']
+            ?? ''
+        )
+    );
+
+$page =
+    max(
+        1,
+        (int) (
+            $usageData['page']
+            ?? 1
+        )
+    );
+
+$totalPages =
+    max(
+        1,
+        (int) (
+            $usageData['totalPages']
+            ?? 1
+        )
+    );
+
+$total =
+    max(
+        0,
+        (int) (
+            $usageData['total']
+            ?? 0
+        )
+    );
+
+$sectionUrl =
+    route_to(
+        'web.account.settings.section',
+        'live-introduction-usage'
+    );
+?>
+
+<div
+    class="
+        d-flex
+        align-items-center
+        gap-2
+        mb-1
+    ">
+
+    <span class="avatar-sm flex-shrink-0">
+
+        <span
+            class="
+                avatar-title
+                rounded-circle
+                bg-danger-subtle
+                text-danger
+            ">
+
+            <i
+                class="ri-video-line fs-20"
+                aria-hidden="true">
+            </i>
+
+        </span>
+
+    </span>
+
+    <div>
+
+        <h2 class="fs-18 fw-semibold mb-0">
+            Live Introduction Usage
+        </h2>
+
+        <p class="text-muted fs-13 mb-0">
+            Review Live Introductions consumed through your membership.
+        </p>
+
+    </div>
+
+</div>
+
+<hr class="my-4">
+
+<p class="text-muted fs-13 mb-3">
+    A member's Live Introduction consumes membership allowance only
+    on the first successful playback during that membership. Replays
+    or a replacement approved video for the same member do not consume
+    another allowance.
+</p>
+
+<form
+    method="get"
+    action="<?= esc(
+                $sectionUrl,
+                'attr'
+            ) ?>"
+    class="row g-2 align-items-end mb-4">
+
+    <div class="col-12 col-md">
+
+        <label
+            for="liveIntroductionUsageSearch"
+            class="form-label fs-13">
+
+            Search
+        </label>
+
+        <input
+            type="search"
+            class="form-control"
+            id="liveIntroductionUsageSearch"
+            name="q"
+            value="<?= esc(
+                        $search,
+                        'attr'
+                    ) ?>"
+            maxlength="100"
+            placeholder="Search by Profile ID or membership">
+
+    </div>
+
+    <div class="col-12 col-md-auto">
+
+        <button
+            type="submit"
+            class="btn btn-primary">
+
+            <i
+                class="ri-search-line me-1"
+                aria-hidden="true">
+            </i>
+
+            Search
+
+        </button>
+
+        <?php if ($search !== ''): ?>
+
+            <a
+                href="<?= esc(
+                            $sectionUrl,
+                            'attr'
+                        ) ?>"
+                class="btn btn-outline-secondary">
+
+                Reset
+
+            </a>
+
+        <?php endif; ?>
+
+    </div>
+
+</form>
+
+<?php if ($rows === []): ?>
+
+    <div
+        class="
+            border
+            rounded
+            text-center
+            text-muted
+            py-4
+        ">
+
+        <i
+            class="
+                ri-video-line
+                fs-24
+                d-block
+                mb-2
+            "
+            aria-hidden="true">
+        </i>
+
+        <?php if ($search !== ''): ?>
+
+            No Live Introduction usage matched your search.
+
+        <?php else: ?>
+
+            No Live Introduction membership usage is available.
+
+        <?php endif; ?>
+
+    </div>
+
+<?php else: ?>
+
+    <div
+        class="
+            d-flex
+            justify-content-between
+            align-items-center
+            flex-wrap
+            gap-2
+            mb-2
+        ">
+
+        <div class="text-muted fs-13">
+
+            <?= esc(
+                (string) $total
+            ) ?>
+
+            usage
+            <?= $total === 1
+                ? 'record'
+                : 'records' ?>
+
+        </div>
+
+    </div>
+
+    <div class="table-responsive">
+
+        <table
+            class="
+                table
+                table-hover
+                align-middle
+                mb-0
+            ">
+
+            <thead class="bg-info-subtle">
+
+                <tr>
+
+                    <th scope="col">
+                        Profile ID
+                    </th>
+
+                    <th scope="col">
+                        Membership
+                    </th>
+
+                    <th scope="col">
+                        First Watched
+                    </th>
+
+                    <th scope="col">
+                        Last Watched
+                    </th>
+
+                    <th scope="col">
+                        Plays
+                    </th>
+
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                <?php foreach (
+                    $rows
+                    as $usage
+                ): ?>
+
+                    <?php
+                    if (!is_array($usage)) {
+                        continue;
+                    }
+                    ?>
+
+                    <tr>
+
+                        <td>
+
+                            <span
+                                class="
+                                    badge
+                                    bg-primary-subtle
+                                    text-primary
+                                    p-2
+                                ">
+
+                                <?= esc(
+                                    $usage['profileReference']
+                                        ?: '—'
+                                ) ?>
+
+                            </span>
+
+                        </td>
+
+                        <td>
+
+                            <?= esc(
+                                $usage['planName']
+                                    ?: '—'
+                            ) ?>
+
+                        </td>
+
+                        <td class="text-nowrap">
+
+                            <time
+                                datetime="<?= esc(
+                                                $usage['firstViewedAtIso']
+                                                    ?? '',
+                                                'attr'
+                                            ) ?>">
+
+                                <?= esc(
+                                    $usage['firstViewedAtDisplay']
+                                        ?? '—'
+                                ) ?>
+
+                            </time>
+
+                        </td>
+
+                        <td class="text-nowrap">
+
+                            <time
+                                datetime="<?= esc(
+                                                $usage['lastViewedAtIso']
+                                                    ?? '',
+                                                'attr'
+                                            ) ?>">
+
+                                <?= esc(
+                                    $usage['lastViewedAtDisplay']
+                                        ?? '—'
+                                ) ?>
+
+                            </time>
+
+                        </td>
+
+                        <td>
+
+                            <?= esc(
+                                (string) (
+                                    $usage['viewCount']
+                                    ?? 1
+                                )
+                            ) ?>
+
+                        </td>
+
+                    </tr>
+
+                <?php endforeach; ?>
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+<?php endif; ?>
+
+<?php if ($totalPages > 1): ?>
+
+    <nav
+        class="mt-4"
+        aria-label="Live Introduction usage pages">
+
+        <ul
+            class="
+                pagination
+                pagination-sm
+                justify-content-end
+                mb-0
+            ">
+
+            <li
+                class="page-item <?= $page <= 1
+                                        ? 'disabled'
+                                        : '' ?>">
+
+                <a
+                    class="page-link"
+                    href="<?= esc(
+                                $sectionUrl
+                                    . '?'
+                                    . http_build_query(
+                                        array_filter(
+                                            [
+                                                'q' =>
+                                                $search,
+
+                                                'page' =>
+                                                max(
+                                                    1,
+                                                    $page - 1
+                                                ),
+                                            ],
+                                            static fn(
+                                                mixed $value
+                                            ): bool =>
+                                            $value !== ''
+                                        )
+                                    ),
+                                'attr'
+                            ) ?>">
+
+                    Previous
+
+                </a>
+
+            </li>
+
+            <?php for (
+                $pageNumber = 1;
+                $pageNumber <= $totalPages;
+                $pageNumber++
+            ): ?>
+
+                <li
+                    class="page-item <?= $pageNumber === $page
+                                            ? 'active'
+                                            : '' ?>">
+
+                    <a
+                        class="page-link"
+                        href="<?= esc(
+                                    $sectionUrl
+                                        . '?'
+                                        . http_build_query(
+                                            array_filter(
+                                                [
+                                                    'q' =>
+                                                    $search,
+
+                                                    'page' =>
+                                                    $pageNumber,
+                                                ],
+                                                static fn(
+                                                    mixed $value
+                                                ): bool =>
+                                                $value !== ''
+                                            )
+                                        ),
+                                    'attr'
+                                ) ?>">
+
+                        <?= esc(
+                            (string) $pageNumber
+                        ) ?>
+
+                    </a>
+
+                </li>
+
+            <?php endfor; ?>
+
+            <li
+                class="page-item <?= $page >= $totalPages
+                                        ? 'disabled'
+                                        : '' ?>">
+
+                <a
+                    class="page-link"
+                    href="<?= esc(
+                                $sectionUrl
+                                    . '?'
+                                    . http_build_query(
+                                        array_filter(
+                                            [
+                                                'q' =>
+                                                $search,
+
+                                                'page' =>
+                                                min(
+                                                    $totalPages,
+                                                    $page + 1
+                                                ),
+                                            ],
+                                            static fn(
+                                                mixed $value
+                                            ): bool =>
+                                            $value !== ''
+                                        )
+                                    ),
+                                'attr'
+                            ) ?>">
+
+                    Next
+
+                </a>
+
+            </li>
+
+        </ul>
+
+    </nav>
+
+<?php endif; ?>

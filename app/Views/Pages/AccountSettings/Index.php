@@ -75,6 +75,10 @@ $requiresMigratedPasswordSetup =
     ($requiresMigratedPasswordSetup ?? false)
     === true;
 
+$isPaidMember =
+    ($membershipUsage['isPaid'] ?? false)
+    === true;
+
 $menuItems = [
     'password' => [
         'label' =>
@@ -135,6 +139,28 @@ $menuItems = [
         'icon' =>
         'ri-history-line',
     ],
+
+    'verified-profile-usage' => [
+        'label' =>
+        'Verified Profile Usage',
+
+        'icon' =>
+        'ri-user-search-line',
+
+        'paidOnly' =>
+        true,
+    ],
+
+    'live-introduction-usage' => [
+        'label' =>
+        'Live Introduction Usage',
+
+        'icon' =>
+        'ri-video-line',
+
+        'paidOnly' =>
+        true,
+    ],
     'communication-preferences' => [
         'label' =>
         'Communication Preferences',
@@ -185,6 +211,16 @@ $this->section('content');
                     <?php foreach (
                         $menuItems as $key => $item
                     ): ?>
+
+                        <?php
+                        if (
+                            ($item['paidOnly'] ?? false)
+                            === true
+                            && !$isPaidMember
+                        ) {
+                            continue;
+                        }
+                        ?>
                         <a
                             href="<?= route_to(
                                         'web.account.settings.section',
@@ -1238,6 +1274,34 @@ $this->section('content');
 
                         <?php elseif (
                             $activeSection ===
+                            'verified-profile-usage'
+                        ): ?>
+
+                            <?= view(
+                                'Pages/AccountSettings/_VerifiedProfileUsage',
+                                [
+                                    'verifiedProfileUsage' =>
+                                    $verifiedProfileUsage
+                                        ?? [],
+                                ]
+                            ) ?>
+
+                        <?php elseif (
+                            $activeSection ===
+                            'live-introduction-usage'
+                        ): ?>
+
+                            <?= view(
+                                'Pages/AccountSettings/_LiveIntroductionUsage',
+                                [
+                                    'liveIntroductionUsage' =>
+                                    $liveIntroductionUsage
+                                        ?? [],
+                                ]
+                            ) ?>
+
+                        <?php elseif (
+                            $activeSection ===
                             'communication-preferences'
                         ): ?>
 
@@ -1263,7 +1327,7 @@ $this->section('content');
                     text-primary">
 
                                         <i
-                                            class="ri-customer-service-2-line"
+                                            class="ri-customer-service-2-line fs-20"
                                             aria-hidden="true">
                                         </i>
                                     </span>

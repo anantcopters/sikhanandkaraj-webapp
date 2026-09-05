@@ -200,6 +200,185 @@ extends Model
     }
 
     /**
+     * Return paginated member-facing Live Introduction usage history.
+     *
+     * Search is intentionally limited to data already exposed in the
+     * authenticated member's own commercial usage ledger:
+     *
+     * - Profile ID
+     * - Membership plan name
+     * - Membership plan code
+     *
+     * @return array{
+     *     rows: list<array<string, mixed>>,
+     *     total: int
+     * }
+     */
+    public function paginatedHistoryForUser(
+        int $viewerUserId,
+        string $search,
+        int $page,
+        int $perPage = 10
+    ): array {
+        if ($viewerUserId <= 0) {
+            return [
+                'rows' => [],
+                'total' => 0,
+            ];
+        }
+
+        $search = trim($search);
+
+        $page = max(
+            1,
+            $page
+        );
+
+        $perPage = max(
+            1,
+            min(
+                50,
+                $perPage
+            )
+        );
+
+        $offset =
+            ($page - 1)
+            * $perPage;
+
+        $countBuilder =
+            $this->db
+            ->table(
+                $this->table . ' usage'
+            )
+            ->join(
+                'users owner',
+                'owner.id = usage.owner_user_id',
+                'left'
+            )
+            ->join(
+                'member_memberships membership',
+                'membership.id = usage.membership_id',
+                'inner'
+            )
+            ->where(
+                'usage.viewer_user_id',
+                $viewerUserId
+            );
+
+        if ($search !== '') {
+            $countBuilder
+                ->groupStart()
+                ->like(
+                    'owner.profile_ref_number',
+                    $search
+                )
+                ->orLike(
+                    'membership.plan_name_snapshot',
+                    $search
+                )
+                ->orLike(
+                    'membership.plan_code_snapshot',
+                    $search
+                )
+                ->groupEnd();
+        }
+
+        $total =
+            $countBuilder
+            ->countAllResults();
+
+        $rowsBuilder =
+            $this->db
+            ->table(
+                $this->table . ' usage'
+            )
+            ->select(
+                '
+                usage.id,
+                usage.membership_id,
+                usage.owner_user_id,
+                usage.video_introduction_id,
+                usage.first_viewed_at,
+                usage.last_viewed_at,
+                usage.view_count,
+
+                owner.profile_ref_number
+                    AS profile_reference,
+
+                membership.plan_code_snapshot,
+                membership.plan_name_snapshot
+            ',
+                false
+            )
+            ->join(
+                'users owner',
+                'owner.id = usage.owner_user_id',
+                'left'
+            )
+            ->join(
+                'member_memberships membership',
+                'membership.id = usage.membership_id',
+                'inner'
+            )
+            ->where(
+                'usage.viewer_user_id',
+                $viewerUserId
+            );
+
+        if ($search !== '') {
+            $rowsBuilder
+                ->groupStart()
+                ->like(
+                    'owner.profile_ref_number',
+                    $search
+                )
+                ->orLike(
+                    'membership.plan_name_snapshot',
+                    $search
+                )
+                ->orLike(
+                    'membership.plan_code_snapshot',
+                    $search
+                )
+                ->groupEnd();
+        }
+
+        $rows =
+            $rowsBuilder
+            ->orderBy(
+                'usage.last_viewed_at',
+                'DESC'
+            )
+            ->orderBy(
+                'usage.id',
+                'DESC'
+            )
+            ->limit(
+                $perPage,
+                $offset
+            )
+            ->get()
+            ->getResultArray();
+
+        return [
+            'rows' =>
+            array_values(
+                array_filter(
+                    $rows,
+                    'is_array'
+                )
+            ),
+
+            'total' =>
+            max(
+                0,
+                (int) $total
+            ),
+        ];
+    }
+
+    /**
      * Lock the membership before checking/consuming quota.
      *
      * Every first-time Live Introduction consumption for a membership is

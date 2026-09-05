@@ -31,16 +31,22 @@ final class AccountSettingsController extends BaseController
         'plans',
 
         /*
-    * Read-only purchased membership and commercial usage history.
-    */
+        * Read-only purchased membership and commercial usage history.
+        */
         'membership-history',
 
         /*
-    * Optional member-controlled external communication.
-    *
-    * Essential security, verification, membership, moderation and
-    * support communication is not controlled by this section.
-    */
+        * Paid-member commercial consumption ledgers.
+        */
+        'verified-profile-usage',
+        'live-introduction-usage',
+
+        /*
+        * Optional member-controlled external communication.
+        *
+        * Essential security, verification, membership, moderation and
+        * support communication is not controlled by this section.
+        */
         'communication-preferences',
 
         'contact',
@@ -48,7 +54,7 @@ final class AccountSettingsController extends BaseController
 
     public function index(
         string $section = 'email'
-    ): string {
+    ): string|RedirectResponse {
         $profileReports = [];
 
         $section = $this->normaliseSection(
@@ -268,6 +274,121 @@ final class AccountSettingsController extends BaseController
                 );
         }
 
+        $verifiedProfileUsage = [];
+        $liveIntroductionUsage = [];
+
+        $usageSections = [
+            'verified-profile-usage',
+            'live-introduction-usage',
+        ];
+
+        if (
+            in_array(
+                $section,
+                $usageSections,
+                true
+            )
+        ) {
+            /*
+     * These are commercial paid-member ledgers.
+     *
+     * Do not rely on hiding the Account Settings menu item.
+     * Direct URL access is protected here as well.
+     */
+            $currentMembership =
+                service(
+                    'membershipService'
+                )->resolveForUser(
+                    $userId
+                );
+
+            if (
+                ($currentMembership['isPaid'] ?? false)
+                !== true
+            ) {
+                return redirect()
+                    ->to(
+                        route_to(
+                            'web.account.settings.section',
+                            'plans'
+                        )
+                    )
+                    ->with(
+                        'formAlert',
+                        [
+                            'type' =>
+                            'info',
+
+                            'title' =>
+                            'Paid membership required',
+
+                            'message' =>
+                            'Membership usage history is available '
+                                . 'with an active paid membership.',
+                        ]
+                    );
+            }
+
+            /*
+     * Search and pagination are GET-only presentation state.
+     *
+     * No member/user ID is accepted from the browser.
+     */
+            $usageSearch =
+                trim(
+                    (string) $this->request
+                        ->getGet(
+                            'q'
+                        )
+                );
+
+            $usagePage =
+                max(
+                    1,
+                    (int) (
+                        $this->request
+                        ->getGet(
+                            'page'
+                        )
+                        ?? 1
+                    )
+                );
+
+            /** @var \App\Services\Membership\MemberMembershipHistoryService $historyService */
+            $historyService =
+                service(
+                    'memberMembershipHistoryService'
+                );
+
+            if (
+                $section ===
+                'verified-profile-usage'
+            ) {
+                $verifiedProfileUsage =
+                    $historyService
+                    ->profileUsageForUser(
+                        $userId,
+                        $usageSearch,
+                        $usagePage,
+                        10
+                    );
+            }
+
+            if (
+                $section ===
+                'live-introduction-usage'
+            ) {
+                $liveIntroductionUsage =
+                    $historyService
+                    ->liveIntroductionUsageForUser(
+                        $userId,
+                        $usageSearch,
+                        $usagePage,
+                        10
+                    );
+            }
+        }
+
         $communicationPreferences = [];
 
         if (
@@ -339,6 +460,12 @@ final class AccountSettingsController extends BaseController
 
                     'membershipHistory' =>
                     $membershipHistory,
+
+                    'verifiedProfileUsage' =>
+                    $verifiedProfileUsage,
+
+                    'liveIntroductionUsage' =>
+                    $liveIntroductionUsage,
 
                     'communicationPreferences' =>
                     $communicationPreferences,

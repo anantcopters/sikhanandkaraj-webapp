@@ -215,6 +215,194 @@ final class MemberMembershipProfileViewModel extends Model
     }
 
     /**
+     * Return paginated member-facing Verified Profile usage history.
+     *
+     * Search is intentionally limited to data already exposed in the
+     * authenticated member's own commercial usage ledger:
+     *
+     * - Profile ID
+     * - Membership plan name
+     * - Membership plan code
+     *
+     * @return array{
+     *     rows: list<array<string, mixed>>,
+     *     total: int
+     * }
+     */
+    public function paginatedHistoryForUser(
+        int $viewerUserId,
+        string $search,
+        int $page,
+        int $perPage = 10
+    ): array {
+        if ($viewerUserId <= 0) {
+            return [
+                'rows' => [],
+                'total' => 0,
+            ];
+        }
+
+        $search = trim($search);
+
+        $page = max(
+            1,
+            $page
+        );
+
+        $perPage = max(
+            1,
+            min(
+                50,
+                $perPage
+            )
+        );
+
+        $offset =
+            ($page - 1)
+            * $perPage;
+
+        /*
+        * Count first.
+        *
+        * The viewer_user_id condition is mandatory. The browser never supplies
+        * another member's user ID for this history.
+        */
+        $countBuilder =
+            $this->db
+            ->table(
+                $this->table . ' usage'
+            )
+            ->join(
+                'users target',
+                'target.id = usage.viewed_user_id',
+                'left'
+            )
+            ->join(
+                'member_memberships membership',
+                'membership.id = usage.membership_id',
+                'inner'
+            )
+            ->where(
+                'usage.viewer_user_id',
+                $viewerUserId
+            );
+
+        if ($search !== '') {
+            $countBuilder
+                ->groupStart()
+                ->like(
+                    'target.profile_ref_number',
+                    $search
+                )
+                ->orLike(
+                    'membership.plan_name_snapshot',
+                    $search
+                )
+                ->orLike(
+                    'membership.plan_code_snapshot',
+                    $search
+                )
+                ->groupEnd();
+        }
+
+        $total =
+            $countBuilder
+            ->countAllResults();
+
+        /*
+        * Fetch only the requested page.
+        */
+        $rowsBuilder =
+            $this->db
+            ->table(
+                $this->table . ' usage'
+            )
+            ->select(
+                '
+                usage.id,
+                usage.membership_id,
+                usage.viewed_user_id,
+                usage.usage_date_ist,
+                usage.first_viewed_at,
+                usage.last_viewed_at,
+                usage.view_count,
+
+                target.profile_ref_number
+                    AS profile_reference,
+
+                membership.plan_code_snapshot,
+                membership.plan_name_snapshot
+            ',
+                false
+            )
+            ->join(
+                'users target',
+                'target.id = usage.viewed_user_id',
+                'left'
+            )
+            ->join(
+                'member_memberships membership',
+                'membership.id = usage.membership_id',
+                'inner'
+            )
+            ->where(
+                'usage.viewer_user_id',
+                $viewerUserId
+            );
+
+        if ($search !== '') {
+            $rowsBuilder
+                ->groupStart()
+                ->like(
+                    'target.profile_ref_number',
+                    $search
+                )
+                ->orLike(
+                    'membership.plan_name_snapshot',
+                    $search
+                )
+                ->orLike(
+                    'membership.plan_code_snapshot',
+                    $search
+                )
+                ->groupEnd();
+        }
+
+        $rows =
+            $rowsBuilder
+            ->orderBy(
+                'usage.last_viewed_at',
+                'DESC'
+            )
+            ->orderBy(
+                'usage.id',
+                'DESC'
+            )
+            ->limit(
+                $perPage,
+                $offset
+            )
+            ->get()
+            ->getResultArray();
+
+        return [
+            'rows' =>
+            array_values(
+                array_filter(
+                    $rows,
+                    'is_array'
+                )
+            ),
+
+            'total' =>
+            max(
+                0,
+                (int) $total
+            ),
+        ];
+    }
+
+    /**
      * Lock one membership before checking and consuming quota.
      *
      * Concurrent requests from the same member must serialize against the

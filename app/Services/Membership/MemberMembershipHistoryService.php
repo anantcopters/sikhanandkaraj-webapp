@@ -80,31 +80,7 @@ final class MemberMembershipHistoryService
                     ->historyForUser(
                         $userId
                     )
-            );
-
-        $profileUsage =
-            array_map(
-                fn(array $usage): array =>
-                $this->normalizeProfileUsage(
-                    $usage
-                ),
-                $this->profileUsageModel
-                    ->historyForUser(
-                        $userId
-                    )
-            );
-
-        $liveIntroductionUsage =
-            array_map(
-                fn(array $usage): array =>
-                $this->normalizeLiveIntroductionUsage(
-                    $usage
-                ),
-                $this->liveIntroductionUsageModel
-                    ->historyForUser(
-                        $userId
-                    )
-            );
+            );        
 
         return [
             'currentMembership' =>
@@ -112,12 +88,222 @@ final class MemberMembershipHistoryService
 
             'membershipHistory' =>
             $memberships,
+        ];
+    }
 
-            'profileUsageHistory' =>
-            $profileUsage,
+    /**
+     * Return one page of Verified Profile commercial usage.
+     *
+     * @return array<string, mixed>
+     */
+    public function profileUsageForUser(
+        int $userId,
+        string $search,
+        int $page,
+        int $perPage = 10
+    ): array {
+        if ($userId <= 0) {
+            return $this->emptyUsagePage(
+                $search,
+                $perPage
+            );
+        }
 
-            'liveIntroductionUsageHistory' =>
-            $liveIntroductionUsage,
+        $page = max(
+            1,
+            $page
+        );
+
+        $perPage = max(
+            1,
+            min(
+                50,
+                $perPage
+            )
+        );
+
+        $result =
+            $this->profileUsageModel
+            ->paginatedHistoryForUser(
+                $userId,
+                $search,
+                $page,
+                $perPage
+            );
+
+        $total =
+            max(
+                0,
+                (int) (
+                    $result['total']
+                    ?? 0
+                )
+            );
+
+        $totalPages =
+            max(
+                1,
+                (int) ceil(
+                    $total
+                        / $perPage
+                )
+            );
+
+        /*
+     * A stale/out-of-range page must not cause an expensive second query.
+     * The View simply shows no rows for that invalid page.
+     */
+        $rows =
+            isset($result['rows'])
+            && is_array($result['rows'])
+            ? $result['rows']
+            : [];
+
+        return [
+            'rows' =>
+            array_map(
+                fn(array $usage): array =>
+                $this->normalizeProfileUsage(
+                    $usage
+                ),
+                array_values(
+                    array_filter(
+                        $rows,
+                        'is_array'
+                    )
+                )
+            ),
+
+            'search' =>
+            trim($search),
+
+            'page' =>
+            $page,
+
+            'perPage' =>
+            $perPage,
+
+            'total' =>
+            $total,
+
+            'totalPages' =>
+            $totalPages,
+        ];
+    }
+
+    /**
+     * Return one page of Live Introduction commercial usage.
+     *
+     * @return array<string, mixed>
+     */
+    public function liveIntroductionUsageForUser(
+        int $userId,
+        string $search,
+        int $page,
+        int $perPage = 10
+    ): array {
+        if ($userId <= 0) {
+            return $this->emptyUsagePage(
+                $search,
+                $perPage
+            );
+        }
+
+        $page = max(
+            1,
+            $page
+        );
+
+        $perPage = max(
+            1,
+            min(
+                50,
+                $perPage
+            )
+        );
+
+        $result =
+            $this->liveIntroductionUsageModel
+            ->paginatedHistoryForUser(
+                $userId,
+                $search,
+                $page,
+                $perPage
+            );
+
+        $total =
+            max(
+                0,
+                (int) (
+                    $result['total']
+                    ?? 0
+                )
+            );
+
+        $totalPages =
+            max(
+                1,
+                (int) ceil(
+                    $total
+                        / $perPage
+                )
+            );
+
+        $rows =
+            isset($result['rows'])
+            && is_array($result['rows'])
+            ? $result['rows']
+            : [];
+
+        return [
+            'rows' =>
+            array_map(
+                fn(array $usage): array =>
+                $this->normalizeLiveIntroductionUsage(
+                    $usage
+                ),
+                array_values(
+                    array_filter(
+                        $rows,
+                        'is_array'
+                    )
+                )
+            ),
+
+            'search' =>
+            trim($search),
+
+            'page' =>
+            $page,
+
+            'perPage' =>
+            $perPage,
+
+            'total' =>
+            $total,
+
+            'totalPages' =>
+            $totalPages,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function emptyUsagePage(
+        string $search,
+        int $perPage
+    ): array {
+        return [
+            'rows' => [],
+            'search' => trim($search),
+            'page' => 1,
+            'perPage' => max(
+                1,
+                $perPage
+            ),
+            'total' => 0,
+            'totalPages' => 1,
         ];
     }
 
@@ -555,12 +741,6 @@ final class MemberMembershipHistoryService
             ],
 
             'membershipHistory' =>
-            [],
-
-            'profileUsageHistory' =>
-            [],
-
-            'liveIntroductionUsageHistory' =>
             [],
         ];
     }
