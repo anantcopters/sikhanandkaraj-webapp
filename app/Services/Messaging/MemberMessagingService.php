@@ -13,6 +13,8 @@ use App\Models\UserModel;
 use App\Services\Membership\MembershipEntitlementService;
 use App\Services\Membership\MembershipService;
 use App\Services\Notification\MemberNotificationService;
+use App\Models\MemberMatchCandidateModel;
+use App\Services\Matchmaking\MemberProfilePresentationService;
 use CodeIgniter\Database\BaseConnection;
 use Config\MemberMessaging;
 use DomainException;
@@ -39,6 +41,12 @@ final class MemberMessagingService
 
         private readonly MemberBlockModel
         $blockModel,
+
+        private readonly MemberMatchCandidateModel
+        $candidateModel,
+
+        private readonly MemberProfilePresentationService
+        $profilePresentationService,
 
         private readonly MembershipService
         $membershipService,
@@ -593,6 +601,42 @@ final class MemberMessagingService
             ? (int) $conversation['second_user_id']
             : (int) $conversation['first_user_id'];
 
+        $member = $this
+            ->candidateModel
+            ->findCandidateForViewer(
+                $userId,
+                $otherUserId
+            );
+
+        if (!is_array($member)) {
+            throw new DomainException(
+                'The member is no longer available.'
+            );
+        }
+
+        $interest = $this
+            ->interestModel
+            ->relationshipBetween(
+                $userId,
+                $otherUserId
+            );
+
+        $profile = $this
+            ->profilePresentationService
+            ->summary(
+                viewerUserId: $userId,
+
+                member: $member,
+
+                hasInterestRelationship: is_array($interest)
+            );
+
+        if (!is_array($profile)) {
+            throw new DomainException(
+                'The member is no longer available.'
+            );
+        }
+
         return [
             'conversation' =>
             $conversation,
@@ -600,11 +644,14 @@ final class MemberMessagingService
             'otherUserId' =>
             $otherUserId,
 
+            'member' =>
+            $profile,
+
             'messages' =>
-            $this->messageModel
-                ->conversationMessages(
-                    $conversationId
-                ),
+            $this->memberVisibleMessages(
+                $conversationId,
+                $userId
+            ),
 
             'composer' =>
             $this->composerState(
@@ -620,16 +667,129 @@ final class MemberMessagingService
     }
 
     /**
+     * Build the member-facing conversation-list contract.
+     *
+     * Current profile/privacy state is resolved on every request. Messaging
+     * therefore never becomes a cache/bypass for old private profile data.
+     *
      * @return list<array<string,mixed>>
      */
     public function conversations(
         int $userId
     ): array {
-        return $this
+        $rows = $this
             ->conversationModel
-            ->forMember(
+            ->listingForMember(
                 $userId
             );
+
+        if ($rows === []) {
+            return [];
+        }
+
+        $result = [];
+
+        foreach ($rows as $row) {
+            $otherUserId = max(
+                0,
+                (int) (
+                    $row['other_user_id']
+                    ?? 0
+                )
+            );
+
+            if ($otherUserId <= 0) {
+                continue;
+            }
+
+            /*
+         * Use the existing member candidate projection. Do not query raw
+         * full_name/photo/contact fields from the messaging view.
+         */
+            $member = $this
+                ->candidateModel
+                ->findCandidateForViewer(
+                    $userId,
+                    $otherUserId
+                );
+
+            if (!is_array($member)) {
+                continue;
+            }
+
+            $interest = $this
+                ->interestModel
+                ->relationshipBetween(
+                    $userId,
+                    $otherUserId
+                );
+
+            $profile = $this
+                ->profilePresentationService
+                ->summary(
+                    viewerUserId: $userId,
+
+                    member: $member,
+
+                    hasInterestRelationship: is_array($interest)
+                );
+
+            if (!is_array($profile)) {
+                continue;
+            }
+
+            $preview = trim(
+                (string) (
+                    $row['latest_message_text']
+                    ?? ''
+                )
+            );
+
+            if (
+                !empty($row['latest_removed_at'])
+            ) {
+                $preview =
+                    'This message was removed by SikhanandKaraj moderation.';
+            }
+
+            $result[] = [
+                'id' =>
+                (int) $row['id'],
+
+                'member' =>
+                $profile,
+
+                'preview' =>
+                $preview,
+
+                'lastMessageAt' =>
+                trim(
+                    (string) (
+                        $row['last_message_at']
+                        ?? ''
+                    )
+                ),
+
+                'unreadCount' =>
+                max(
+                    0,
+                    (int) (
+                        $row['unread_count']
+                        ?? 0
+                    )
+                ),
+
+                'status' =>
+                trim(
+                    (string) (
+                        $row['status']
+                        ?? ''
+                    )
+                ),
+            ];
+        }
+
+        return $result;
     }
 
     public function reportMessage(
@@ -783,6 +943,55 @@ final class MemberMessagingService
     }
 
     /**
+     * @return list<array<string,mixed>>
+     */
+    private function memberVisibleMessages(
+        int $conversationId,
+        int $viewerUserId
+    ): array {
+        $messages = $this
+            ->messageModel
+            ->conversationMessages(
+                $conversationId
+            );
+
+        foreach ($messages as &$message) {
+            $message['isMine'] =
+                (int) (
+                    $message['sender_user_id']
+                    ?? 0
+                ) === $viewerUserId;
+
+            $message['isSystem'] =
+                (
+                    $message['message_type']
+                    ?? ''
+                ) === MemberMessageModel
+                ::TYPE_SYSTEM;
+
+            $message['isRemoved'] =
+                !empty($message['removed_at']);
+
+            if (
+                $message['isRemoved']
+                && !$message['isSystem']
+            ) {
+                $message['message_text'] =
+                    'This message was removed by SikhanandKaraj moderation.';
+            }
+
+            $message['state'] =
+                !empty($message['read_at'])
+                ? 'Read'
+                : 'Sent';
+        }
+
+        unset($message);
+
+        return $messages;
+    }
+
+    /**
      * @return array{
      *     enabled:bool,
      *     reason:string,
@@ -810,6 +1019,37 @@ final class MemberMessagingService
 
                 'showUpgrade' =>
                 false,
+            ];
+        }
+
+        $membership = $this
+            ->membershipService
+            ->resolveForUser(
+                $userId
+            );
+
+        $isPaid =
+            ($membership['isPaid'] ?? false)
+            === true;
+
+        $hasExpiredPaidMembership =
+            !$isPaid
+            && !empty($membership['lastPaidMembershipExpiredAt']);
+
+        if ($hasExpiredPaidMembership) {
+            return [
+                'enabled' =>
+                false,
+
+                'reason' =>
+                'Your membership has expired. '
+                    . 'Renew your membership to continue this conversation.',
+
+                'showUpgrade' =>
+                true,
+
+                'upgradeLabel' =>
+                'Renew Membership',
             ];
         }
 
@@ -874,13 +1114,17 @@ final class MemberMessagingService
 
         return [
             'enabled' =>
-            true,
+            false,
 
             'reason' =>
-            '',
+            'Want to continue this conversation? '
+                . 'Upgrade your membership to reply.',
 
             'showUpgrade' =>
-            false,
+            true,
+
+            'upgradeLabel' =>
+            'View Plans',
         ];
     }
 

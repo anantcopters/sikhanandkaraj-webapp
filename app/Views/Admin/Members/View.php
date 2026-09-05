@@ -1312,7 +1312,172 @@ $this->section('content');
                 : [],
         ]
     ) ?>
+    <!-- Member messaging activity -->
+    <div
+        class="card
+        border
+        border-danger
+        border-opacity-25
+        mb-4">
 
+        <div
+            class="card-header
+            d-flex
+            flex-column
+            flex-sm-row
+            align-items-sm-center
+            justify-content-between
+            gap-2">
+
+            <div>
+                <h5 class="card-title mb-1">
+
+                    <i
+                        class="ri-message-3-line me-1"
+                        aria-hidden="true">
+                    </i>
+
+                    Messaging Activity
+
+                </h5>
+
+                <p class="text-muted fs-13 mb-0">
+                    Member conversation and moderation activity.
+                </p>
+            </div>
+
+            <a
+                href="<?= route_to(
+                            'admin.members.messages',
+                            $resolvedMemberId
+                        ) ?>"
+                class="btn
+                btn-outline-primary
+                btn-sm
+                d-inline-flex
+                align-items-center
+                gap-1">
+
+                <i
+                    class="ri-message-2-line"
+                    aria-hidden="true">
+                </i>
+
+                View Conversations
+
+            </a>
+
+        </div>
+
+        <div class="card-body">
+
+            <?php
+            $messageSummaryItems = [
+                'conversations' =>
+                [
+                    'label' => 'Conversations',
+                    'icon' => 'ri-chat-3-line',
+                ],
+
+                'sent' =>
+                [
+                    'label' => 'Sent',
+                    'icon' => 'ri-send-plane-line',
+                ],
+
+                'received' =>
+                [
+                    'label' => 'Received',
+                    'icon' => 'ri-inbox-line',
+                ],
+
+                'unread' =>
+                [
+                    'label' => 'Unread',
+                    'icon' => 'ri-mail-unread-line',
+                ],
+
+                'reported' =>
+                [
+                    'label' => 'Reported',
+                    'icon' => 'ri-flag-line',
+                ],
+
+                'removed' =>
+                [
+                    'label' => 'Admin Removed',
+                    'icon' => 'ri-delete-bin-line',
+                ],
+            ];
+            ?>
+
+            <div class="row g-3">
+
+                <?php foreach (
+                    $messageSummaryItems
+                    as $key => $item
+                ): ?>
+
+                    <div
+                        class="col-6
+                        col-md-4
+                        col-xl-2">
+
+                        <div
+                            class="border
+                            rounded-3
+                            p-3
+                            h-100">
+
+                            <div
+                                class="d-flex
+                                align-items-center
+                                gap-2
+                                mb-2">
+
+                                <i
+                                    class="<?= esc(
+                                                $item['icon'],
+                                                'attr'
+                                            ) ?>
+                                    text-primary"
+                                    aria-hidden="true">
+                                </i>
+
+                                <span
+                                    class="text-muted
+                                    fs-12">
+                                    <?= esc(
+                                        $item['label']
+                                    ) ?>
+                                </span>
+
+                            </div>
+
+                            <div
+                                class="fs-20
+                                fw-semibold">
+
+                                <?= esc(
+                                    (string) (
+                                        $resolvedMessagingActivity[$key]
+                                        ?? 0
+                                    )
+                                ) ?>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                <?php endforeach; ?>
+
+            </div>
+
+        </div>
+
+    </div>
     <!--
     Match Score diagnostics.
 
@@ -1744,109 +1909,7 @@ $this->section('content');
                         <?php endforeach; ?>
                     </div>
                 </section>
-                <div class="card">
 
-                    <div
-                        class="card-header
-            d-flex
-            align-items-center
-            justify-content-between">
-
-                        <h5 class="mb-0">
-
-                            <i
-                                class="ri-message-3-line
-                    me-1"
-                                aria-hidden="true">
-                            </i>
-
-                            Messaging Activity
-
-                        </h5>
-
-                        <a
-                            href="<?= route_to(
-                                        'admin.members.messages',
-                                        $resolvedMemberId
-                                    ) ?>"
-                            class="btn
-                btn-outline-primary
-                btn-sm">
-
-                            View Conversations
-
-                        </a>
-
-                    </div>
-
-                    <div class="card-body">
-
-                        <div class="row g-3">
-
-                            <?php
-                            $messageSummaryItems = [
-                                'conversations' =>
-                                'Conversations',
-
-                                'sent' =>
-                                'Sent',
-
-                                'received' =>
-                                'Received',
-
-                                'unread' =>
-                                'Unread',
-
-                                'reported' =>
-                                'Reported',
-
-                                'removed' =>
-                                'Admin Removed',
-                            ];
-                            ?>
-
-                            <?php foreach (
-                                $messageSummaryItems
-                                as $key => $label
-                            ): ?>
-
-                                <div class="col-6 col-md-4">
-
-                                    <div
-                                        class="border
-                            rounded
-                            p-3">
-
-                                        <div
-                                            class="text-muted
-                                fs-12">
-                                            <?= esc($label) ?>
-                                        </div>
-
-                                        <div
-                                            class="fs-20
-                                fw-semibold">
-
-                                            <?= esc(
-                                                (string) (
-                                                    $resolvedMessagingActivity[$key]
-                                                    ?? 0
-                                                )
-                                            ) ?>
-
-                                        </div>
-
-                                    </div>
-
-                                </div>
-
-                            <?php endforeach; ?>
-
-                        </div>
-
-                    </div>
-
-                </div>
                 <!-- Education and Profession -->
                 <section
                     class="card-body

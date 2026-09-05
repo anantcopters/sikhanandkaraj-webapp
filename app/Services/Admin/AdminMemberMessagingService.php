@@ -264,4 +264,69 @@ final class AdminMemberMessagingService
 
         return true;
     }
+
+    public function conversationForMember(
+        int $memberId,
+        int $conversationId
+    ): array {
+        $conversation = $this
+            ->conversationModel
+            ->find(
+                $conversationId
+            );
+
+        if (
+            !is_array($conversation)
+            || (
+                (int) (
+                    $conversation['first_user_id']
+                    ?? 0
+                ) !== $memberId
+                &&
+                (int) (
+                    $conversation['second_user_id']
+                    ?? 0
+                ) !== $memberId
+            )
+        ) {
+            throw new DomainException(
+                'The conversation could not be found.'
+            );
+        }
+
+        $this->auditService
+            ->record(
+                new AdminAuditEvent(
+                    action: 'MEMBER_MESSAGE_CONVERSATION_VIEWED',
+
+                    targetType: 'MEMBER_CONVERSATION',
+
+                    targetId: $conversationId,
+
+                    description: 'Administrator inspected a member conversation.',
+
+                    metadata: [
+                        'member_context_id' =>
+                        $memberId,
+
+                        'first_user_id' =>
+                        (int) $conversation['first_user_id'],
+
+                        'second_user_id' =>
+                        (int) $conversation['second_user_id'],
+                    ]
+                )
+            );
+
+        return [
+            'conversation' =>
+            $conversation,
+
+            'messages' =>
+            $this->messageModel
+                ->conversationMessages(
+                    $conversationId
+                ),
+        ];
+    }
 }

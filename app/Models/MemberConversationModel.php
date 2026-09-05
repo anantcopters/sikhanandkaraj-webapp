@@ -114,6 +114,86 @@ final class MemberConversationModel extends Model
             ->findAll();
     }
 
+    /**
+     * Return conversation-list state for one member.
+     *
+     * Identity/profile presentation is intentionally NOT resolved here.
+     * This method owns only messaging persistence data.
+     *
+     * @return list<array<string,mixed>>
+     */
+    public function listingForMember(
+        int $userId
+    ): array {
+        return $this
+            ->select([
+                'member_conversations.*',
+
+                'CASE
+                WHEN member_conversations.first_user_id = '
+                    . (int) $userId . '
+                THEN member_conversations.second_user_id
+                ELSE member_conversations.first_user_id
+            END AS other_user_id',
+
+                'latest.message_text AS latest_message_text',
+                'latest.message_type AS latest_message_type',
+                'latest.removed_at AS latest_removed_at',
+
+                'COALESCE(unread.total, 0) AS unread_count',
+            ])
+            ->join(
+                'LATERAL (
+                SELECT
+                    member_messages.message_text,
+                    member_messages.message_type,
+                    member_messages.removed_at
+                FROM member_messages
+                WHERE member_messages.conversation_id
+                    = member_conversations.id
+                ORDER BY member_messages.id DESC
+                LIMIT 1
+            ) AS latest',
+                'TRUE',
+                'left',
+                false
+            )
+            ->join(
+                'LATERAL (
+                SELECT COUNT(*) AS total
+                FROM member_messages
+                WHERE member_messages.conversation_id
+                    = member_conversations.id
+                  AND member_messages.recipient_user_id = '
+                    . (int) $userId . '
+                  AND member_messages.message_type = \'MEMBER\'
+                  AND member_messages.read_at IS NULL
+            ) AS unread',
+                'TRUE',
+                'left',
+                false
+            )
+            ->groupStart()
+            ->where(
+                'member_conversations.first_user_id',
+                $userId
+            )
+            ->orWhere(
+                'member_conversations.second_user_id',
+                $userId
+            )
+            ->groupEnd()
+            ->orderBy(
+                'member_conversations.last_message_at',
+                'DESC'
+            )
+            ->orderBy(
+                'member_conversations.id',
+                'DESC'
+            )
+            ->findAll();
+    }
+
     public function countManualStartedToday(
         int $userId,
         string $dayStart

@@ -264,4 +264,72 @@ final class MemberMessageModel extends Model
             )
             ->countAllResults() > 0;
     }
+
+    /**
+     * @return array{
+     *     messages:list<array<string,mixed>>,
+     *     nextBeforeId:int|null
+     * }
+     */
+    public function conversationPage(
+        int $conversationId,
+        ?int $beforeId = null,
+        int $limit = 50
+    ): array {
+        $limit = min(
+            100,
+            max(
+                1,
+                $limit
+            )
+        );
+
+        $builder = $this
+            ->where(
+                'conversation_id',
+                $conversationId
+            );
+
+        if (
+            $beforeId !== null
+            && $beforeId > 0
+        ) {
+            $builder->where(
+                'id <',
+                $beforeId
+            );
+        }
+
+        $rows = $builder
+            ->orderBy(
+                'id',
+                'DESC'
+            )
+            ->findAll(
+                $limit + 1
+            );
+
+        $hasMore =
+            count($rows) > $limit;
+
+        if ($hasMore) {
+            array_pop($rows);
+        }
+
+        $nextBeforeId =
+            $hasMore
+            && $rows !== []
+            ? (int) end($rows)['id']
+            : null;
+
+        return [
+            'messages' =>
+            array_reverse(
+                $rows
+            ),
+
+            'nextBeforeId' =>
+            $nextBeforeId,
+        ];
+    }
 }
