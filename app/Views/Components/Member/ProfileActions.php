@@ -22,6 +22,7 @@ declare(strict_types=1);
  * @var string $shortlistUrl
  * @var string $reportModalId
  * @var string $blockModalId
+ * @var bool   $canSendMessage
  */
 
 $profileReference = trim(
@@ -38,6 +39,25 @@ $messageUrl =
         $profileReference
     )
     : '';
+
+$showMessageAction =
+    ($showMessageAction ?? true)
+    === true;
+
+$canSendMessage =
+    ($canSendMessage ?? false)
+    === true;
+
+$messagingUpgradeModalId =
+    'profileActionsMessagingUpgrade'
+    . (
+        preg_replace(
+            '/[^A-Za-z0-9_-]/',
+            '',
+            $profileReference
+        )
+        ?? ''
+    );
 
 $isShortlisted =
     ($isShortlisted ?? false)
@@ -136,30 +156,62 @@ if (
             shadow-md
         "
         style="min-width: 220px;">
-        <?php if ($messageUrl !== ''): ?>
+        <?php if (
+            $showMessageAction
+            && $messageUrl !== ''
+        ): ?>
 
-            <a
-                href="<?= esc(
-                            $messageUrl,
-                            'attr'
-                        ) ?>"
-                class="
-            dropdown-item
-            rounded
-            d-flex
-            align-items-center
-            gap-2
-        ">
+            <?php if ($canSendMessage): ?>
 
-                <i
-                    class="ri-message-3-line
-                text-primary"
-                    aria-hidden="true">
-                </i>
+                <a
+                    href="<?= esc(
+                                $messageUrl,
+                                'attr'
+                            ) ?>"
+                    class="
+                dropdown-item
+                rounded
+                d-flex
+                align-items-center
+                gap-2
+            ">
 
-                Message
+                    <i
+                        class="ri-message-3-line text-primary"
+                        aria-hidden="true">
+                    </i>
 
-            </a>
+                    Message
+
+                </a>
+
+            <?php else: ?>
+
+                <button
+                    type="button"
+                    class="
+                dropdown-item
+                rounded
+                d-flex
+                align-items-center
+                gap-2
+            "
+                    data-bs-toggle="modal"
+                    data-bs-target="#<?= esc(
+                                            $messagingUpgradeModalId,
+                                            'attr'
+                                        ) ?>">
+
+                    <i
+                        class="ri-message-3-line text-primary"
+                        aria-hidden="true">
+                    </i>
+
+                    Message
+
+                </button>
+
+            <?php endif; ?>
 
         <?php endif; ?>
         <?php if ($hasShortlistAction): ?>
@@ -337,3 +389,18 @@ if (
     </div>
 
 </div>
+
+<?php if (
+    $messageUrl !== ''
+    && !$canSendMessage
+): ?>
+
+    <?= view(
+        'Components/Membership/MessagingUpgradeModal',
+        [
+            'modalId' =>
+            $messagingUpgradeModalId,
+        ]
+    ) ?>
+
+<?php endif; ?>

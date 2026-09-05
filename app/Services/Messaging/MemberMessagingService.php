@@ -159,7 +159,8 @@ final class MemberMessagingService
             $interestId,
             MemberMessageModel
             ::EVENT_INTEREST_ACCEPTED,
-            'Interest Accepted'
+            $this->configuration
+                ->interestAcceptedMessage
         );
     }
 
@@ -201,7 +202,8 @@ final class MemberMessagingService
             $interestId,
             MemberMessageModel
             ::EVENT_INTEREST_DECLINED,
-            'Interest Declined'
+            $this->configuration
+                ->interestDeclinedMessage
         );
     }
 
@@ -263,7 +265,8 @@ final class MemberMessagingService
             $interestId,
             MemberMessageModel
             ::EVENT_INTEREST_WITHDRAWN,
-            'Interest Withdrawn'
+            $this->configuration
+                ->interestWithdrawnMessage
         );
     }
 
@@ -749,19 +752,10 @@ final class MemberMessagingService
             'messages' =>
             [],
 
-            'composer' => [
-                'enabled' =>
-                $this->entitlementService
-                    ->canSendMessage(
-                        $userId
-                    ),
-
-                'reason' =>
-                '',
-
-                'showUpgrade' =>
-                false,
-            ],
+            'composer' =>
+            $this->draftComposerState(
+                $userId
+            ),
 
             'safetyWarning' =>
             $this->configuration
@@ -1110,10 +1104,23 @@ final class MemberMessagingService
         int $userId,
         int $otherUserId
     ): array {
+        if (!$this->configuration->enabled) {
+            return [
+                'enabled' =>
+                false,
+
+                'reason' =>
+                'Messaging is temporarily unavailable.',
+
+                'showUpgrade' =>
+                false,
+            ];
+        }
+
         /*
-     * Safety restrictions always take precedence over
-     * commercial membership state.
-     */
+        * Safety restrictions always take precedence over
+        * commercial membership state.
+        */
         if (
             $this->blockModel
             ->existsBetween(
@@ -1231,6 +1238,79 @@ final class MemberMessagingService
             'reason' =>
             'Want to continue this conversation? '
                 . 'Upgrade your membership to reply.',
+
+            'showUpgrade' =>
+            true,
+
+            'upgradeLabel' =>
+            'View Plans',
+        ];
+    }
+
+    private function draftComposerState(
+        int $userId
+    ): array {
+        if (!$this->configuration->enabled) {
+            return [
+                'enabled' =>
+                false,
+
+                'reason' =>
+                'Messaging is temporarily unavailable.',
+
+                'showUpgrade' =>
+                false,
+            ];
+        }
+
+        if (
+            $this->entitlementService
+            ->canSendMessage(
+                $userId
+            )
+        ) {
+            return [
+                'enabled' =>
+                true,
+
+                'reason' =>
+                '',
+
+                'showUpgrade' =>
+                false,
+            ];
+        }
+
+        if (
+            $this->membershipService
+            ->hasExpiredPaidMembership(
+                $userId
+            )
+        ) {
+            return [
+                'enabled' =>
+                false,
+
+                'reason' =>
+                'Your membership has expired. '
+                    . 'Renew your membership to continue.',
+
+                'showUpgrade' =>
+                true,
+
+                'upgradeLabel' =>
+                'Renew Membership',
+            ];
+        }
+
+        return [
+            'enabled' =>
+            false,
+
+            'reason' =>
+            'Messaging is available with membership. '
+                . 'You can receive and read messages from members. '
+                . 'Upgrade to start conversations and reply.',
 
             'showUpgrade' =>
             true,

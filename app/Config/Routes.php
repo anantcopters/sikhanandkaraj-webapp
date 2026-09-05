@@ -755,22 +755,49 @@ $routes->group('', [
                 ]
             );
 
-            $routes->get(
+            /*
+            * --------------------------------------------------------------------------
+            * Member Messaging
+            * --------------------------------------------------------------------------
+            *
+            * webAuth is inherited from the parent group.
+            *
+            * Authorization remains server-side in MessageController /
+            * MemberMessagingService. Route visibility alone never grants
+            * message access.
+            */
+            $routes->group(
                 'messages',
-                'MessageController::index',
-                [
-                    'as' =>
-                    'web.messages',
-                ]
-            );
+                static function (
+                    RouteCollection $routes
+                ): void {
+                    $routes->get(
+                        '',
+                        'MessageController::index',
+                        [
+                            'as' =>
+                            'web.messages',
+                        ]
+                    );
 
-            $routes->get(
-                'messages/(:num)',
-                'MessageController::conversation/$1',
-                [
-                    'as' =>
-                    'web.messages.conversation',
-                ]
+                    $routes->get(
+                        '(:num)',
+                        'MessageController::conversation/$1',
+                        [
+                            'as' =>
+                            'web.messages.conversation',
+                        ]
+                    );
+
+                    $routes->post(
+                        '(:num)/report',
+                        'MessageController::report/$1',
+                        [
+                            'as' =>
+                            'web.messages.report',
+                        ]
+                    );
+                }
             );
 
             $routes->get(
@@ -788,15 +815,6 @@ $routes->group('', [
                 [
                     'as' =>
                     'web.members.message.send',
-                ]
-            );
-
-            $routes->post(
-                'messages/(:num)/report',
-                'MessageController::report/$1',
-                [
-                    'as' =>
-                    'web.messages.report',
                 ]
             );
 
@@ -2524,31 +2542,52 @@ $routes->group('admin', [
                     ]
                 );
 
-                $routes->get(
+                /*
+                * --------------------------------------------------------------------------
+                * Private Member Messaging Administration
+                * --------------------------------------------------------------------------
+                *
+                * Private member-message inspection and moderation are restricted
+                * to SUPER_ADMIN.
+                *
+                * adminAuth is inherited from the parent Admin group.
+                */
+                $routes->group(
                     '(:num)/messages',
-                    'MemberMessageController::index/$1',
                     [
-                        'as' =>
-                        'admin.members.messages',
-                    ]
-                );
+                        'filter' =>
+                        'superAdmin',
+                    ],
+                    static function (
+                        RouteCollection $routes
+                    ): void {
+                        $routes->get(
+                            '',
+                            'MemberMessageController::index/$1',
+                            [
+                                'as' =>
+                                'admin.members.messages',
+                            ]
+                        );
 
-                $routes->get(
-                    '(:num)/messages/(:num)',
-                    'MemberMessageController::conversation/$1/$2',
-                    [
-                        'as' =>
-                        'admin.members.messages.conversation',
-                    ]
-                );
+                        $routes->get(
+                            '(:num)',
+                            'MemberMessageController::conversation/$1/$2',
+                            [
+                                'as' =>
+                                'admin.members.messages.conversation',
+                            ]
+                        );
 
-                $routes->post(
-                    '(:num)/messages/message/(:num)/remove',
-                    'MemberMessageController::remove/$1/$2',
-                    [
-                        'as' =>
-                        'admin.members.messages.remove',
-                    ]
+                        $routes->post(
+                            'message/(:num)/remove',
+                            'MemberMessageController::remove/$1/$2',
+                            [
+                                'as' =>
+                                'admin.members.messages.remove',
+                            ]
+                        );
+                    }
                 );
 
                 $routes->get(

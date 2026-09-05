@@ -8,6 +8,7 @@ use App\Controllers\BaseController;
 use App\Services\Matchmaking\MemberProfileViewService;
 use App\Services\Messaging\MemberMessagingService;
 use App\Validation\Member\MemberMessageValidation;
+use App\Validation\Member\MemberMessageReportValidation;
 use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\RedirectResponse;
 use DomainException;
@@ -15,7 +16,7 @@ use Throwable;
 
 final class MessageController extends BaseController
 {
-    public function index(): string
+    public function index(): string|RedirectResponse
     {
         $userId =
             $this->authenticatedUserId();
@@ -391,6 +392,62 @@ final class MessageController extends BaseController
         $userId =
             $this->authenticatedUserId();
 
+        $input = [
+            'reason' =>
+            mb_strtoupper(
+                trim(
+                    (string) $this
+                        ->request
+                        ->getPost(
+                            'reason'
+                        )
+                )
+            ),
+
+            'comment' =>
+            trim(
+                (string) $this
+                    ->request
+                    ->getPost(
+                        'comment'
+                    )
+            ),
+        ];
+
+        $validation =
+            service(
+                'validation'
+            );
+
+        $validation->setRules(
+            MemberMessageReportValidation
+                ::rules()
+        );
+
+        if (!$validation->run($input)) {
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with(
+                    'validationErrors',
+                    $validation
+                        ->getErrors()
+                )
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'danger',
+
+                        'title' =>
+                        'Message not reported',
+
+                        'message' =>
+                        'Please correct the report details and try again.',
+                    ]
+                );
+        }
+
         try {
             service(
                 'memberMessagingService'
@@ -399,17 +456,9 @@ final class MessageController extends BaseController
 
                 messageId: $messageId,
 
-                reason: (string) $this
-                    ->request
-                    ->getPost(
-                        'reason'
-                    ),
+                reason: $input['reason'],
 
-                comment: (string) $this
-                    ->request
-                    ->getPost(
-                        'comment'
-                    )
+                comment: $input['comment']
             );
 
             return redirect()

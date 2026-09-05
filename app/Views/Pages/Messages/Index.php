@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 /**
  * @var list<array<string,mixed>> $conversations
- * @var array<string,mixed>|null $activeConversation
+ * @var array<string,mixed>|null  $activeConversation
+ * @var array<string,mixed>|null  $formAlert
+ * @var array<string,string>      $validationErrors
+ * @var list<string>              $pageScripts
  */
 
 $this->extend(
@@ -14,6 +17,18 @@ $this->extend(
 $this->section(
     'content'
 );
+
+$formAlert =
+    isset($formAlert)
+    && is_array($formAlert)
+    ? $formAlert
+    : null;
+
+$validationErrors =
+    isset($validationErrors)
+    && is_array($validationErrors)
+    ? $validationErrors
+    : [];
 
 $conversations =
     isset($conversations)
@@ -491,7 +506,35 @@ $plansUrl =
                                 )
                             ) ?>
 
-                        </div>
+                        </div><?php
+                                $activeVerification =
+                                    isset(
+                                        $activeMember['verification']
+                                    )
+                                    && is_array(
+                                        $activeMember['verification']
+                                    )
+                                    ? $activeMember['verification']
+                                    : [];
+                                ?>
+
+                        <?php if (
+                            $activeVerification !== []
+                        ): ?>
+
+                            <div class="mt-2">
+
+                                <?= view(
+                                    'Components/Member/VerificationBadges',
+                                    [
+                                        'verification' =>
+                                        $activeVerification,
+                                    ]
+                                ) ?>
+
+                            </div>
+
+                        <?php endif; ?>
 
                     </div>
 
@@ -627,31 +670,38 @@ $plansUrl =
                                                 ?? false)
                                         ): ?>
 
-                                            <form
-                                                method="post"
-                                                action="<?= route_to(
-                                                            'web.messages.report',
-                                                            (int) (
-                                                                $message['id']
-                                                                ?? 0
-                                                            )
-                                                        ) ?>"
-                                                class="mt-2">
+                                            <?php
+                                            $reportMessageId =
+                                                max(
+                                                    0,
+                                                    (int) (
+                                                        $message['id']
+                                                        ?? 0
+                                                    )
+                                                );
 
-                                                <?= csrf_field() ?>
+                                            $reportMessageModalId =
+                                                'reportMessageModal'
+                                                . $reportMessageId;
+                                            ?>
 
-                                                <input
-                                                    type="hidden"
-                                                    name="reason"
-                                                    value="UNWANTED_CONTACT">
+                                            <?php if (
+                                                $reportMessageId > 0
+                                            ): ?>
 
                                                 <button
-                                                    type="submit"
+                                                    type="button"
                                                     class="btn
-                                                        btn-link
-                                                        btn-sm
-                                                        p-0
-                                                        text-danger">
+                btn-link
+                btn-sm
+                p-0
+                text-danger
+                mt-2"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#<?= esc(
+                                                                            $reportMessageModalId,
+                                                                            'attr'
+                                                                        ) ?>">
 
                                                     <i
                                                         class="ri-flag-line me-1"
@@ -662,7 +712,15 @@ $plansUrl =
 
                                                 </button>
 
-                                            </form>
+                                                <?= view(
+                                                    'Pages/Messages/_ReportMessageModal',
+                                                    [
+                                                        'messageId' =>
+                                                        $reportMessageId,
+                                                    ]
+                                                ) ?>
+
+                                            <?php endif; ?>
 
                                         <?php endif; ?>
 

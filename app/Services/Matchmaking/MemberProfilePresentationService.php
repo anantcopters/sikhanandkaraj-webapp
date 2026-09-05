@@ -520,6 +520,12 @@ final class MemberProfilePresentationService
                 $profileReference
             ),
 
+            'canSendMessage' =>
+            $this->membershipEntitlementService
+                ->canSendMessage(
+                    $viewerUserId
+                ),
+
             /*
             * Education, occupation and employment are formatted once so ProfileCard
             * and ProfileInterestCard always follow the same display rules.

@@ -92,6 +92,12 @@ $messageUrl = trim(
     )
 );
 
+$canSendMessage =
+    (
+        $profile['canSendMessage']
+        ?? false
+    ) === true;
+
 $shortlistUrl = trim(
     (string) (
         $profile['shortlistUrl']
@@ -316,6 +322,10 @@ $safeModalReference =
     )
     ?? '';
 
+$messagingUpgradeModalId =
+    'messagingUpgrade'
+    . $safeModalReference;
+
 $reportModalId =
     'profileCardReport'
     . $safeModalReference;
@@ -468,6 +478,9 @@ $blockModalId =
 
                                     'blockModalId' =>
                                     $blockModalId,
+
+                                    'canSendMessage' =>
+                                    $canSendMessage,
                                 ]
                             ) ?>
 
@@ -611,26 +624,55 @@ $blockModalId =
                     <?php endif; ?>
                     <?php if ($messageUrl !== ''): ?>
 
-                        <a
-                            href="<?= esc(
-                                        $messageUrl,
-                                        'attr'
-                                    ) ?>"
-                            class="btn
-            btn-outline-primary
-            btn-md
-            d-inline-flex
-            align-items-center
-            gap-1 fs-12">
+                        <?php if ($canSendMessage): ?>
 
-                            <i
-                                class="ri-message-3-line"
-                                aria-hidden="true">
-                            </i>
+                            <a
+                                href="<?= esc(
+                                            $messageUrl,
+                                            'attr'
+                                        ) ?>"
+                                class="btn
+                btn-outline-primary
+                btn-md
+                d-inline-flex
+                align-items-center
+                gap-1 fs-12">
 
-                            Message
+                                <i
+                                    class="ri-message-3-line"
+                                    aria-hidden="true">
+                                </i>
 
-                        </a>
+                                Message
+
+                            </a>
+
+                        <?php else: ?>
+
+                            <button
+                                type="button"
+                                class="btn
+                btn-outline-primary
+                btn-md
+                d-inline-flex
+                align-items-center
+                gap-1 fs-12"
+                                data-bs-toggle="modal"
+                                data-bs-target="#<?= esc(
+                                                        $messagingUpgradeModalId,
+                                                        'attr'
+                                                    ) ?>">
+
+                                <i
+                                    class="ri-message-3-line"
+                                    aria-hidden="true">
+                                </i>
+
+                                Message
+
+                            </button>
+
+                        <?php endif; ?>
 
                     <?php endif; ?>
                     <?php if (
@@ -777,7 +819,22 @@ $blockModalId =
             $verification,
         ]
     ) ?>
+    <?php if (
+        $messageUrl !== ''
+        && !$canSendMessage
+    ): ?>
 
+        <?= view(
+            'Components/Membership/MessagingUpgradeModal',
+            [
+                'modalId' =>
+                $messagingUpgradeModalId,
+            ]
+        ) ?>
+
+    <?php endif; ?>
+
+</article>
 </article>
 
 <?php if (

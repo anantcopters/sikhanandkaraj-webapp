@@ -2,6 +2,33 @@
 
 declare(strict_types=1);
 
+/**
+ * @var int                      $memberId
+ * @var array<string,mixed>      $conversation
+ * @var array<string,mixed>|null $formAlert
+ */
+
+$memberId =
+    isset($memberId)
+    && is_numeric($memberId)
+    ? max(
+        0,
+        (int) $memberId
+    )
+    : 0;
+
+$conversation =
+    isset($conversation)
+    && is_array($conversation)
+    ? $conversation
+    : [];
+
+$formAlert =
+    isset($formAlert)
+    && is_array($formAlert)
+    ? $formAlert
+    : null;
+
 $this->extend(
     'Admin/Layouts/Main'
 );
