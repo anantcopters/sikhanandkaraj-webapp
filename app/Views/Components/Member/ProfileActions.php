@@ -31,6 +31,14 @@ $profileReference = trim(
     )
 );
 
+$messageUrl =
+    $profileReference !== ''
+    ? route_to(
+        'web.members.message',
+        $profileReference
+    )
+    : '';
+
 $isShortlisted =
     ($isShortlisted ?? false)
     === true;
@@ -87,7 +95,8 @@ $hasShortlistAction =
     );
 
 $hasActions =
-    $hasShortlistAction
+    $messageUrl !== ''
+    || $hasShortlistAction
     || $canReport
     || $canBlock;
 
@@ -127,7 +136,32 @@ if (
             shadow-md
         "
         style="min-width: 220px;">
+        <?php if ($messageUrl !== ''): ?>
 
+            <a
+                href="<?= esc(
+                            $messageUrl,
+                            'attr'
+                        ) ?>"
+                class="
+            dropdown-item
+            rounded
+            d-flex
+            align-items-center
+            gap-2
+        ">
+
+                <i
+                    class="ri-message-3-line
+                text-primary"
+                    aria-hidden="true">
+                </i>
+
+                Message
+
+            </a>
+
+        <?php endif; ?>
         <?php if ($hasShortlistAction): ?>
 
             <form

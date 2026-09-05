@@ -141,6 +141,13 @@ final class MemberController extends BaseController
                         'memberId' =>
                         $userId,
 
+                        'messagingActivity' =>
+                        service(
+                            'adminMemberMessagingService'
+                        )->summaryForMember(
+                            $userId
+                        ),
+
                         'validationErrors' =>
                         session(
                             'validationErrors'

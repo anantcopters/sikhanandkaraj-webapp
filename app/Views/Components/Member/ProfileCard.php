@@ -85,6 +85,13 @@ $interestUrl = trim(
     )
 );
 
+$messageUrl = trim(
+    (string) (
+        $profile['messageUrl']
+        ?? ''
+    )
+);
+
 $shortlistUrl = trim(
     (string) (
         $profile['shortlistUrl']
@@ -602,7 +609,30 @@ $blockModalId =
                         </a>
 
                     <?php endif; ?>
+                    <?php if ($messageUrl !== ''): ?>
 
+                        <a
+                            href="<?= esc(
+                                        $messageUrl,
+                                        'attr'
+                                    ) ?>"
+                            class="btn
+            btn-outline-primary
+            btn-md
+            d-inline-flex
+            align-items-center
+            gap-1 fs-12">
+
+                            <i
+                                class="ri-message-3-line"
+                                aria-hidden="true">
+                            </i>
+
+                            Message
+
+                        </a>
+
+                    <?php endif; ?>
                     <?php if (
                         $canShowInterest
                         && $interestUrl !== ''

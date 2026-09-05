@@ -104,6 +104,88 @@ final class InterestController extends BaseController
         );
     }
 
+    public function withdraw(
+        string $profileReference
+    ): RedirectResponse {
+        $userId =
+            $this->authenticatedUserId();
+
+        try {
+            /** @var MemberProfileViewService $profileService */
+            $profileService = service(
+                'memberProfileViewService'
+            );
+
+            $recipient = $profileService
+                ->targetForAction(
+                    $userId,
+                    $profileReference
+                );
+
+            $recipientUserId = max(
+                0,
+                (int) (
+                    $recipient['id']
+                    ?? 0
+                )
+            );
+
+            if ($recipientUserId <= 0) {
+                throw PageNotFoundException
+                    ::forPageNotFound();
+            }
+
+            service(
+                'memberInterestService'
+            )->withdraw(
+                $userId,
+                $recipientUserId
+            );
+
+            return redirect()
+                ->to(
+                    route_to(
+                        'web.interests'
+                    )
+                        . '?direction=sent'
+                )
+                ->with(
+                    'interestActionNotice',
+                    [
+                        'title' =>
+                        'Interest Withdrawn',
+
+                        'message' =>
+                        'The interest has been withdrawn.',
+                    ]
+                );
+        } catch (PageNotFoundException) {
+            throw PageNotFoundException
+                ::forPageNotFound();
+        } catch (DomainException $exception) {
+            return redirect()
+                ->to(
+                    route_to(
+                        'web.interests'
+                    )
+                        . '?direction=sent'
+                )
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'danger',
+
+                        'title' =>
+                        'Interest not withdrawn',
+
+                        'message' =>
+                        $exception->getMessage(),
+                    ]
+                );
+        }
+    }
+
     /**
      * Decline an interest received from another member.
      */

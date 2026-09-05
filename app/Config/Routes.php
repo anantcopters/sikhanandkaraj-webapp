@@ -746,11 +746,57 @@ $routes->group('', [
                 ]
             );
 
+            $routes->post(
+                'interests/sent/(:segment)/withdraw',
+                'InterestController::withdraw/$1',
+                [
+                    'as' =>
+                    'web.interests.sent.withdraw',
+                ]
+            );
+
             $routes->get(
                 'messages',
-                'MemberNavigationController::messages',
+                'MessageController::index',
                 [
-                    'as' => 'web.messages',
+                    'as' =>
+                    'web.messages',
+                ]
+            );
+
+            $routes->get(
+                'messages/(:num)',
+                'MessageController::conversation/$1',
+                [
+                    'as' =>
+                    'web.messages.conversation',
+                ]
+            );
+
+            $routes->get(
+                'members/(:segment)/message',
+                'MessageController::start/$1',
+                [
+                    'as' =>
+                    'web.members.message',
+                ]
+            );
+
+            $routes->post(
+                'members/(:segment)/message',
+                'MessageController::send/$1',
+                [
+                    'as' =>
+                    'web.members.message.send',
+                ]
+            );
+
+            $routes->post(
+                'messages/(:num)/report',
+                'MessageController::report/$1',
+                [
+                    'as' =>
+                    'web.messages.report',
                 ]
             );
 
@@ -2475,6 +2521,33 @@ $routes->group('admin', [
                     [
                         'as' =>
                         'admin.members.match-score-diagnostic',
+                    ]
+                );
+
+                $routes->get(
+                    '(:num)/messages',
+                    'MemberMessageController::index/$1',
+                    [
+                        'as' =>
+                        'admin.members.messages',
+                    ]
+                );
+
+                $routes->get(
+                    '(:num)/messages/(:num)',
+                    'MemberMessageController::conversation/$1/$2',
+                    [
+                        'as' =>
+                        'admin.members.messages.conversation',
+                    ]
+                );
+
+                $routes->post(
+                    '(:num)/messages/message/(:num)/remove',
+                    'MemberMessageController::remove/$1/$2',
+                    [
+                        'as' =>
+                        'admin.members.messages.remove',
                     ]
                 );
 

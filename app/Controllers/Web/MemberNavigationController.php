@@ -50,42 +50,4 @@ final class MemberNavigationController extends BaseController
                     . $query
             );
     }
-
-    /**
-     * Messages remains a placeholder until the module is implemented.
-     */
-    public function messages(): string
-    {
-        return $this->renderPage(
-            'Messages',
-            'ri-message-3-line',
-            'Your member conversations will appear here.'
-        );
-    }
-
-    /**
-     * Render one authenticated member-navigation placeholder.
-     */
-    private function renderPage(
-        string $title,
-        string $icon,
-        string $description
-    ): string {
-        return view(
-            'Pages/MemberNavigation/Placeholder',
-            [
-                'pageTitle' =>
-                $title,
-
-                'heading' =>
-                $title,
-
-                'icon' =>
-                $icon,
-
-                'description' =>
-                $description,
-            ]
-        );
-    }
 }

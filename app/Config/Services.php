@@ -185,6 +185,12 @@ use App\Models\CouponRedemptionModel;
 use App\Models\CouponAuditLogModel;
 use App\Services\Admin\CouponManagementService;
 use App\Services\Membership\CouponService;
+use App\Models\MemberConversationModel;
+use App\Models\MemberMessageModel;
+use App\Models\MemberMessageReportModel;
+use App\Services\Messaging\MemberMessagingService;
+use App\Services\Admin\AdminMemberMessagingService;
+use Config\MemberMessaging;
 use App\Models\EmailQueueModel;
 use App\Models\SmsDeliveryLogModel;
 use Config\ProfilePdf;
@@ -1975,6 +1981,65 @@ final class Services extends BaseService
         );
     }
 
+    public static function memberMessagingService(
+        bool $getShared = true
+    ): MemberMessagingService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberMessagingService'
+            );
+        }
+
+        $database =
+            db_connect();
+
+        return new MemberMessagingService(
+            new UserModel(
+                $database
+            ),
+
+            new MemberConversationModel(
+                $database
+            ),
+
+            new MemberMessageModel(
+                $database
+            ),
+
+            new MemberMessageReportModel(
+                $database
+            ),
+
+            new MemberInterestModel(
+                $database
+            ),
+
+            new MemberBlockModel(
+                $database
+            ),
+
+            static::membershipService(
+                false
+            ),
+
+            static::membershipEntitlementService(
+                false
+            ),
+
+            new MemberNotificationService(
+                new MemberNotificationModel(
+                    $database
+                )
+            ),
+
+            $database,
+
+            config(
+                MemberMessaging::class
+            )
+        );
+    }
+
     /**
      * Return the member-to-member interaction service.
      *
@@ -2056,6 +2121,10 @@ final class Services extends BaseService
          * existing membership capability rules.
          */
             static::membershipEntitlementService(
+                false
+            ),
+
+            static::memberMessagingService(
                 false
             )
         );
@@ -2381,7 +2450,44 @@ final class Services extends BaseService
 
             static::memberInteractionService(
                 false
+            ),
+
+            static::memberMessagingService(
+                false
             )
+        );
+    }
+
+    public static function adminMemberMessagingService(
+        bool $getShared = true
+    ): AdminMemberMessagingService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'adminMemberMessagingService'
+            );
+        }
+
+        $database =
+            db_connect();
+
+        return new AdminMemberMessagingService(
+            new MemberConversationModel(
+                $database
+            ),
+
+            new MemberMessageModel(
+                $database
+            ),
+
+            new MemberMessageReportModel(
+                $database
+            ),
+
+            static::adminAuditService(
+                false
+            ),
+
+            $database
         );
     }
 

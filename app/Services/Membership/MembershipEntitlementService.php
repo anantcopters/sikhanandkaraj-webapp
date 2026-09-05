@@ -6,16 +6,6 @@ namespace App\Services\Membership;
 
 /**
  * Central authority for membership-controlled product capabilities.
- *
- * Controllers and services should ask whether a member has a capability
- * instead of implementing repeated "paid vs free" conditionals.
- *
- * Aadhaar Verification, Report, Block and Interest actions are intentionally
- * membership-neutral and are available to both Free and Paid members.
- *
- * The remaining commercial capabilities are controlled by active membership.
- * Keeping all capability decisions here allows future plan differentiation
- * without changing every controller or feature service.
  */
 final class MembershipEntitlementService
 {
@@ -49,20 +39,22 @@ final class MembershipEntitlementService
     public const CAPABILITY_RECEIVE_INTEREST =
     'RECEIVE_INTEREST';
 
+    /*
+     * Messaging.
+     *
+     * Receiving/reading is available to Free and Paid members.
+     * Manual sending/replying requires an active Paid membership.
+     */
+    public const CAPABILITY_RECEIVE_MESSAGE =
+    'RECEIVE_MESSAGE';
+
+    public const CAPABILITY_SEND_MESSAGE =
+    'SEND_MESSAGE';
+
     public function __construct(
         private readonly MembershipService $membershipService
     ) {}
 
-    /**
-     * Resolve one product capability.
-     *
-     * Aadhaar Verification, Report, Block, Send Interest and Receive Interest
-     * are intentionally available to both Free and Paid members.
-     *
-     * Full-profile access returning true here means only that the membership
-     * tier permits the feature. Verified-profile, gender/interest, blocking,
-     * moderation and quota rules belong to the later ProfileAccessPolicy.
-     */
     public function can(
         int $userId,
         string $capability
@@ -72,16 +64,10 @@ final class MembershipEntitlementService
         );
 
         /*
-         * These capabilities are intentionally membership-neutral.
+         * Membership-neutral capabilities.
          *
-         * Returning true here grants only the product entitlement. The target
-         * operation must still enforce its own authentication, ownership,
-         * workflow-state, blocking, moderation and domain-specific rules.
-         *
-         * Aadhaar belongs here because identity verification is now available
-         * to both Free and Paid members. MemberAadhaarService remains
-         * responsible for validating whether the current Aadhaar workflow
-         * state permits a new upload.
+         * Domain-specific authorization still remains with the service which
+         * performs the actual operation.
          */
         if (
             in_array(
@@ -92,6 +78,7 @@ final class MembershipEntitlementService
                     self::CAPABILITY_BLOCK,
                     self::CAPABILITY_SEND_INTEREST,
                     self::CAPABILITY_RECEIVE_INTEREST,
+                    self::CAPABILITY_RECEIVE_MESSAGE,
                 ],
                 true
             )
@@ -112,9 +99,6 @@ final class MembershipEntitlementService
             return false;
         }
 
-        /*
-         * Commercial capabilities requiring an active Paid membership.
-         */
         return in_array(
             $normalizedCapability,
             [
@@ -123,6 +107,7 @@ final class MembershipEntitlementService
                 self::CAPABILITY_CREATE_LIVE_INTRODUCTION,
                 self::CAPABILITY_WATCH_LIVE_INTRODUCTION,
                 self::CAPABILITY_SHORTLIST,
+                self::CAPABILITY_SEND_MESSAGE,
             ],
             true
         );
@@ -215,6 +200,24 @@ final class MembershipEntitlementService
         return $this->can(
             $userId,
             self::CAPABILITY_RECEIVE_INTEREST
+        );
+    }
+
+    public function canReceiveMessage(
+        int $userId
+    ): bool {
+        return $this->can(
+            $userId,
+            self::CAPABILITY_RECEIVE_MESSAGE
+        );
+    }
+
+    public function canSendMessage(
+        int $userId
+    ): bool {
+        return $this->can(
+            $userId,
+            self::CAPABILITY_SEND_MESSAGE
         );
     }
 }

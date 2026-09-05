@@ -10,6 +10,7 @@ use App\Services\Communication\CommunicationEventRegistry;
 use App\Models\UserModel;
 use App\Services\Notification\MemberNotificationService;
 use App\Services\Membership\MembershipEntitlementService;
+use App\Services\Messaging\MemberMessagingService;
 use App\Services\Email\MemberEmailService;
 use App\Support\MemberNameVisibility;
 use CodeIgniter\Database\BaseConnection;
@@ -76,7 +77,10 @@ final class MemberInterestService
         * state and remains the write authority for those actions.
         */
         private readonly MemberInteractionService
-        $interactionService
+        $interactionService,
+
+        private readonly MemberMessagingService
+        $memberMessagingService
     ) {}
 
     /**
@@ -237,6 +241,147 @@ final class MemberInterestService
         );
     }
 
+    public function withdraw(
+        int $fromUserId,
+        int $toUserId
+    ): bool {
+        if (
+            $fromUserId <= 0
+            || $toUserId <= 0
+            || $fromUserId
+            === $toUserId
+        ) {
+            throw new DomainException(
+                'The interest could not be resolved.'
+            );
+        }
+
+        $this->database
+            ->transBegin();
+
+        try {
+            $this->database->query(
+                'SELECT id '
+                    . 'FROM member_interests '
+                    . 'WHERE from_user_id = ? '
+                    . 'AND to_user_id = ? '
+                    . 'FOR UPDATE',
+                [
+                    $fromUserId,
+                    $toUserId,
+                ]
+            );
+
+            $interest = $this
+                ->interestModel
+                ->findBetween(
+                    $fromUserId,
+                    $toUserId
+                );
+
+            if (!is_array($interest)) {
+                throw new DomainException(
+                    'This interest is no longer available.'
+                );
+            }
+
+            $currentStatus =
+                $this->recordStatus(
+                    $interest
+                );
+
+            if (
+                $currentStatus
+                === MemberInterestModel
+                ::STATUS_WITHDRAWN
+            ) {
+                $this->database
+                    ->transCommit();
+
+                return false;
+            }
+
+            if (
+                !in_array(
+                    $currentStatus,
+                    [
+                        MemberInterestModel
+                        ::STATUS_PENDING,
+
+                        MemberInterestModel
+                        ::STATUS_ACCEPTED,
+                    ],
+                    true
+                )
+            ) {
+                throw new DomainException(
+                    'This interest cannot be withdrawn.'
+                );
+            }
+
+            $interestId =
+                (int) (
+                    $interest['id']
+                    ?? 0
+                );
+
+            if ($interestId <= 0) {
+                throw new RuntimeException(
+                    'The interest could not be resolved.'
+                );
+            }
+
+            $updated = $this
+                ->interestModel
+                ->update(
+                    $interestId,
+                    [
+                        'status' =>
+                        MemberInterestModel
+                        ::STATUS_WITHDRAWN,
+
+                        'withdrawn_at' =>
+                        date(
+                            'Y-m-d H:i:s'
+                        ),
+                    ]
+                );
+
+            if ($updated === false) {
+                throw new RuntimeException(
+                    'The interest could not be withdrawn.'
+                );
+            }
+
+            $this->memberMessagingService
+                ->interestWithdrawn(
+                    $interestId,
+                    $fromUserId,
+                    $toUserId
+                );
+
+            if (
+                $this->database
+                ->transStatus()
+                === false
+            ) {
+                throw new RuntimeException(
+                    'The interest withdrawal failed.'
+                );
+            }
+
+            $this->database
+                ->transCommit();
+
+            return true;
+        } catch (Throwable $exception) {
+            $this->database
+                ->transRollback();
+
+            throw $exception;
+        }
+    }
+
     /**
      * Change the status of one received Interest.
      *
@@ -384,6 +529,30 @@ final class MemberInterestService
                 throw new RuntimeException(
                     'The interest response could not be saved.'
                 );
+            }
+
+            if (
+                $newStatus
+                === MemberInterestModel
+                ::STATUS_ACCEPTED
+            ) {
+                $this->memberMessagingService
+                    ->interestAccepted(
+                        interestId: $interestId,
+
+                        fromUserId: $fromUserId,
+
+                        toUserId: $toUserId
+                    );
+            } else {
+                $this->memberMessagingService
+                    ->interestDeclined(
+                        interestId: $interestId,
+
+                        fromUserId: $fromUserId,
+
+                        toUserId: $toUserId
+                    );
             }
 
             /*

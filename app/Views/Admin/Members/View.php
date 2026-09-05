@@ -148,6 +148,12 @@ $resolvedProfileImage = trim(
     )
 );
 
+$resolvedMessagingActivity =
+    isset($messagingActivity)
+    && is_array($messagingActivity)
+    ? $messagingActivity
+    : [];
+
 /*
  * Resolve the photograph shown in the Admin member summary.
  *
@@ -1738,7 +1744,109 @@ $this->section('content');
                         <?php endforeach; ?>
                     </div>
                 </section>
+                <div class="card">
 
+                    <div
+                        class="card-header
+            d-flex
+            align-items-center
+            justify-content-between">
+
+                        <h5 class="mb-0">
+
+                            <i
+                                class="ri-message-3-line
+                    me-1"
+                                aria-hidden="true">
+                            </i>
+
+                            Messaging Activity
+
+                        </h5>
+
+                        <a
+                            href="<?= route_to(
+                                        'admin.members.messages',
+                                        $resolvedMemberId
+                                    ) ?>"
+                            class="btn
+                btn-outline-primary
+                btn-sm">
+
+                            View Conversations
+
+                        </a>
+
+                    </div>
+
+                    <div class="card-body">
+
+                        <div class="row g-3">
+
+                            <?php
+                            $messageSummaryItems = [
+                                'conversations' =>
+                                'Conversations',
+
+                                'sent' =>
+                                'Sent',
+
+                                'received' =>
+                                'Received',
+
+                                'unread' =>
+                                'Unread',
+
+                                'reported' =>
+                                'Reported',
+
+                                'removed' =>
+                                'Admin Removed',
+                            ];
+                            ?>
+
+                            <?php foreach (
+                                $messageSummaryItems
+                                as $key => $label
+                            ): ?>
+
+                                <div class="col-6 col-md-4">
+
+                                    <div
+                                        class="border
+                            rounded
+                            p-3">
+
+                                        <div
+                                            class="text-muted
+                                fs-12">
+                                            <?= esc($label) ?>
+                                        </div>
+
+                                        <div
+                                            class="fs-20
+                                fw-semibold">
+
+                                            <?= esc(
+                                                (string) (
+                                                    $resolvedMessagingActivity[$key]
+                                                    ?? 0
+                                                )
+                                            ) ?>
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                            <?php endforeach; ?>
+
+                        </div>
+
+                    </div>
+
+                </div>
                 <!-- Education and Profession -->
                 <section
                     class="card-body

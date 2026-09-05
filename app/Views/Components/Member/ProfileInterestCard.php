@@ -121,6 +121,13 @@ $profileUrl = trim(
     )
 );
 
+$messageUrl = trim(
+    (string) (
+        $profile['messageUrl']
+        ?? ''
+    )
+);
+
 if ($profileUrl === '') {
     $profileUrl = '#';
 }
@@ -218,6 +225,9 @@ $badgeClass =
         'DECLINED' =>
         'text-bg-danger',
 
+        'WITHDRAWN' =>
+        'text-bg-secondary',
+
         default =>
         'text-bg-warning',
     };
@@ -229,6 +239,9 @@ $statusLabel =
 
         'DECLINED' =>
         'Declined',
+
+        'WITHDRAWN' =>
+        'Withdrawn',
 
         default =>
         'Pending',
@@ -762,7 +775,30 @@ $profileNavigationUrl =
                 <?php endif; ?>
 
             </div>
+            <?php if ($messageUrl !== ''): ?>
 
+                <a
+                    href="<?= esc(
+                                $messageUrl,
+                                'attr'
+                            ) ?>"
+                    class="btn
+            btn-outline-primary
+            btn-md
+            d-inline-flex
+            align-items-center
+            gap-1 fs-12">
+
+                    <i
+                        class="ri-message-3-line"
+                        aria-hidden="true">
+                    </i>
+
+                    Message
+
+                </a>
+
+            <?php endif; ?>
         </div>
         <?php if (
             $professionalSummary !== ''

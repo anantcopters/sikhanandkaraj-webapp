@@ -31,6 +31,9 @@ final class MemberInterestModel extends Model
     public const STATUS_DECLINED =
     'DECLINED';
 
+    public const STATUS_WITHDRAWN =
+    'WITHDRAWN';
+
     protected $table =
     'member_interests';
 
@@ -51,6 +54,7 @@ final class MemberInterestModel extends Model
         'to_user_id',
         'status',
         'responded_at',
+        'withdrawn_at',
     ];
 
     protected $useTimestamps =
@@ -137,6 +141,54 @@ final class MemberInterestModel extends Model
             ->where(
                 'to_user_id',
                 $toUserId
+            )
+            ->first();
+
+        return is_array($row)
+            ? $row
+            : null;
+    }
+
+    /**
+     * Return the single Interest relationship between two members,
+     * regardless of direction.
+     *
+     * @return array<string,mixed>|null
+     */
+    public function relationshipBetween(
+        int $firstUserId,
+        int $secondUserId
+    ): ?array {
+        $row = $this
+            ->groupStart()
+            ->groupStart()
+            ->where(
+                'from_user_id',
+                $firstUserId
+            )
+            ->where(
+                'to_user_id',
+                $secondUserId
+            )
+            ->groupEnd()
+            ->orGroupStart()
+            ->where(
+                'from_user_id',
+                $secondUserId
+            )
+            ->where(
+                'to_user_id',
+                $firstUserId
+            )
+            ->groupEnd()
+            ->groupEnd()
+            ->orderBy(
+                'created_at',
+                'DESC'
+            )
+            ->orderBy(
+                'id',
+                'DESC'
             )
             ->first();
 

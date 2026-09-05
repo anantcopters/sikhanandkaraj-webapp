@@ -509,6 +509,18 @@ final class MemberProfilePresentationService
             ),
 
             /*
+            * Message remains discoverable for Free and Paid members.
+            *
+            * The actual endpoint performs authoritative membership, account,
+            * relationship and safety checks.
+            */
+            'messageUrl' =>
+            route_to(
+                'web.members.message',
+                $profileReference
+            ),
+
+            /*
             * Education, occupation and employment are formatted once so ProfileCard
             * and ProfileInterestCard always follow the same display rules.
             */

@@ -13,6 +13,7 @@ use App\Services\Notification\MemberNotificationService;
 use CodeIgniter\Database\BaseConnection;
 use App\Support\MemberNameVisibility;
 use App\Services\Membership\MembershipEntitlementService;
+use App\Services\Messaging\MemberMessagingService;
 use App\Services\Email\MemberEmailService;
 use App\Services\Communication\CommunicationEvent;
 use App\Services\Communication\CommunicationEventRegistry;
@@ -90,7 +91,10 @@ final class MemberInteractionService
         * MemberProfileController.
         */
         private readonly MembershipEntitlementService
-        $membershipEntitlementService
+        $membershipEntitlementService,
+
+        private readonly MemberMessagingService
+        $memberMessagingService
     ) {}
 
     /**
@@ -212,6 +216,39 @@ final class MemberInteractionService
 
             $interestId =
                 (int) $insertId;
+
+            $sender =
+                $this->userModel
+                ->find(
+                    $fromUserId
+                );
+
+            $profileReference =
+                is_array($sender)
+                ? trim(
+                    (string) (
+                        $sender['profile_ref_number']
+                        ?? ''
+                    )
+                )
+                : '';
+
+            if ($profileReference === '') {
+                throw new RuntimeException(
+                    'The member profile could not be resolved.'
+                );
+            }
+
+            $this->memberMessagingService
+                ->interestSent(
+                    interestId: $interestId,
+
+                    fromUserId: $fromUserId,
+
+                    toUserId: $toUserId,
+
+                    profileReference: $profileReference
+                );
 
             /*
          * Existing in-app notification remains

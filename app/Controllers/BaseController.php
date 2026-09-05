@@ -71,6 +71,19 @@ abstract class BaseController extends Controller
                 $memberUserId
             );
 
+            /*
+            * Messaging unread state comes from the actual member_messages table.
+            *
+            * Notification read state is independent and must not become the
+            * messaging source of truth.
+            */
+            $headerData['unreadMessageCount'] =
+                service(
+                    'memberMessagingService'
+                )->unreadCount(
+                    $memberUserId
+                );
+
             try {
                 $membershipState =
                     service(

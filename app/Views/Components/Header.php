@@ -135,6 +135,13 @@ $interestActive =
         'interests/'
     );
 
+$messageActive =
+    $currentPath === 'messages'
+    || str_starts_with(
+        $currentPath,
+        'messages/'
+    );
+
 /*
  * Search remains active for normal Search pages/results, but must not be
  * highlighted when the shared Search Results screen represents Matches.
@@ -341,7 +348,68 @@ $hidePublicLoginAction =
                             </span>
                         </a>
                     </li>
+                    <li class="nav-item">
 
+                        <a
+                            href="<?= url_to(
+                                        'web.messages'
+                                    ) ?>"
+                            class="nav-link
+            d-flex
+            align-items-center
+            gap-2
+            py-1 py-lg-2 fs-15
+            <?= $messageActive
+                    ? 'active text-primary'
+                    : '' ?>"
+                            <?= $messageActive
+                                ? 'aria-current="page"'
+                                : '' ?>>
+
+                            <span class="position-relative">
+
+                                <i
+                                    class="ri-message-3-line
+                    fw-normal
+                    flex-shrink-0
+                    text-primary"
+                                    aria-hidden="true">
+                                </i>
+
+                                <?php if (
+                                    $unreadMessageCount > 0
+                                ): ?>
+
+                                    <span
+                                        class="position-absolute
+                        top-0 start-100
+                        translate-middle
+                        badge rounded-pill
+                        bg-danger">
+
+                                        <?= esc(
+                                            (string) min(
+                                                99,
+                                                $unreadMessageCount
+                                            )
+                                        ) ?>
+
+                                    </span>
+
+                                <?php endif; ?>
+
+                            </span>
+
+                            <span
+                                class="<?= $messageActive
+                                            ? 'fw-semibold'
+                                            : 'text-black' ?>">
+                                Messages
+                            </span>
+
+                        </a>
+
+                    </li>
 
                 </ul>
 
@@ -677,7 +745,53 @@ $hidePublicLoginAction =
                                     Interest
                                 </span>
                             </a>
+                            <a
+                                href="<?= url_to(
+                                            'web.messages'
+                                        ) ?>"
+                                class="dropdown-item
+        <?= $messageActive
+                    ? 'active'
+                    : '' ?>"
+                                <?= $messageActive
+                                    ? 'aria-current="page"'
+                                    : '' ?>>
 
+                                <i
+                                    class="ri-message-3-line
+            fs-16
+            align-middle
+            me-1"
+                                    aria-hidden="true">
+                                </i>
+
+                                <span class="align-middle">
+
+                                    Messages
+
+                                    <?php if (
+                                        $unreadMessageCount > 0
+                                    ): ?>
+
+                                        <span
+                                            class="badge
+                    bg-danger
+                    ms-1">
+
+                                            <?= esc(
+                                                (string) min(
+                                                    99,
+                                                    $unreadMessageCount
+                                                )
+                                            ) ?>
+
+                                        </span>
+
+                                    <?php endif; ?>
+
+                                </span>
+
+                            </a>
 
                             <div class="dropdown-divider"></div>
 
