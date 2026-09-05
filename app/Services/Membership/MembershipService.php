@@ -199,6 +199,31 @@ final class MembershipService
     }
 
     /**
+     * Return true when the member does not currently have Paid
+     * entitlement but has previously held a paid membership.
+     *
+     * Used for renewal-oriented presentation only.
+     */
+    public function hasExpiredPaidMembership(
+        int $userId
+    ): bool {
+        if (
+            $userId <= 0
+            || $this->hasPaidMembership(
+                $userId
+            )
+        ) {
+            return false;
+        }
+
+        return $this
+            ->membershipModel
+            ->hasHistoricalPaidMembership(
+                $userId
+            );
+    }
+
+    /**
      * Normalize one plan-master row for presentation/application use.
      *
      * @param array<string, mixed> $plan

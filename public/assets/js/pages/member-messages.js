@@ -47,9 +47,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            const maximumLength =
+                Number(
+                    input.getAttribute(
+                        'maxlength'
+                    )
+                ) || 200;
+
             const updateCounter = () => {
                 counter.textContent =
-                    `${input.value.length}/500`;
+                    `${input.value.length}/${maximumLength}`;
             };
 
             input.addEventListener(

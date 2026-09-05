@@ -602,8 +602,7 @@ final class MemberMessagingService
             : (int) $conversation['first_user_id'];
 
         $member = $this
-            ->candidateModel
-            ->findCandidateForViewer(
+            ->visibleCandidate(
                 $userId,
                 $otherUserId
             );
@@ -663,6 +662,113 @@ final class MemberMessagingService
             'safetyWarning' =>
             $this->configuration
                 ->safetyWarning,
+        ];
+    }
+
+    /**
+     * Build presentation state for a new conversation before
+     * its first message has been persisted.
+     *
+     * @return array<string,mixed>
+     */
+    public function draftConversation(
+        int $userId,
+        int $otherUserId
+    ): array {
+        $this->assertActivePair(
+            $userId,
+            $otherUserId
+        );
+
+        if (
+            $this->blockModel
+            ->existsBetween(
+                $userId,
+                $otherUserId
+            )
+        ) {
+            throw new DomainException(
+                'Messaging is unavailable for this member.'
+            );
+        }
+
+        $member = $this
+            ->visibleCandidate(
+                $userId,
+                $otherUserId
+            );
+
+        if (!is_array($member)) {
+            throw new DomainException(
+                'The member is no longer available.'
+            );
+        }
+
+        $interest = $this
+            ->interestModel
+            ->relationshipBetween(
+                $userId,
+                $otherUserId
+            );
+
+        $profile = $this
+            ->profilePresentationService
+            ->summary(
+                viewerUserId: $userId,
+
+                member: $member,
+
+                hasInterestRelationship: is_array($interest)
+            );
+
+        if (!is_array($profile)) {
+            throw new DomainException(
+                'The member is no longer available.'
+            );
+        }
+
+        /*
+     * A declined Interest cannot be bypassed by opening
+     * the direct Message entry point.
+     */
+        $this->assertInterestState(
+            $userId,
+            $otherUserId
+        );
+
+        return [
+            'conversation' =>
+            null,
+
+            'otherUserId' =>
+            $otherUserId,
+
+            'member' =>
+            $profile,
+
+            'messages' =>
+            [],
+
+            'composer' => [
+                'enabled' =>
+                $this->entitlementService
+                    ->canSendMessage(
+                        $userId
+                    ),
+
+                'reason' =>
+                '',
+
+                'showUpgrade' =>
+                false,
+            ],
+
+            'safetyWarning' =>
+            $this->configuration
+                ->safetyWarning,
+
+            'isDraft' =>
+            true,
         ];
     }
 
@@ -995,7 +1101,8 @@ final class MemberMessagingService
      * @return array{
      *     enabled:bool,
      *     reason:string,
-     *     showUpgrade:bool
+     *     showUpgrade:bool,
+     *     upgradeLabel?:string
      * }
      */
     private function composerState(
@@ -1003,6 +1110,10 @@ final class MemberMessagingService
         int $userId,
         int $otherUserId
     ): array {
+        /*
+     * Safety restrictions always take precedence over
+     * commercial membership state.
+     */
         if (
             $this->blockModel
             ->existsBetween(
@@ -1015,49 +1126,19 @@ final class MemberMessagingService
                 false,
 
                 'reason' =>
-                'Messaging is unavailable because this member relationship is blocked.',
+                'Messaging is unavailable for this member.',
 
                 'showUpgrade' =>
                 false,
             ];
         }
 
-        $membership = $this
-            ->membershipService
-            ->resolveForUser(
-                $userId
-            );
-
-        $isPaid =
-            ($membership['isPaid'] ?? false)
-            === true;
-
-        $hasExpiredPaidMembership =
-            !$isPaid
-            && !empty($membership['lastPaidMembershipExpiredAt']);
-
-        if ($hasExpiredPaidMembership) {
-            return [
-                'enabled' =>
-                false,
-
-                'reason' =>
-                'Your membership has expired. '
-                    . 'Renew your membership to continue this conversation.',
-
-                'showUpgrade' =>
-                true,
-
-                'upgradeLabel' =>
-                'Renew Membership',
-            ];
-        }
-
-        $status =
+        $status = trim(
             (string) (
                 $conversation['status']
                 ?? ''
-            );
+            )
+        );
 
         if (
             $status ===
@@ -1093,22 +1174,53 @@ final class MemberMessagingService
             ];
         }
 
+        /*
+     * Entitlement remains the authoritative decision for
+     * whether the member can manually send.
+     */
         if (
-            !$this->entitlementService
-                ->canSendMessage(
-                    $userId
-                )
+            $this->entitlementService
+            ->canSendMessage(
+                $userId
+            )
+        ) {
+            return [
+                'enabled' =>
+                true,
+
+                'reason' =>
+                '',
+
+                'showUpgrade' =>
+                false,
+            ];
+        }
+
+        /*
+     * No paid entitlement.
+     *
+     * Distinguish a member who previously had a paid
+     * membership from a member who has always been Free.
+     */
+        if (
+            $this->membershipService
+            ->hasExpiredPaidMembership(
+                $userId
+            )
         ) {
             return [
                 'enabled' =>
                 false,
 
                 'reason' =>
-                'Want to continue this conversation? '
-                    . 'Upgrade your membership to reply.',
+                'Your membership has expired. '
+                    . 'Renew your membership to continue this conversation.',
 
                 'showUpgrade' =>
                 true,
+
+                'upgradeLabel' =>
+                'Renew Membership',
             ];
         }
 
@@ -1542,5 +1654,64 @@ final class MemberMessagingService
                 $conversation['second_user_id']
                 ?? 0
             ) === $userId;
+    }
+
+    /**
+     * Resolve one messaging counterpart through the existing
+     * member-facing candidate/privacy pipeline.
+     *
+     * @return array<string,mixed>|null
+     */
+    private function visibleCandidate(
+        int $viewerUserId,
+        int $candidateUserId
+    ): ?array {
+        if (
+            $viewerUserId <= 0
+            || $candidateUserId <= 0
+        ) {
+            return null;
+        }
+
+        $viewer = $this
+            ->userModel
+            ->find(
+                $viewerUserId
+            );
+
+        if (!is_array($viewer)) {
+            return null;
+        }
+
+        $viewerGender = mb_strtoupper(
+            trim(
+                (string) (
+                    $viewer['gender']
+                    ?? ''
+                )
+            )
+        );
+
+        if ($viewerGender === '') {
+            return null;
+        }
+
+        $candidates = $this
+            ->candidateModel
+            ->visibleCandidatesByIds(
+                $viewerUserId,
+                $viewerGender,
+                [
+                    $candidateUserId,
+                ]
+            );
+
+        $candidate =
+            $candidates[0]
+            ?? null;
+
+        return is_array($candidate)
+            ? $candidate
+            : null;
     }
 }

@@ -2018,6 +2018,14 @@ final class Services extends BaseService
                 $database
             ),
 
+            new MemberMatchCandidateModel(
+                $database
+            ),
+
+            static::memberProfilePresentationService(
+                false
+            ),
+
             static::membershipService(
                 false
             ),

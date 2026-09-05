@@ -134,6 +134,27 @@ final class MemberMembershipModel extends Model
     }
 
     /**
+     * Determine whether the member has historical paid membership.
+     *
+     * This does not grant any entitlement. It is used only to
+     * distinguish renewal UX from first-time Free-member upgrade UX.
+     */
+    public function hasHistoricalPaidMembership(
+        int $userId
+    ): bool {
+        if ($userId <= 0) {
+            return false;
+        }
+
+        return $this
+            ->where(
+                'user_id',
+                $userId
+            )
+            ->countAllResults() > 0;
+    }
+
+    /**
      * Lock the member's currently usable membership.
      *
      * Purchase/upgrade/renewal activation must serialize per member so two

@@ -102,6 +102,25 @@ final class AdminMemberMessagingService
     }
 
     /**
+     * @return list<array<string,mixed>>
+     */
+    public function conversationsForMember(
+        int $memberId
+    ): array {
+        if ($memberId <= 0) {
+            throw new DomainException(
+                'The member could not be found.'
+            );
+        }
+
+        return $this
+            ->conversationModel
+            ->forMember(
+                $memberId
+            );
+    }
+
+    /**
      * Admin inspection must never mark member messages read.
      *
      * @return array<string,mixed>
@@ -328,5 +347,75 @@ final class AdminMemberMessagingService
                     $conversationId
                 ),
         ];
+    }
+
+    public function removeMessageForMember(
+        int $memberId,
+        int $messageId,
+        string $reason
+    ): bool {
+        if (
+            $memberId <= 0
+            || $messageId <= 0
+        ) {
+            throw new DomainException(
+                'The message could not be found.'
+            );
+        }
+
+        $message = $this
+            ->messageModel
+            ->find(
+                $messageId
+            );
+
+        if (!is_array($message)) {
+            throw new DomainException(
+                'The message could not be found.'
+            );
+        }
+
+        $conversationId = max(
+            0,
+            (int) (
+                $message['conversation_id']
+                ?? 0
+            )
+        );
+
+        /*
+        * Authorize against the member context encoded in the
+        * Admin route before allowing moderation.
+        */
+        $conversation = $this
+            ->conversationModel
+            ->find(
+                $conversationId
+            );
+
+        if (
+            !is_array($conversation)
+            || (
+                (int) (
+                    $conversation['first_user_id']
+                    ?? 0
+                ) !== $memberId
+                &&
+                (int) (
+                    $conversation['second_user_id']
+                    ?? 0
+                ) !== $memberId
+            )
+        ) {
+            throw new DomainException(
+                'The message could not be found.'
+            );
+        }
+
+        return $this
+            ->removeMessage(
+                $messageId,
+                $reason
+            );
     }
 }

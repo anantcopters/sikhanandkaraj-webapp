@@ -25,6 +25,58 @@ final class MessageController extends BaseController
             'memberMessagingService'
         );
 
+        $activeConversation =
+            null;
+
+        $profileReference = trim(
+            (string) $this
+                ->request
+                ->getGet(
+                    'member'
+                )
+        );
+
+        if ($profileReference !== '') {
+            try {
+                $target = $this
+                    ->resolveTarget(
+                        $userId,
+                        $profileReference
+                    );
+
+                $existingConversation =
+                    $service
+                    ->existingConversationBetween(
+                        $userId,
+                        (int) $target['id']
+                    );
+
+                if (
+                    is_array(
+                        $existingConversation
+                    )
+                ) {
+                    return redirect()
+                        ->to(
+                            route_to(
+                                'web.messages.conversation',
+                                (int) $existingConversation['id']
+                            )
+                        );
+                }
+
+                $activeConversation =
+                    $service
+                    ->draftConversation(
+                        $userId,
+                        (int) $target['id']
+                    );
+            } catch (DomainException) {
+                throw PageNotFoundException
+                    ::forPageNotFound();
+            }
+        }
+
         return view(
             'Pages/Messages/Index',
             [
@@ -38,7 +90,7 @@ final class MessageController extends BaseController
                     ),
 
                 'activeConversation' =>
-                null,
+                $activeConversation,
 
                 'formAlert' =>
                 $this->readFormAlert(),
