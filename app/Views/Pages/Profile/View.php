@@ -191,6 +191,10 @@ $isShortlisted =
     ($isShortlisted ?? false)
     === true;
 
+$canSendMessage =
+    ($canSendMessage ?? false)
+    === true;
+
 /*
  * Member-to-member Interest relationship is prepared entirely
  * by MemberInteractionService.
@@ -1204,6 +1208,9 @@ $this->section('content');
 
                             'canBlock' =>
                             true,
+
+                            'canSendMessage' =>
+                            $canSendMessage,
 
                             'hasReportedProfile' =>
                             $hasReportedProfile,

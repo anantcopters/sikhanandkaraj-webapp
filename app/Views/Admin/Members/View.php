@@ -22,6 +22,8 @@ use App\Support\DateDisplay;
  * @var string                     $aboutMe
  * @var string                     $profileImage
  * @var array<string, mixed>       $overallProfileSummary
+ * @var bool                       $isSuperAdmin
+ * @var array<string,mixed>        $messagingActivity
  *
  * Administrator photo data:
  *
@@ -153,6 +155,10 @@ $resolvedMessagingActivity =
     && is_array($messagingActivity)
     ? $messagingActivity
     : [];
+
+$isSuperAdmin =
+    ($isSuperAdmin ?? false)
+    === true;
 
 /*
  * Resolve the photograph shown in the Admin member summary.
@@ -1313,15 +1319,16 @@ $this->section('content');
         ]
     ) ?>
     <!-- Member messaging activity -->
-    <div
-        class="card
+    <?php if ($isSuperAdmin): ?>
+        <div
+            class="card
         border
         border-danger
         border-opacity-25
         mb-4">
 
-        <div
-            class="card-header
+            <div
+                class="card-header
             d-flex
             flex-column
             flex-sm-row
@@ -1329,155 +1336,156 @@ $this->section('content');
             justify-content-between
             gap-2">
 
-            <div>
-                <h5 class="card-title mb-1">
+                <div>
+                    <h5 class="card-title mb-1">
 
-                    <i
-                        class="ri-message-3-line me-1"
-                        aria-hidden="true">
-                    </i>
+                        <i
+                            class="ri-message-3-line me-1"
+                            aria-hidden="true">
+                        </i>
 
-                    Messaging Activity
+                        Messaging Activity
 
-                </h5>
+                    </h5>
 
-                <p class="text-muted fs-13 mb-0">
-                    Member conversation and moderation activity.
-                </p>
-            </div>
+                    <p class="text-muted fs-13 mb-0">
+                        Member conversation and moderation activity.
+                    </p>
+                </div>
 
-            <a
-                href="<?= route_to(
-                            'admin.members.messages',
-                            $resolvedMemberId
-                        ) ?>"
-                class="btn
+                <a
+                    href="<?= route_to(
+                                'admin.members.messages',
+                                $resolvedMemberId
+                            ) ?>"
+                    class="btn
                 btn-outline-primary
                 btn-sm
                 d-inline-flex
                 align-items-center
                 gap-1">
 
-                <i
-                    class="ri-message-2-line"
-                    aria-hidden="true">
-                </i>
+                    <i
+                        class="ri-message-2-line"
+                        aria-hidden="true">
+                    </i>
 
-                View Conversations
+                    View Conversations
 
-            </a>
+                </a>
 
-        </div>
+            </div>
 
-        <div class="card-body">
+            <div class="card-body">
 
-            <?php
-            $messageSummaryItems = [
-                'conversations' =>
-                [
-                    'label' => 'Conversations',
-                    'icon' => 'ri-chat-3-line',
-                ],
+                <?php
+                $messageSummaryItems = [
+                    'conversations' =>
+                    [
+                        'label' => 'Conversations',
+                        'icon' => 'ri-chat-3-line',
+                    ],
 
-                'sent' =>
-                [
-                    'label' => 'Sent',
-                    'icon' => 'ri-send-plane-line',
-                ],
+                    'sent' =>
+                    [
+                        'label' => 'Sent',
+                        'icon' => 'ri-send-plane-line',
+                    ],
 
-                'received' =>
-                [
-                    'label' => 'Received',
-                    'icon' => 'ri-inbox-line',
-                ],
+                    'received' =>
+                    [
+                        'label' => 'Received',
+                        'icon' => 'ri-inbox-line',
+                    ],
 
-                'unread' =>
-                [
-                    'label' => 'Unread',
-                    'icon' => 'ri-mail-unread-line',
-                ],
+                    'unread' =>
+                    [
+                        'label' => 'Unread',
+                        'icon' => 'ri-mail-unread-line',
+                    ],
 
-                'reported' =>
-                [
-                    'label' => 'Reported',
-                    'icon' => 'ri-flag-line',
-                ],
+                    'reported' =>
+                    [
+                        'label' => 'Reported',
+                        'icon' => 'ri-flag-line',
+                    ],
 
-                'removed' =>
-                [
-                    'label' => 'Admin Removed',
-                    'icon' => 'ri-delete-bin-line',
-                ],
-            ];
-            ?>
+                    'removed' =>
+                    [
+                        'label' => 'Admin Removed',
+                        'icon' => 'ri-delete-bin-line',
+                    ],
+                ];
+                ?>
 
-            <div class="row g-3">
+                <div class="row g-3">
 
-                <?php foreach (
-                    $messageSummaryItems
-                    as $key => $item
-                ): ?>
+                    <?php foreach (
+                        $messageSummaryItems
+                        as $key => $item
+                    ): ?>
 
-                    <div
-                        class="col-6
+                        <div
+                            class="col-6
                         col-md-4
                         col-xl-2">
 
-                        <div
-                            class="border
+                            <div
+                                class="border
                             rounded-3
                             p-3
                             h-100">
 
-                            <div
-                                class="d-flex
+                                <div
+                                    class="d-flex
                                 align-items-center
                                 gap-2
                                 mb-2">
 
-                                <i
-                                    class="<?= esc(
-                                                $item['icon'],
-                                                'attr'
-                                            ) ?>
+                                    <i
+                                        class="<?= esc(
+                                                    $item['icon'],
+                                                    'attr'
+                                                ) ?>
                                     text-primary"
-                                    aria-hidden="true">
-                                </i>
+                                        aria-hidden="true">
+                                    </i>
 
-                                <span
-                                    class="text-muted
+                                    <span
+                                        class="text-muted
                                     fs-12">
-                                    <?= esc(
-                                        $item['label']
-                                    ) ?>
-                                </span>
+                                        <?= esc(
+                                            $item['label']
+                                        ) ?>
+                                    </span>
 
-                            </div>
+                                </div>
 
-                            <div
-                                class="fs-20
+                                <div
+                                    class="fs-20
                                 fw-semibold">
 
-                                <?= esc(
-                                    (string) (
-                                        $resolvedMessagingActivity[$key]
-                                        ?? 0
-                                    )
-                                ) ?>
+                                    <?= esc(
+                                        (string) (
+                                            $resolvedMessagingActivity[$key]
+                                            ?? 0
+                                        )
+                                    ) ?>
+
+                                </div>
 
                             </div>
 
                         </div>
 
-                    </div>
+                    <?php endforeach; ?>
 
-                <?php endforeach; ?>
+                </div>
 
             </div>
 
         </div>
-
-    </div>
+    <?php endif; ?>
     <!--
     Match Score diagnostics.
 

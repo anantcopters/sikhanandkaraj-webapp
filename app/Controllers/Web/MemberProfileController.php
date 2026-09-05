@@ -49,6 +49,13 @@ final class MemberProfileController extends BaseController
             $viewerUserId =
                 $this->authenticatedUserId();
 
+            $canSendMessage =
+                service(
+                    'membershipEntitlementService'
+                )->canSendMessage(
+                    $viewerUserId
+                );
+
             /** @var MemberProfileReportService $reportService */
             $reportService = service(
                 'memberProfileReportService'
@@ -74,6 +81,9 @@ final class MemberProfileController extends BaseController
 
                         'profileViewMode' =>
                         'other-member',
+
+                        'canSendMessage' =>
+                        $canSendMessage,
 
                         'profileBackUrl' =>
                         route_to(
@@ -190,6 +200,24 @@ final class MemberProfileController extends BaseController
             ),
         ];
 
+        $actionSource = trim(
+            (string) $this
+                ->request
+                ->getPost(
+                    'action_source'
+                )
+        );
+
+        $failureRedirect =
+            $actionSource === 'messages'
+            ? redirect()->back()
+            : redirect()->to(
+                route_to(
+                    'web.members.view',
+                    $profileReference
+                )
+            );
+
         $validation = service(
             'validation'
         );
@@ -218,13 +246,7 @@ final class MemberProfileController extends BaseController
                     'The security answer is incorrect or expired.';
             }
 
-            return redirect()
-                ->to(
-                    route_to(
-                        'web.members.view',
-                        $profileReference
-                    )
-                )
+            return $failureRedirect
                 ->withInput()
                 ->with(
                     'reportValidationErrors',
@@ -249,24 +271,17 @@ final class MemberProfileController extends BaseController
                     ->getValidated()['description']
             );
 
-            return redirect()
-                ->to(
+            $successRedirect =
+                $actionSource === 'messages'
+                ? redirect()->back()
+                : redirect()->to(
                     route_to(
                         'web.members.view',
                         $profileReference
                     )
-                )
-                ->with(
-                    'memberActionNotice',
-                    [
-                        'title' =>
-                        'Profile reported',
-
-                        'message' =>
-                        'Your report has been sent for '
-                            . 'administrator review.',
-                    ]
                 );
+
+            return $successRedirect;
         } catch (DomainException $exception) {
             return redirect()
                 ->to(
@@ -609,6 +624,14 @@ final class MemberProfileController extends BaseController
         $viewerUserId =
             $this->authenticatedUserId();
 
+        $actionSource = trim(
+            (string) $this
+                ->request
+                ->getPost(
+                    'action_source'
+                )
+        );
+
         /*
          * Explicit request allowlist.
          *
@@ -638,13 +661,17 @@ final class MemberProfileController extends BaseController
                 $input
             )
         ) {
-            return redirect()
-                ->to(
+            $validationRedirect =
+                $actionSource === 'messages'
+                ? redirect()->back()
+                : redirect()->to(
                     route_to(
                         'web.members.view',
                         $profileReference
                     )
-                )
+                );
+
+            return $validationRedirect
                 ->withInput()
                 ->with(
                     'validationErrors',

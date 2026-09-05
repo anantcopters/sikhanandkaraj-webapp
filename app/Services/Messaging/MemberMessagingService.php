@@ -493,55 +493,7 @@ final class MemberMessagingService
              *
              * Do NOT copy the private message body into the notification.
              */
-            $sender = $this
-                ->userModel
-                ->find(
-                    $senderUserId
-                );
 
-            $profileReference =
-                is_array($sender)
-                ? trim(
-                    (string) (
-                        $sender['profile_ref_number']
-                        ?? ''
-                    )
-                )
-                : '';
-
-            $this->notificationService
-                ->create(
-                    [
-                        'recipientUserId' =>
-                        $recipientUserId,
-
-                        'actorUserId' =>
-                        $senderUserId,
-
-                        'type' =>
-                        'MESSAGE',
-
-                        'title' =>
-                        'New Message',
-
-                        'message' =>
-                        $profileReference !== ''
-                            ? 'You have a new message from '
-                            . $profileReference
-                            . '.'
-                            : 'You have a new message.',
-
-                        'entityType' =>
-                        'MEMBER_MESSAGE',
-
-                        'entityId' =>
-                        (int) $messageId,
-
-                        'targetUrl' =>
-                        '/messages/'
-                            . (int) $conversation['id'],
-                    ]
-                );
 
             if (
                 $this->database
@@ -556,10 +508,95 @@ final class MemberMessagingService
             $this->database
                 ->transCommit();
 
+            /*
+ * Notification delivery is secondary to persisted messaging.
+ *
+ * A notification failure must never roll back or invalidate
+ * a successfully stored private message.
+ *
+ * Never include the private message body in the notification.
+ */
+            try {
+                $sender = $this
+                    ->userModel
+                    ->find(
+                        $senderUserId
+                    );
+
+                $profileReference =
+                    is_array($sender)
+                    ? trim(
+                        (string) (
+                            $sender['profile_ref_number']
+                            ?? ''
+                        )
+                    )
+                    : '';
+
+                $this->notificationService
+                    ->create(
+                        [
+                            'recipientUserId' =>
+                            $recipientUserId,
+
+                            'actorUserId' =>
+                            $senderUserId,
+
+                            'type' =>
+                            'MESSAGE',
+
+                            'title' =>
+                            'New Message',
+
+                            'message' =>
+                            $profileReference !== ''
+                                ? 'You have a new message from '
+                                . $profileReference
+                                . '.'
+                                : 'You have a new message.',
+
+                            'entityType' =>
+                            'MEMBER_MESSAGE',
+
+                            'entityId' =>
+                            (int) $messageId,
+
+                            'targetUrl' =>
+                            '/messages/'
+                                . (int) $conversation['id'],
+                        ]
+                    );
+            } catch (Throwable $notificationException) {
+                log_message(
+                    'error',
+                    'Member message notification failed. '
+                        . 'Message: {messageId}; '
+                        . 'recipient: {recipientUserId}; '
+                        . 'reason: {reason}',
+                    [
+                        'messageId' =>
+                        (int) $messageId,
+
+                        'recipientUserId' =>
+                        $recipientUserId,
+
+                        'reason' =>
+                        $notificationException
+                            ->getMessage(),
+                    ]
+                );
+            }
+
             return (int) $messageId;
         } catch (Throwable $exception) {
-            $this->database
-                ->transRollback();
+            if (
+                $this->database
+                ->transStatus()
+                !== false
+            ) {
+                $this->database
+                    ->transRollback();
+            }
 
             throw $exception;
         }
@@ -662,6 +699,10 @@ final class MemberMessagingService
                 $otherUserId
             ),
 
+            'maximumMessageLength' =>
+            $this->configuration
+                ->maximumMessageLength,
+
             'safetyWarning' =>
             $this->configuration
                 ->safetyWarning,
@@ -756,6 +797,10 @@ final class MemberMessagingService
             $this->draftComposerState(
                 $userId
             ),
+
+            'maximumMessageLength' =>
+            $this->configuration
+                ->maximumMessageLength,
 
             'safetyWarning' =>
             $this->configuration
@@ -1128,12 +1173,26 @@ final class MemberMessagingService
                 $otherUserId
             )
         ) {
+            $blockedByViewer =
+                $this->blockModel
+                ->blockerHasBlocked(
+                    $userId,
+                    $otherUserId
+                );
+
             return [
                 'enabled' =>
                 false,
 
+                /*
+                * It is safe to tell the member about a block they
+                * personally created. Do not disclose another member's
+                * private blocking decision.
+                */
                 'reason' =>
-                'Messaging is unavailable for this member.',
+                $blockedByViewer
+                    ? 'You have blocked this member.'
+                    : 'Messaging is unavailable for this member.',
 
                 'showUpgrade' =>
                 false,

@@ -452,6 +452,14 @@ $blockModalId =
                                     'profileReference' =>
                                     $reference,
 
+                                    /*
+         * ProfileCard already exposes Message as a primary
+         * card action below. Do not duplicate it in the
+         * three-dot menu.
+         */
+                                    'showMessageAction' =>
+                                    false,
+
                                     'isShortlisted' =>
                                     $isShortlisted,
 
@@ -834,7 +842,6 @@ $blockModalId =
 
     <?php endif; ?>
 
-</article>
 </article>
 
 <?php if (

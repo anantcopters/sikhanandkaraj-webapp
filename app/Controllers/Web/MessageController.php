@@ -9,6 +9,7 @@ use App\Services\Matchmaking\MemberProfileViewService;
 use App\Services\Messaging\MemberMessagingService;
 use App\Validation\Member\MemberMessageValidation;
 use App\Validation\Member\MemberMessageReportValidation;
+use App\Services\Account\MemberProfileReportService;
 use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\RedirectResponse;
 use DomainException;
@@ -67,10 +68,13 @@ final class MessageController extends BaseController
                 }
 
                 $activeConversation =
-                    $service
-                    ->draftConversation(
+                    $this->prepareConversationActions(
                         $userId,
-                        (int) $target['id']
+                        $service
+                            ->draftConversation(
+                                $userId,
+                                (int) $target['id']
+                            )
                     );
             } catch (DomainException) {
                 throw PageNotFoundException
@@ -133,12 +137,15 @@ final class MessageController extends BaseController
                         ),
 
                     'activeConversation' =>
-                    $service
-                        ->conversation(
-                            $conversationId,
-                            $userId,
-                            true
-                        ),
+                    $this->prepareConversationActions(
+                        $userId,
+                        $service
+                            ->conversation(
+                                $conversationId,
+                                $userId,
+                                true
+                            )
+                    ),
 
                     'formAlert' =>
                     $this->readFormAlert(),
@@ -494,6 +501,116 @@ final class MessageController extends BaseController
                     ]
                 );
         }
+    }
+
+    /**
+     * Add existing Profile Report / Block presentation state to
+     * an active messaging conversation.
+     *
+     * Messaging must reuse the existing member interaction flows;
+     * it must not create messaging-specific profile block/report
+     * implementations.
+     *
+     * @param array<string,mixed>|null $conversation
+     *
+     * @return array<string,mixed>|null
+     */
+    private function prepareConversationActions(
+        int $viewerUserId,
+        ?array $conversation
+    ): ?array {
+        if (!is_array($conversation)) {
+            return null;
+        }
+
+        $member =
+            isset($conversation['member'])
+            && is_array(
+                $conversation['member']
+            )
+            ? $conversation['member']
+            : [];
+
+        $profileReference = trim(
+            (string) (
+                $member['referenceId']
+                ?? ''
+            )
+        );
+
+        if ($profileReference === '') {
+            return $conversation;
+        }
+
+        /** @var MemberProfileReportService $reportService */
+        $reportService = service(
+            'memberProfileReportService'
+        );
+
+        $reportedProfileStatus =
+            $reportService
+            ->reportStatusForProfile(
+                $viewerUserId,
+                $profileReference
+            );
+
+        $conversation['profileActions'] = [
+            'profileReference' =>
+            $profileReference,
+
+            'canReport' =>
+            true,
+
+            'canBlock' =>
+            true,
+
+            'hasReportedProfile' =>
+            $reportedProfileStatus !== '',
+
+            'reportedProfileStatus' =>
+            $reportedProfileStatus,
+
+            'reportUrl' =>
+            route_to(
+                'web.members.report',
+                $profileReference
+            ),
+
+            'blockUrl' =>
+            route_to(
+                'web.members.block',
+                $profileReference
+            ),
+
+            'reportCaptcha' =>
+            $reportedProfileStatus !== ''
+                ? ''
+                : service(
+                    'memberProfileReportCaptchaService'
+                )->generate(),
+
+            'reportValidationErrors' =>
+            session(
+                'reportValidationErrors'
+            ) ?? [],
+
+            'reopenReportModal' =>
+            session(
+                'reopenReportModal'
+            ) === true,
+
+            'blockValidationErrors' =>
+            session(
+                'validationErrors'
+            ) ?? [],
+
+            'reopenBlockModal' =>
+            session(
+                'reopenMemberBlockModal'
+            ) === true,
+        ];
+
+        return $conversation;
     }
 
     /**

@@ -322,15 +322,42 @@ $messages =
                                     <button
                                         type="submit"
                                         class="btn
-                                            btn-outline-danger
-                                            btn-sm">
+        registration-form__submit
+        fs-14
+        fw-medium
+        text-uppercase"
+                                        data-submit-button>
 
-                                        <i
-                                            class="ri-shield-cross-line me-1"
-                                            aria-hidden="true">
-                                        </i>
+                                        <span
+                                            class="registration-submit__idle"
+                                            data-submit-idle>
 
-                                        Remove / Moderate Message
+                                            <i
+                                                class="ri-shield-cross-line
+                fs-18
+                me-1"
+                                                aria-hidden="true">
+                                            </i>
+
+                                            Remove / Moderate
+
+                                        </span>
+
+                                        <span
+                                            class="registration-submit__loading
+            d-none"
+                                            data-submit-loading>
+
+                                            <span
+                                                class="spinner-border
+                spinner-border-sm
+                me-1"
+                                                aria-hidden="true">
+                                            </span>
+
+                                            Saving...
+
+                                        </span>
 
                                     </button>
 

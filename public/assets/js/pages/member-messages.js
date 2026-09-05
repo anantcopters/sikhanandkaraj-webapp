@@ -1,8 +1,131 @@
 'use strict';
 
 document.addEventListener('DOMContentLoaded', () => {
+    const conversationItems = () =>
+        Array.from(
+            document.querySelectorAll(
+                '[data-conversation-item]'
+            )
+        );
+
+    const search =
+        document.querySelector(
+            '[data-message-search]'
+        );
+
+    const noUnreadMessage =
+        document.querySelector(
+            '[data-no-unread-message]'
+        );
+
+    let activeFilter = 'all';
+
+    const applyConversationFilters = () => {
+        const query =
+            search
+                ? search.value
+                    .trim()
+                    .toLowerCase()
+                : '';
+
+        let visibleUnread = 0;
+
+        conversationItems()
+            .forEach((item) => {
+                const searchableValue =
+                    (
+                        item.dataset
+                            .conversationSearch
+                        || ''
+                    ).toLowerCase();
+
+                const unread =
+                    item.dataset
+                        .conversationUnread
+                    === '1';
+
+                const matchesSearch =
+                    query === ''
+                    || searchableValue
+                        .includes(query);
+
+                const matchesFilter =
+                    activeFilter !== 'unread'
+                    || unread;
+
+                const visible =
+                    matchesSearch
+                    && matchesFilter;
+
+                item.classList.toggle(
+                    'd-none',
+                    !visible
+                );
+
+                if (
+                    visible
+                    && unread
+                ) {
+                    visibleUnread += 1;
+                }
+            });
+
+        if (noUnreadMessage) {
+            noUnreadMessage
+                .classList
+                .toggle(
+                    'd-none',
+                    activeFilter !== 'unread'
+                    || visibleUnread > 0
+                );
+        }
+    };
+
+    if (search) {
+        search.addEventListener(
+            'input',
+            applyConversationFilters
+        );
+    }
+
     document
-        .querySelectorAll('[data-message-form]')
+        .querySelectorAll(
+            '[data-message-filter]'
+        )
+        .forEach((button) => {
+            button.addEventListener(
+                'click',
+                () => {
+                    activeFilter =
+                        button.dataset
+                            .messageFilter
+                        || 'all';
+
+                    document
+                        .querySelectorAll(
+                            '[data-message-filter]'
+                        )
+                        .forEach(
+                            (filterButton) => {
+                                filterButton
+                                    .classList
+                                    .toggle(
+                                        'active',
+                                        filterButton
+                                        === button
+                                    );
+                            }
+                        );
+
+                    applyConversationFilters();
+                }
+            );
+        });
+
+    document
+        .querySelectorAll(
+            '[data-message-form]'
+        )
         .forEach((form) => {
             const input =
                 form.querySelector(
@@ -17,6 +140,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const requestId =
                 form.querySelector(
                     '[name="client_request_id"]'
+                );
+
+            const privacyWarning =
+                form.querySelector(
+                    '[data-message-privacy-warning]'
                 );
 
             if (
@@ -40,10 +168,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            if (
-                !input
-                || !counter
-            ) {
+            if (!input) {
                 return;
             }
 
@@ -55,103 +180,70 @@ document.addEventListener('DOMContentLoaded', () => {
                 ) || 200;
 
             const updateCounter = () => {
-                counter.textContent =
-                    `${input.value.length}/${maximumLength}`;
+                if (counter) {
+                    counter.textContent =
+                        `${input.value.length}/${maximumLength}`;
+                }
+            };
+
+            /*
+             * Guidance only.
+             *
+             * Product explicitly does not hard-block phone/email-like
+             * content in V1.
+             */
+            const updatePrivacyWarning = () => {
+                if (!privacyWarning) {
+                    return;
+                }
+
+                const value =
+                    input.value.trim();
+
+                const containsEmail =
+                    /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i
+                        .test(value);
+
+                const containsPhone =
+                    /(?:\+?\d[\d\s().-]{7,}\d)/
+                        .test(value);
+
+                privacyWarning
+                    .classList
+                    .toggle(
+                        'd-none',
+                        !containsEmail
+                        && !containsPhone
+                    );
             };
 
             input.addEventListener(
                 'input',
-                updateCounter
+                () => {
+                    updateCounter();
+                    updatePrivacyWarning();
+                }
             );
 
             updateCounter();
+            updatePrivacyWarning();
         });
 
-    const search =
+    /*
+     * Opening a conversation should show its newest messages.
+     *
+     * This is UI scrolling only. V1 continues loading the latest
+     * bounded message history from the server.
+     */
+    const messageScroller =
         document.querySelector(
-            '[data-message-search]'
+            '[data-message-scroll]'
         );
 
-    if (search) {
-        search.addEventListener(
-            'input',
-            () => {
-                const query =
-                    search.value
-                        .trim()
-                        .toLowerCase();
-
-                document
-                    .querySelectorAll(
-                        '[data-conversation-item]'
-                    )
-                    .forEach((item) => {
-                        const value =
-                            (
-                                item.dataset
-                                    .conversationSearch
-                                || ''
-                            ).toLowerCase();
-
-                        item.classList.toggle(
-                            'd-none',
-                            query !== ''
-                            && !value.includes(
-                                query
-                            )
-                        );
-                    });
-            }
-        );
+    if (messageScroller) {
+        messageScroller.scrollTop =
+            messageScroller.scrollHeight;
     }
 
-    document
-        .querySelectorAll(
-            '[data-message-filter]'
-        )
-        .forEach((button) => {
-            button.addEventListener(
-                'click',
-                () => {
-                    const filter =
-                        button.dataset
-                            .messageFilter
-                        || 'all';
-
-                    document
-                        .querySelectorAll(
-                            '[data-message-filter]'
-                        )
-                        .forEach(
-                            (filterButton) => {
-                                filterButton
-                                    .classList
-                                    .toggle(
-                                        'active',
-                                        filterButton
-                                        === button
-                                    );
-                            }
-                        );
-
-                    document
-                        .querySelectorAll(
-                            '[data-conversation-item]'
-                        )
-                        .forEach((item) => {
-                            const unread =
-                                item.dataset
-                                    .conversationUnread
-                                === '1';
-
-                            item.classList
-                                .toggle(
-                                    'd-none',
-                                    filter === 'unread'
-                                    && !unread
-                                );
-                        });
-                }
-            );
-        });
+    applyConversationFilters();
 });

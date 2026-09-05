@@ -1007,6 +1007,12 @@ final class MemberInterestService
                 $viewerUserId
             );
 
+        $canSendMessage =
+            $this->membershipEntitlementService
+            ->canSendMessage(
+                $viewerUserId
+            );
+
         foreach (
             $records
             as $record
@@ -1098,6 +1104,9 @@ final class MemberInterestService
 
             $profile['canBlock'] =
                 $canBlock;
+
+            $profile['canSendMessage'] =
+                $canSendMessage;
 
             $profile['isShortlisted'] =
                 $this->interactionService

@@ -115,7 +115,10 @@ $hasShortlistAction =
     );
 
 $hasActions =
-    $messageUrl !== ''
+    (
+        $showMessageAction
+        && $messageUrl !== ''
+    )
     || $hasShortlistAction
     || $canReport
     || $canBlock;
@@ -391,7 +394,8 @@ if (
 </div>
 
 <?php if (
-    $messageUrl !== ''
+    $showMessageAction
+    && $messageUrl !== ''
     && !$canSendMessage
 ): ?>
 

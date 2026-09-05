@@ -520,15 +520,20 @@ final class MemberProfilePresentationService
                 $profileReference
             ),
 
-            'canSendMessage' =>
-            $this->membershipEntitlementService
-                ->canSendMessage(
-                    $viewerUserId
-                ),
-
             /*
-            * Education, occupation and employment are formatted once so ProfileCard
-            * and ProfileInterestCard always follow the same display rules.
+            * Manual-message entitlement deliberately does NOT belong in
+            * this common member presentation service.
+            *
+            * It is a property of the authenticated viewer and is resolved
+            * once by Search / Matchmaking / Interest before their card loops.
+            *
+            * This keeps summary() free from membership N+1 queries.
+            */
+
+                        /*
+            * Education, occupation and employment are formatted once so
+            * ProfileCard and ProfileInterestCard always follow the same
+            * display rules.
             */
             'professionalSummary' =>
             $professionalSummary,

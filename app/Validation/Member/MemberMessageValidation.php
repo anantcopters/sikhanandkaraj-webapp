@@ -4,10 +4,26 @@ declare(strict_types=1);
 
 namespace App\Validation\Member;
 
+use Config\MemberMessaging;
+
 final class MemberMessageValidation
 {
+    /**
+     * @return array<string,array<string,mixed>>
+     */
     public static function rules(): array
     {
+        /** @var MemberMessaging $configuration */
+        $configuration = config(
+            MemberMessaging::class
+        );
+
+        $maximumLength = max(
+            1,
+            $configuration
+                ->maximumMessageLength
+        );
+
         return [
             'message' => [
                 'label' =>
@@ -15,7 +31,9 @@ final class MemberMessageValidation
 
                 'rules' => [
                     'required',
-                    'max_length[200]',
+                    'max_length['
+                        . $maximumLength
+                        . ']',
                 ],
 
                 'errors' => [
@@ -23,7 +41,9 @@ final class MemberMessageValidation
                     'Please enter a message.',
 
                     'max_length' =>
-                    'Message cannot exceed 200 characters.',
+                    'Message cannot exceed '
+                        . $maximumLength
+                        . ' characters.',
                 ],
             ],
 
@@ -38,6 +58,9 @@ final class MemberMessageValidation
 
                 'errors' => [
                     'required' =>
+                    'The message request is invalid.',
+
+                    'max_length' =>
                     'The message request is invalid.',
                 ],
             ],

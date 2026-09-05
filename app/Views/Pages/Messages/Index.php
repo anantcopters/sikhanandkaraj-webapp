@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Support\DateDisplay;
+
 /**
  * @var list<array<string,mixed>> $conversations
  * @var array<string,mixed>|null  $activeConversation
@@ -69,6 +71,79 @@ $composer =
     && is_array($activeConversation['composer'])
     ? $activeConversation['composer']
     : [];
+
+$profileActions =
+    is_array($activeConversation)
+    && isset(
+        $activeConversation['profileActions']
+    )
+    && is_array(
+        $activeConversation['profileActions']
+    )
+    ? $activeConversation['profileActions']
+    : [];
+
+$activeProfileReference = trim(
+    (string) (
+        $activeMember['referenceId']
+        ?? ''
+    )
+);
+
+$activeReportStatus =
+    mb_strtoupper(
+        trim(
+            (string) (
+                $profileActions['reportedProfileStatus']
+                ?? ''
+            )
+        )
+    );
+
+$activeReportStatusLabel =
+    match ($activeReportStatus) {
+        'OPEN' =>
+        'Open',
+
+        'REVIEWED' =>
+        'Reviewed',
+
+        'DISMISSED' =>
+        'Dismissed',
+
+        'ACTION_TAKEN' =>
+        'Action Taken',
+
+        default =>
+        '',
+    };
+
+$activeHasReportedProfile =
+    ($profileActions['hasReportedProfile']
+        ?? false) === true;
+
+$activeCanReport =
+    ($profileActions['canReport']
+        ?? false) === true;
+
+$activeCanBlock =
+    ($profileActions['canBlock']
+        ?? false) === true;
+
+$messageReportModalId =
+    'messageConversationReportProfile';
+
+$messageBlockModalId =
+    'messageConversationBlockProfile';
+
+$messageMaximumLength =
+    max(
+        1,
+        (int) (
+            $activeConversation['maximumMessageLength']
+            ?? 200
+        )
+    );
 
 $isDraft =
     ($activeConversation['isDraft'] ?? false)
@@ -236,6 +311,20 @@ $plansUrl =
                                     ?? ''
                                 )
                             );
+
+                        $lastMessageAt =
+                            trim(
+                                (string) (
+                                    $conversation['lastMessageAt']
+                                    ?? ''
+                                )
+                            );
+
+                        $displayLastMessageAt =
+                            DateDisplay::formatUtcDateTime(
+                                $lastMessageAt,
+                                ''
+                            );
                         ?>
 
                         <a
@@ -307,25 +396,48 @@ $plansUrl =
                                             </div>
                                         </div>
 
-                                        <?php if (
-                                            $unreadCount > 0
-                                        ): ?>
+                                        <div
+                                            class="text-end
+        flex-shrink-0">
 
-                                            <span
-                                                class="badge
-                                                    rounded-pill
-                                                    bg-danger">
+                                            <?php if (
+                                                $displayLastMessageAt !== ''
+                                            ): ?>
 
-                                                <?= esc(
-                                                    (string) min(
-                                                        99,
-                                                        $unreadCount
-                                                    )
-                                                ) ?>
+                                                <div
+                                                    class="fs-11
+                text-muted
+                mb-1">
 
-                                            </span>
+                                                    <?= esc(
+                                                        $displayLastMessageAt
+                                                    ) ?>
 
-                                        <?php endif; ?>
+                                                </div>
+
+                                            <?php endif; ?>
+
+                                            <?php if (
+                                                $unreadCount > 0
+                                            ): ?>
+
+                                                <span
+                                                    class="badge
+                rounded-pill
+                bg-danger">
+
+                                                    <?= esc(
+                                                        (string) min(
+                                                            99,
+                                                            $unreadCount
+                                                        )
+                                                    ) ?>
+
+                                                </span>
+
+                                            <?php endif; ?>
+
+                                        </div>
 
                                     </div>
 
@@ -464,8 +576,29 @@ $plansUrl =
                         width="56"
                         height="56"
                         class="rounded-circle
-                            object-fit-cover
-                            flex-shrink-0">
+    object-fit-cover
+    flex-shrink-0"
+                        style="object-position:
+    <?= max(
+                    0,
+                    min(
+                        100,
+                        (int) (
+                            $activeMember['photoFocalX']
+                            ?? 50
+                        )
+                    )
+                ) ?>%
+    <?= max(
+                    0,
+                    min(
+                        100,
+                        (int) (
+                            $activeMember['photoFocalY']
+                            ?? 20
+                        )
+                    )
+                ) ?>%;">
 
                     <div class="flex-grow-1">
 
@@ -538,23 +671,94 @@ $plansUrl =
 
                     </div>
 
-                    <a
-                        href="<?= esc(
-                                    (string) (
-                                        $activeMember['profileUrl']
-                                        ?? '#'
-                                    ),
-                                    'attr'
-                                ) ?>"
-                        class="btn
-                            btn-outline-primary
-                            btn-sm
-                            d-none
-                            d-sm-inline-flex">
+                    <div
+                        class="d-flex
+        align-items-center
+        gap-2
+        flex-shrink-0">
 
-                        View Profile
+                        <a
+                            href="<?= esc(
+                                        (string) (
+                                            $activeMember['profileUrl']
+                                            ?? '#'
+                                        ),
+                                        'attr'
+                                    ) ?>"
+                            class="btn
+            btn-outline-primary
+            btn-sm
+            d-inline-flex
+            align-items-center
+            gap-1">
 
-                    </a>
+                            <i
+                                class="ri-user-line"
+                                aria-hidden="true">
+                            </i>
+
+                            <span class="d-none d-sm-inline">
+                                View Profile
+                            </span>
+
+                        </a>
+
+                        <?php if (
+                            $activeProfileReference !== ''
+                            && (
+                                $activeCanReport
+                                || $activeCanBlock
+                            )
+                        ): ?>
+
+                            <?= view(
+                                'Components/Member/ProfileActions',
+                                [
+                                    'profileReference' =>
+                                    $activeProfileReference,
+
+                                    /*
+                 * We are already inside Messaging.
+                 * Do not display Message again.
+                 */
+                                    'showMessageAction' =>
+                                    false,
+
+                                    'canSendMessage' =>
+                                    false,
+
+                                    'isShortlisted' =>
+                                    false,
+
+                                    'canShortlist' =>
+                                    false,
+
+                                    'canReport' =>
+                                    $activeCanReport,
+
+                                    'canBlock' =>
+                                    $activeCanBlock,
+
+                                    'hasReportedProfile' =>
+                                    $activeHasReportedProfile,
+
+                                    'reportedProfileStatusLabel' =>
+                                    $activeReportStatusLabel,
+
+                                    'shortlistUrl' =>
+                                    '',
+
+                                    'reportModalId' =>
+                                    $messageReportModalId,
+
+                                    'blockModalId' =>
+                                    $messageBlockModalId,
+                                ]
+                            ) ?>
+
+                        <?php endif; ?>
+
+                    </div>
 
                 </div>
 
@@ -562,7 +766,8 @@ $plansUrl =
                 <div
                     class="p-3 overflow-auto"
                     style="min-height: 360px;
-                        max-height: 55vh;">
+        max-height: 55vh;"
+                    data-message-scroll>
 
                     <?php if ($messages === []): ?>
 
@@ -589,6 +794,13 @@ $plansUrl =
                                 ($message['isMine']
                                     ?? false)
                                 === true;
+
+                            $messageCreatedAt =
+                                DateDisplay::formatUtcDateTime(
+                                    $message['created_at']
+                                        ?? null,
+                                    ''
+                                );
                             ?>
 
                             <?php if ($isSystem): ?>
@@ -616,7 +828,24 @@ $plansUrl =
                                         ) ?>
 
                                     </span>
+                                    <?php if (
+                                        $messageCreatedAt !== ''
+                                    ): ?>
 
+                                        <div
+                                            class="fs-11
+            mt-1
+            <?= $isMine
+                                            ? 'text-end'
+                                            : 'text-muted' ?>">
+
+                                            <?= esc(
+                                                $messageCreatedAt
+                                            ) ?>
+
+                                        </div>
+
+                                    <?php endif; ?>
                                 </div>
 
                             <?php else: ?>
@@ -787,11 +1016,36 @@ $plansUrl =
                             <textarea
                                 name="message"
                                 rows="3"
-                                maxlength="200"
+                                maxlength="<?= esc(
+                                                (string) $messageMaximumLength,
+                                                'attr'
+                                            ) ?>"
                                 class="form-control"
                                 placeholder="Write a message..."
                                 required
                                 data-message-input></textarea>
+
+                            <div
+                                class="alert
+        alert-info
+        py-2
+        fs-12
+        mt-2
+        mb-0
+        d-none"
+                                role="status"
+                                data-message-privacy-warning>
+
+                                <i
+                                    class="ri-information-line me-1"
+                                    aria-hidden="true">
+                                </i>
+
+                                For your privacy, avoid sharing phone numbers,
+                                email addresses or other contact information until
+                                you are comfortable with the member.
+
+                            </div>
 
                             <div
                                 class="d-flex
@@ -906,6 +1160,87 @@ $plansUrl =
     </div>
 
 </div>
+
+<?php if (
+    $activeProfileReference !== ''
+    && $activeCanReport
+    && !$activeHasReportedProfile
+): ?>
+
+    <?= view(
+        'Pages/Profile/_ReportProfileModal',
+        [
+            'modalId' =>
+            $messageReportModalId,
+
+            'viewedProfileReference' =>
+            $activeProfileReference,
+
+            'actionUrl' =>
+            (string) (
+                $profileActions['reportUrl']
+                ?? ''
+            ),
+
+            'actionSource' =>
+            'messages',
+
+            'reportCaptcha' =>
+            (string) (
+                $profileActions['reportCaptcha']
+                ?? ''
+            ),
+
+            'reportValidationErrors' =>
+            is_array(
+                $profileActions['reportValidationErrors']
+                    ?? null
+            )
+                ? $profileActions['reportValidationErrors']
+                : [],
+
+            'reopenReportModal' => ($profileActions['reopenReportModal'] ?? false) === true,
+        ]
+    ) ?>
+
+<?php endif; ?>
+
+<?php if (
+    $activeProfileReference !== ''
+    && $activeCanBlock
+): ?>
+
+    <?= view(
+        'Components/Member/ProfileBlockModal',
+        [
+            'modalId' =>
+            $messageBlockModalId,
+
+            'profileReference' =>
+            $activeProfileReference,
+
+            'actionUrl' =>
+            (string) (
+                $profileActions['blockUrl']
+                ?? ''
+            ),
+
+            'actionSource' =>
+            'messages',
+
+            'validationErrors' =>
+            is_array(
+                $profileActions['blockValidationErrors']
+                    ?? null
+            )
+                ? $profileActions['blockValidationErrors']
+                : [],
+
+            'reopenModal' => ($profileActions['reopenBlockModal'] ?? false) === true,
+        ]
+    ) ?>
+
+<?php endif; ?>
 
 <?php
 $this->endSection();

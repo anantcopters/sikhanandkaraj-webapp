@@ -721,6 +721,19 @@ final class MemberMatchmakingService
             );
 
         /*
+        * Messaging is also a viewer-level entitlement.
+        *
+        * Resolve it once for the complete collection rather than
+        * once per candidate card.
+        */
+        $canSendMessage =
+            $this
+            ->membershipEntitlementService
+            ->canSendMessage(
+                $viewerUserId
+            );
+
+        /*
         * Normalize candidate IDs once.
         */
         $memberIds = [];
@@ -935,6 +948,9 @@ final class MemberMatchmakingService
             */
             $profile['canViewFullProfile'] =
                 $canViewFullProfile;
+
+            $profile['canSendMessage'] =
+                $canSendMessage;
 
             /*
             * Match percentage belongs specifically to matchmaking context,

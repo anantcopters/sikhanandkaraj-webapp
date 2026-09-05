@@ -1768,11 +1768,15 @@ final class MemberSearchService
                 $viewerUserId
             );
 
-
+        $canSendMessage =
+            $this->membershipEntitlementService
+            ->canSendMessage(
+                $viewerUserId
+            );
 
         /*
-         * Normalize candidate IDs once.
-         */
+        * Normalize candidate IDs once.
+        */
         $memberIds = [];
 
         foreach ($rows as $row) {
@@ -1979,9 +1983,12 @@ final class MemberSearchService
             $profile['canBlock'] =
                 $canBlock;
 
+            $profile['canSendMessage'] =
+                $canSendMessage;
+
             /*
-             * No per-card Shortlist query.
-             */
+            * No per-card Shortlist query.
+            */
             $profile['isShortlisted'] =
                 (
                     $shortlistStates[$memberId]

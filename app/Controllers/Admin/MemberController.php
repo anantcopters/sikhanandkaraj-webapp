@@ -14,6 +14,7 @@ use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\RedirectResponse;
 use CodeIgniter\HTTP\ResponseInterface;
 use App\Validation\Admin\MemberOfflinePaymentValidation;
+use App\Models\AdminUserModel;
 use RuntimeException;
 use DomainException;
 use Throwable;
@@ -131,6 +132,19 @@ final class MemberController extends BaseController
                 'memberManagementService'
             );
 
+            $isSuperAdmin =
+                session('admin_role')
+                === AdminUserModel::ROLE_SUPER_ADMIN;
+
+            $messagingActivity =
+                $isSuperAdmin
+                ? service(
+                    'adminMemberMessagingService'
+                )->summaryForMember(
+                    $userId
+                )
+                : [];
+
             return view(
                 'Admin/Members/View',
                 array_merge(
@@ -141,12 +155,11 @@ final class MemberController extends BaseController
                         'memberId' =>
                         $userId,
 
+                        'isSuperAdmin' =>
+                        $isSuperAdmin,
+
                         'messagingActivity' =>
-                        service(
-                            'adminMemberMessagingService'
-                        )->summaryForMember(
-                            $userId
-                        ),
+                        $messagingActivity,
 
                         'validationErrors' =>
                         session(
