@@ -19,11 +19,11 @@ Implementation-specific details are recorded where they have become approved pro
 
 **Status:** Product Requirement / Implemented Communication Architecture / Future Channel Roadmap
 
-**Current implementation branch:** `development`
+**Current implementation branch:** `message`
 
 **Originally authored:** 2026-08-30
 
-**Last updated:** 2026-09-01
+**Last updated:** 2026-09-05
 
 ---
 
@@ -37,6 +37,7 @@ A matrimonial communication may disclose that:
 - somebody expressed matrimonial Interest;
 - an Interest was accepted or declined;
 - somebody interacted with a profile;
+- a member sent or received a private member message;
 - a member submitted Aadhaar or Video Introduction verification;
 - a profile or media item was moderated;
 - a membership was purchased or is expiring;
@@ -123,6 +124,20 @@ The in-app notification service supports the central registry identifiers requir
 
 Support in the notification service does not by itself mean every event is currently produced as an immediate bell notification. Producer behaviour remains a product decision. In particular, high-volume `PROFILE_VIEWED` and `PROFILE_SHORTLISTED` events currently participate in communication-event/digest architecture rather than being treated as mandatory immediate bell notifications.
 
+### Implemented member-message notifications
+
+Successful manual member-message persistence produces an in-app `MESSAGE` notification for the recipient. The notification is deliberately separate from the private conversation's own unread-message state:
+
+- the private message remains authoritative in `member_messages`;
+- the Messages navigation unread count is derived from unread member-message state, not from whether the bell notification has been read;
+- the bell notification uses the canonical `CommunicationEventRegistry::MESSAGE` event type;
+- notification content must be privacy-safe and must not copy the private message body;
+- the target must be an internal route to the relevant conversation and normal conversation authorization is re-evaluated when opened;
+- notification delivery occurs after the successful message transaction;
+- notification failure is logged and must not roll back or falsify an already persisted private message.
+
+Member-to-member messaging product rules, including the V1 `1–200` character message limit, membership entitlement, quotas, block/decline/withdrawal behaviour and conversation UI, are authoritative in `docs/MEMBER_MESSAGING_PRODUCT_DEVELOPMENT_QA_REFERENCE.md`. The 200-character limit applies to the private member message body; it does not redefine the separate generic `MemberNotificationService` notification-message storage/validation bound.
+
 ### Implemented moderation notifications
 
 Current moderation flows generate in-app notifications for:
@@ -167,7 +182,7 @@ Required rules:
 
 No browser-supplied notification type, recipient, verification status or moderation decision may be trusted as authoritative communication data.
 
-## 3.3 Moderation transaction boundary
+## 3.3 Moderation and messaging transaction boundaries
 
 Moderation state is authoritative. In-app notification delivery is downstream from the completed moderation transaction.
 
@@ -201,11 +216,13 @@ Attempt other downstream communication as applicable
 
 A notification persistence failure after a successful moderation commit must not cause the application to report the moderation decision as rolled back when it has actually committed. Post-commit notification failures must therefore be handled as best-effort downstream failures and logged appropriately.
 
+Manual member messaging follows the same downstream-failure principle: the private message transaction commits first; the `MESSAGE` in-app notification is then attempted. Failure to persist the notification must not roll back the successfully persisted private message or consume/reverse messaging state inconsistently.
+
 Interest workflows may retain their existing established transaction semantics where notification persistence is intentionally part of the authoritative Interest transaction. Do not normalize different domain transactions merely for architectural symmetry.
 
 ## 3.4 In-app UI behaviour
 
-The existing bell and notification-list UI is the approved presentation surface. New moderation notification types must reuse it; no parallel notification UI should be created.
+The existing bell and notification-list UI is the approved presentation surface. New notification types must reuse it; no parallel notification UI should be created.
 
 Each notification may contain:
 
@@ -216,7 +233,7 @@ Each notification may contain:
 - Read/unread state.
 - Safe internal target route.
 
-Expected moderation targets include the relevant existing Profile/Account Settings area, for example Photo, Aadhaar or Video Introduction management.
+Expected moderation targets include the relevant existing Profile/Account Settings area, for example Photo, Aadhaar or Video Introduction management. A `MESSAGE` notification targets the relevant authenticated Messages conversation without embedding the private message body in the notification.
 
 The target route remains responsible for its normal access rules and current state. A stale notification may therefore lead to content that has subsequently changed or become unavailable.
 
@@ -258,6 +275,8 @@ Implemented standardized email events include:
 Photo approval intentionally does not currently generate email because it does not require member action and would add unnecessary external communication volume. It does generate an in-app notification.
 
 High-volume Profile Viewed and Shortlisted email communication is handled through the preference/digest architecture rather than immediate email.
+
+Private member messages do not currently generate an immediate email containing message content. Any future email/SMS/WhatsApp message alert must remain generic/privacy-safe and must not include the private message body by default.
 
 ## 3.6 Implemented unified communication policy
 
@@ -323,7 +342,7 @@ The health view is observational and must not retry communication, mutate queue 
 
 Stable business-event identifiers belong in `CommunicationEventRegistry`.
 
-`MemberNotificationModel` must remain a persistence model and must not define duplicate business-event constants such as Interest, Photo, Aadhaar or Video notification types.
+`MemberNotificationModel` must remain a persistence model and must not define duplicate business-event constants such as Interest, Message, Photo, Aadhaar or Video notification types.
 
 Feature workflows and channel services must use the canonical registry identifiers.
 
@@ -347,11 +366,11 @@ The objective is not to maximize notifications. The objective is to deliver the 
 
 A communication may invite a recipient to a feature, but opening it must still execute current authorization rules.
 
-Free/Paid restrictions, Male/Female privacy rules, Interest relationship state, block/report state, profile visibility and resource ownership must never be bypassed because a notification exists.
+Free/Paid restrictions, Male/Female privacy rules, Interest relationship state, block/report state, profile visibility, conversation membership and resource ownership must never be bypassed because a notification exists.
 
 ## 4.6 Optional communication must not roll back committed business state
 
-For normal moderation, support, payment and membership communication, authoritative state is committed first. Optional downstream communication is then attempted.
+For normal moderation, support, payment, membership and private-message communication, authoritative state is committed first. Optional downstream communication is then attempted.
 
 A channel failure must not normally undo committed business state or cause a misleading failure response for an already committed operation.
 
@@ -368,7 +387,7 @@ Security workflows and existing domain workflows may be explicit exceptions wher
 | SMS | OTP/security/urgent short alerts | Minimal | Near real-time, cost-controlled |
 | WhatsApp | Future opted-in high-value transactional/activity communication | Minimal to moderate | Provider/template controlled |
 
-In-app notifications are a delivery/presentation channel, not a replacement for the central business-event vocabulary.
+In-app notifications are a delivery/presentation channel, not a replacement for the central business-event vocabulary. Private member conversations are application domain state and remain separate from notification persistence/read state.
 
 ---
 
@@ -379,7 +398,7 @@ In-app notifications are a delivery/presentation channel, not a replacement for 
 | SECURITY | OTP, password/security event | No where essential |
 | VERIFICATION | Email/Aadhaar/Video verification action | No where essential |
 | TRANSACTIONAL | Payment, membership activation | No |
-| MATRIMONIAL_ACTIVITY | Interest received/accepted/declined | Configurable subject to product rules |
+| MATRIMONIAL_ACTIVITY | Interest received/accepted/declined, private-message alert | Configurable subject to product rules |
 | MODERATION | Photo/Aadhaar/Video decision | No for important decisions |
 | MEMBERSHIP | Activation, expiry, expiry reminder | Essential lifecycle events no |
 | SUPPORT | Ticket acknowledgement/resolution | No for active support case |
@@ -398,6 +417,7 @@ The following matrix is the current reference for development and QA. `Implement
 | --- | --- | --- | --- | --- | --- |
 | Email verification | Optional/status | Implemented | No | No | Verification destination may be unverified by design |
 | Mobile OTP | No | No | Implemented | Future | SMS submission means provider accepted, not handset delivered |
+| Member private message | Implemented | No immediate message email | No currently | No currently | Recipient gets one privacy-safe `MESSAGE` notification after message persistence; private body is not copied into notification; notification failure does not undo message |
 | Interest received | Implemented | Implemented | No | Future optional | Recipient gets one valid Interest notification |
 | Interest accepted | Implemented | Implemented | No | Future optional | Original sender gets accepted notification |
 | Interest declined | Implemented | Implemented | No | Normally No | Original sender gets neutral declined notification |
@@ -438,6 +458,8 @@ For every implemented immediate in-app event:
 8. Open the notification and confirm read state is updated.
 9. Confirm the target route independently applies current authorization.
 
+For `MESSAGE`, additionally confirm that the notification contains no private message body and that opening/reading the bell notification does not substitute for the Messages subsystem's own recipient message-read state.
+
 ## 8.2 Negative and authorization checks
 
 QA must verify:
@@ -451,8 +473,9 @@ QA must verify:
 - Male/Female profile-access restrictions still apply after following a notification.
 - Blocked/reported/hidden/unavailable targets are handled by current target-route policy without leaking protected state.
 - External/protocol-relative/scheme URLs cannot be persisted through the normal notification service target URL boundary.
+- A tampered `MESSAGE` notification/conversation target cannot expose another pair's conversation.
 
-## 8.3 Moderation reliability checks
+## 8.3 Moderation and messaging reliability checks
 
 For Photo, Aadhaar and Video moderation:
 
@@ -462,6 +485,13 @@ For Photo, Aadhaar and Video moderation:
 - Notification failure must be logged for operational diagnosis.
 - Email/downstream channel failure must likewise not restore the old moderation state.
 
+For manual member messaging:
+
+- successful private-message persistence completes before the in-app `MESSAGE` notification is attempted;
+- simulated notification failure does not remove or roll back the persisted message;
+- the sender does not receive a false send failure merely because notification creation failed after commit;
+- private message text is not copied into notification content or operational error logs.
+
 ## 8.4 Duplicate checks
 
 QA must verify:
@@ -470,6 +500,7 @@ QA must verify:
 - Bulk photo approval creates one notification for the bulk action.
 - Interest workflow does not create duplicate notifications for invalid repeated state transitions.
 - Retry behaviour of external communication does not manufacture duplicate in-app notifications.
+- Replayed/idempotent member-message requests do not create duplicate private messages or duplicate successful-send side effects.
 
 ## 8.5 Event identity checks
 
@@ -477,6 +508,7 @@ Persisted `notification_type` must use the canonical registry value for known ev
 
 Specifically verify:
 
+- Member private message = `MESSAGE`.
 - Photo approved = `PHOTO_APPROVED`.
 - Photo rejected = `PHOTO_REJECTED`.
 - Aadhaar approved = `AADHAAR_APPROVED`.
@@ -496,7 +528,7 @@ Known events must not be persisted as `SYSTEM` merely to avoid adding/using the 
 
 Normal member email requires a current verified primary EMAIL contact. If none exists, email is skipped without undoing the business event. Email Verification is the intentional exception because verification is the purpose of that email.
 
-Free members may receive legitimate notifications, but communication must not reveal information protected by Paid Full Profile or another entitlement.
+Free members may receive legitimate notifications, including privacy-safe private-message notifications, but communication must not reveal information protected by Paid Full Profile or another entitlement. Free members may receive/read a private member message under the messaging product rules even when they cannot manually reply.
 
 Aadhaar Verification is available according to its current entitlement rules and external Aadhaar communication must never expose Aadhaar number, document, stored Aadhaar name or Aadhaar DOB.
 
@@ -510,6 +542,7 @@ The current membership expiry cadence remains one email exactly three member-fac
 
 External channels must not unnecessarily include:
 
+- Private member-message bodies.
 - Full phone numbers or email addresses of another member.
 - Aadhaar information or document links.
 - Private gallery images.
@@ -519,7 +552,7 @@ External channels must not unnecessarily include:
 - Internal moderation notes.
 - Raw payment-provider responses.
 
-Existing female-name masking and Male-to-Female access rules continue to apply. Communication must not become an alternate path to protected identity or profile data.
+Existing female-name masking and Male-to-Female access rules continue to apply. Communication must not become an alternate path to protected identity, profile or conversation data.
 
 URLs must be application-controlled and authorization must be re-evaluated when opened.
 
@@ -533,7 +566,7 @@ Communication generation should be idempotent where appropriate, and high-volume
 
 Recipient destinations must come from authoritative application state. APIs must not allow arbitrary recipient manipulation or account enumeration.
 
-Dynamic/member-controlled content must be escaped for its destination channel.
+Dynamic/member-controlled content must be escaped for its destination channel. Private member-message bodies must not be propagated into notification channels by default.
 
 No automated communication may reveal who reported/blocked a profile or internal fraud/risk signals.
 
@@ -568,6 +601,8 @@ member_notifications    |
 Bell / Centre
 ```
 
+Private member messaging remains its own authoritative conversation/message subsystem. A successful private-message write may produce a downstream canonical `MESSAGE` notification; the notification record is not the private message and does not own conversation read state.
+
 The current application may still have established feature-specific producer wiring while channel orchestration is migrated incrementally. Do not perform a big-bang rewrite merely for architectural uniformity.
 
 ## 12.2 In-app boundary
@@ -580,10 +615,11 @@ The current application may still have established feature-specific producer wir
 - Creation of member-visible notification records.
 - Recipient-scoped read operations.
 - Header/recent notification data through existing model queries.
+- Header `unreadMessageCount` exposure backed by the notification model's message-unread query for the Messages navigation.
 
 `MemberNotificationModel` owns persistence/query mechanics only.
 
-The model must not become a second business-event registry.
+The model must not become a second business-event registry or a replacement for `member_messages`/conversation state.
 
 ## 12.3 Email boundary
 
@@ -618,13 +654,13 @@ MemberEmailRecipientService
 
 ## 12.4 Channel independence
 
-Failure of one optional channel must not normally roll back the underlying business event or imply that another channel failed.
+Failure of one optional channel must not normally roll back the underlying business event or imply that another channel failed. This includes post-commit `MESSAGE` notification failure after successful private-message persistence.
 
 ## 12.5 Event identity and idempotency
 
 Where duplicate delivery is harmful, communication should be identifiable by event type, recipient, business entity/reference and occurrence/version where necessary.
 
-The durable email queue and communication-event architecture should retain reference-backed traceability/idempotency.
+The durable email queue and communication-event architecture should retain reference-backed traceability/idempotency. Member-message request idempotency remains owned by the messaging subsystem and must prevent replay from manufacturing duplicate successful sends.
 
 ## 12.6 Transactional outbox direction
 
@@ -681,6 +717,8 @@ Current operational status `SENT` represents **Accepted by Provider**, not confi
 
 OTP monitoring uses existing authoritative verification records and current configured warning/critical thresholds. Provider outages must not be misclassified as member abuse.
 
+If SMS is later enabled for private-message alerts, it must use generic privacy-safe copy such as `You have a new message from SAK123456.` and must not include the private message body. Rapid message bursts should be throttled/bundled rather than generating one SMS per message.
+
 ---
 
 # 16. WhatsApp requirements
@@ -689,9 +727,9 @@ WhatsApp remains a future optional channel.
 
 It requires explicit product approval, appropriate consent, provider-approved templates and isolation of provider template identifiers from domain services.
 
-Initial future candidates may include Interest, verification action required, moderation resubmission, membership lifecycle and support updates. High-volume Profile Viewed/Shortlisted notifications should not be enabled by default.
+Initial future candidates may include Interest, verification action required, moderation resubmission, membership lifecycle, support updates and generic private-message alerts. High-volume Profile Viewed/Shortlisted notifications should not be enabled by default.
 
-Two-way member WhatsApp communication requires a separate product/safety review.
+Two-way member WhatsApp communication requires a separate product/safety review. Private member-message bodies must not automatically be bridged into WhatsApp.
 
 ---
 
@@ -757,6 +795,16 @@ In-app notifications may default on for relevant events. SMS/WhatsApp engagement
 
 Support and membership communication continues through established authoritative state, central policy and downstream channel boundaries. Runtime membership authorization never depends on a notification, email or cron having executed.
 
+## Journey G - Private member message
+
+1. An authenticated member submits a valid manual message under the authoritative messaging entitlement, relationship, block, account-state and quota rules.
+2. The private message transaction persists successfully and commits.
+3. The recipient receives an in-app `MESSAGE` notification as a downstream best-effort action.
+4. The notification uses member-safe generic text and does not include the private message body.
+5. Notification failure is logged but does not undo the persisted message or return a false message-send failure.
+6. The notification targets the authenticated conversation route; conversation ownership/privacy is checked again when opened.
+7. The Messages navigation/list maintains its own unread-message state independently from bell-notification read state.
+
 ---
 
 # 19. Edge cases
@@ -779,6 +827,11 @@ QA/development must explicitly handle:
 14. Old notification points to a deleted/unavailable entity.
 15. Worker/provider retry occurs independently from in-app notification state.
 16. Communication preferences change while external communication is queued.
+17. `MESSAGE` notification persistence fails after the private message has committed.
+18. Free recipient receives and reads a Paid member's message but still cannot manually reply until authoritative upgrade.
+19. Recipient reads the bell notification without opening the conversation; private-message read state must remain governed by the Messages subsystem.
+20. Conversation becomes blocked/declined/closed after notification creation; opening the stale notification must not bypass current messaging state.
+21. Replayed private-message request must not create duplicate message/notification side effects.
 
 ---
 
@@ -788,7 +841,7 @@ Communication Operations remains read-only for the currently approved scope.
 
 Email operations expose queue health and safe event/reference information. SMS operations expose provider acceptance/failure, masked recipient, safe error information and OTP/provider health.
 
-In-app notification persistence failures occurring after committed moderation must be logged with sufficient non-sensitive context to diagnose the member/event/entity without exposing protected Aadhaar/video data.
+In-app notification persistence failures occurring after committed moderation or private-message persistence must be logged with sufficient non-sensitive context to diagnose the member/event/entity without exposing protected Aadhaar/video data or private message bodies.
 
 Manual retry, if introduced later, must be permission-controlled and audited.
 
@@ -798,7 +851,7 @@ Manual retry, if introduced later, must be permission-controlled and audited.
 
 The communication platform should eventually expose useful metrics for messages/events generated, queue depth, latency, retry/failure rates, provider acceptance, notification volume per member and opt-out rates.
 
-Application notification failures must be distinguishable operationally from failures of the authoritative moderation/business transaction.
+Application notification failures must be distinguishable operationally from failures of the authoritative moderation/business transaction or private-message persistence.
 
 Do not use external-channel telemetry to infer matrimonial interest or expose such inference to another member without a separate product decision.
 
@@ -814,6 +867,8 @@ Interest decline wording must remain neutral. Moderation rejection/resubmission 
 
 In-app moderation notification titles should clearly identify the decision, for example Photo Approved, Aadhaar Approved/Rejected, Video Introduction Approved/Not Approved or Resubmission Requested, using the established application wording.
 
+Private-message notification copy should identify that a new message exists without copying the private body. Customer-facing Profile ID is preferred over raw internal IDs where sender context is appropriate and permitted.
+
 ---
 
 # 23. Long-term maintainability rules
@@ -826,16 +881,18 @@ In-app moderation notification titles should clearly identify the decision, for 
 6. One central communication/channel policy.
 7. Provider adapters remain isolated from matrimonial feature services.
 8. External delivery remains queue/provider based as already implemented.
-9. Retry/idempotency belongs in communication infrastructure, not unrelated domain tables.
+9. Retry/idempotency belongs in communication infrastructure, not unrelated domain tables; private-message request idempotency remains in the messaging subsystem.
 10. Preferences are handled centrally.
 11. Email templates remain version-controlled and previewable through the production renderer.
 12. New feature development must document its event and channel policy.
 13. No feature may call Email/SMS/WhatsApp providers directly.
 14. Notification links never grant authorization.
-15. Optional post-commit notification failure must not undo authoritative moderation/business state.
+15. Optional post-commit notification failure must not undo authoritative moderation/business/message state.
 16. Bulk operations should avoid notification spam; communicate the meaningful business action once where appropriate.
 17. Do not invent business states only to create a notification type.
 18. Runtime membership authorization must never depend on communication delivery.
+19. Private member messages and notification records remain separate persistence/read-state concerns.
+20. Private message bodies must not be copied into external or generic in-app notification content by default.
 
 ---
 
@@ -863,9 +920,11 @@ Implemented:
 
 - Business-event constants removed from `MemberNotificationModel`.
 - Canonical in-app notification types sourced from `CommunicationEventRegistry`.
-- `MemberNotificationService` allowlists supported canonical types.
+- `MemberNotificationService` allowlists supported canonical types including `MESSAGE`.
 - Existing member notification table/model/service retained as the in-app delivery/read-state boundary.
 - Existing bell and notification-list UI reused.
+- Private member-message `MESSAGE` notification after successful message persistence, without copying private message content.
+- Message-notification failure isolated from successful private-message persistence.
 - Interest Received/Accepted/Declined canonical notification types.
 - Photo Approved notification.
 - Photo Rejected notification.
@@ -882,6 +941,8 @@ Implemented:
 
 Intentionally not introduced:
 
+- Private message body in bell/email/SMS/WhatsApp notifications.
+- Immediate email/SMS/WhatsApp delivery for every private member message.
 - A new notification UI.
 - A new notification table.
 - A duplicate notification event registry.
@@ -911,9 +972,13 @@ Combined Email/SMS health summary is implemented and read-only. Proactive alerts
 - [x] Notification targets are restricted to safe internal routes.
 - [x] Notification ownership is enforced server-side when reading/marking read.
 - [x] Known moderation events use their specific canonical type rather than `SYSTEM`.
+- [x] Private member messages use canonical `MESSAGE` for the downstream in-app notification.
+- [x] Private message bodies are not copied into `MESSAGE` notification content.
+- [x] `MESSAGE` notification failure does not roll back successful private-message persistence.
 
 ## In-app current event coverage
 
+- [x] Member private message.
 - [x] Interest Received.
 - [x] Interest Accepted.
 - [x] Interest Declined.
@@ -927,21 +992,24 @@ Combined Email/SMS health summary is implemented and read-only. Proactive alerts
 - [x] Video Resubmission Requested.
 - [x] Separate Aadhaar resubmission event is not falsely represented as implemented.
 
-## Moderation reliability
+## Moderation and messaging reliability
 
 - [x] Authoritative moderation state is committed before optional downstream notification delivery.
 - [x] Notification failure must not roll back an already committed moderation decision.
 - [x] Post-commit notification failure is an operational failure, not a reason to restore old moderation state.
 - [x] Invalid/stale moderation transitions must not create valid member notifications.
+- [x] Private member-message persistence completes independently of downstream `MESSAGE` notification success.
 
 ## Privacy and authorization
 
 - [x] Notification existence does not grant access to the target.
 - [x] Free/Paid authorization is re-evaluated at the target route.
 - [x] Gender/profile privacy rules remain authoritative at the target route.
+- [x] Conversation ownership/current messaging state is re-evaluated at a `MESSAGE` notification target.
 - [x] Aadhaar protected data is not exposed in external communication.
 - [x] Video media URLs are not exposed externally.
-- [x] Interest communication does not become a protected-profile-data bypass.
+- [x] Private member-message body is not exposed in generic notification content.
+- [x] Interest/message communication does not become a protected-profile-data bypass.
 
 ## Email and external communication
 
@@ -950,6 +1018,7 @@ Combined Email/SMS health summary is implemented and read-only. Proactive alerts
 - [x] Email delivery uses the durable queue/worker foundation.
 - [x] Email provider failure does not corrupt committed business state.
 - [x] Communication policy/event orchestration exists for the current approved scope.
+- [x] No immediate private-message email containing the message body is part of V1.
 
 ## SMS
 
@@ -964,35 +1033,41 @@ Combined Email/SMS health summary is implemented and read-only. Proactive alerts
 - [ ] Marketing consent/policy where required.
 - [ ] Stronger transactional outbox if future scale/guarantees justify it.
 - [ ] Provider cost analytics where reliable data becomes available.
+- [ ] Optional privacy-safe external private-message alerts/bundling if separately approved.
 
 ---
 
 # 26. QA regression checklist for application notifications
 
-For every release affecting communication or moderation, QA should re-run at minimum:
+For every release affecting communication, messaging or moderation, QA should re-run at minimum:
 
-1. Interest Received creates the correct recipient notification.
-2. Interest Accepted creates the correct original-sender notification.
-3. Interest Declined creates `INTEREST_DECLINED`, not a legacy rejected alias.
-4. Single Photo Approved creates `PHOTO_APPROVED`.
-5. Photo Rejected creates `PHOTO_REJECTED` and retains existing rejection flow.
-6. Bulk Photo Approved creates one notification for the member.
-7. Aadhaar Approved creates `AADHAAR_APPROVED` after successful moderation.
-8. Aadhaar Rejected creates `AADHAAR_REJECTED` after successful moderation.
-9. Video Approved creates `VIDEO_APPROVED`.
-10. Video Rejected creates `VIDEO_REJECTED`.
-11. Video Request Resubmission creates `VIDEO_RESUBMISSION_REQUESTED`.
-12. None of the known Video moderation decisions are persisted as `SYSTEM`.
-13. Failed/unauthorized/stale moderation attempts do not create notifications.
-14. Simulated post-commit notification failure does not reverse Photo/Aadhaar/Video moderation.
-15. Bell unread count and recent notifications update for the recipient only.
-16. Opening a notification marks only that recipient's notification read.
-17. Another member cannot read/mark it by direct notification ID manipulation.
-18. Mark-all-read cannot modify another member's rows.
-19. Notification targets remain internal application paths.
-20. Following a notification does not bypass current Free/Paid, gender, Interest, visibility, block/report or ownership authorization.
-21. Existing Email/SMS communication remains unaffected by the in-app event-taxonomy refactor.
-22. No new UI/CSS is required for the new moderation notification types; existing notification presentation remains functional.
+1. Manual member message persists before downstream notification and creates canonical `MESSAGE` for the correct recipient.
+2. `MESSAGE` notification contains no private message body and targets only the authorized internal conversation route.
+3. Simulated `MESSAGE` notification failure does not undo the persisted private message or falsely report send failure.
+4. Bell notification read state and private conversation message-read state remain independent.
+5. Free recipient can receive/read an allowed incoming message but cannot manually reply until authoritative upgrade.
+6. Interest Received creates the correct recipient notification.
+7. Interest Accepted creates the correct original-sender notification.
+8. Interest Declined creates `INTEREST_DECLINED`, not a legacy rejected alias.
+9. Single Photo Approved creates `PHOTO_APPROVED`.
+10. Photo Rejected creates `PHOTO_REJECTED` and retains existing rejection flow.
+11. Bulk Photo Approved creates one notification for the member.
+12. Aadhaar Approved creates `AADHAAR_APPROVED` after successful moderation.
+13. Aadhaar Rejected creates `AADHAAR_REJECTED` after successful moderation.
+14. Video Approved creates `VIDEO_APPROVED`.
+15. Video Rejected creates `VIDEO_REJECTED`.
+16. Video Request Resubmission creates `VIDEO_RESUBMISSION_REQUESTED`.
+17. None of the known Video moderation decisions are persisted as `SYSTEM`.
+18. Failed/unauthorized/stale moderation attempts do not create notifications.
+19. Simulated post-commit notification failure does not reverse Photo/Aadhaar/Video moderation.
+20. Bell unread count and recent notifications update for the recipient only.
+21. Opening a notification marks only that recipient's notification read.
+22. Another member cannot read/mark it by direct notification ID manipulation.
+23. Mark-all-read cannot modify another member's rows.
+24. Notification targets remain internal application paths.
+25. Following a notification does not bypass current Free/Paid, gender, Interest, visibility, block/report, conversation membership or ownership authorization.
+26. Existing Email/SMS communication remains unaffected by the in-app event-taxonomy/message-notification integration.
+27. Existing notification presentation remains functional without a parallel notification UI.
 
 ---
 
@@ -1011,6 +1086,7 @@ The following remain explicit Product decisions and must not be silently introdu
 9. Localization strategy.
 10. Whether future two-way WhatsApp support is desirable.
 11. Whether Payment Failed should generate communication once its authoritative workflow is finalized.
+12. Whether private member-message activity should later produce email/SMS/WhatsApp alerts, at what cadence, and under which member preferences. Any such alert must remain privacy-safe and must not include the private message body by default.
 
 ---
 
@@ -1018,7 +1094,7 @@ The following remain explicit Product decisions and must not be silently introdu
 
 SikhanandKaraj communication architecture is built around **one canonical business-event vocabulary with separate channel responsibilities**.
 
-In-app/Application Notification should remain the richest authenticated member channel. Its `member_notifications` persistence and read/unread behaviour should remain standalone because this is member-facing application state, while event identity comes from the shared `CommunicationEventRegistry`.
+In-app/Application Notification should remain the richest authenticated member channel. Its `member_notifications` persistence and read/unread behaviour should remain standalone because this is member-facing application notification state, while event identity comes from the shared `CommunicationEventRegistry`. Private member conversations/messages remain separate authoritative domain state; a `MESSAGE` notification announces a successful message but is not the message itself.
 
 Email remains the durable asynchronous channel for important transactional/activity communication and controlled engagement. SMS remains deliberately narrow and primarily supports OTP/security. WhatsApp remains a future opt-in channel.
 
@@ -1028,8 +1104,9 @@ Do not merge persistence models merely to reduce the number of classes/tables. S
 - one in-app notification service/model boundary;
 - one established bell/list UI;
 - one central policy for channel decisions;
-- authoritative business state before optional downstream delivery;
+- authoritative business/message state before optional downstream delivery;
 - no provider-specific logic in matrimonial feature services;
+- no private message body copied into generic/external notification channels by default;
 - no communication path around privacy, moderation or entitlement rules.
 
-For QA, the most important invariant is that a notification reports an already valid business event; it does not create authorization, does not expose protected information, and a downstream notification failure must not falsify or undo an authoritative moderation decision.
+For QA, the most important invariant is that a notification reports an already valid business event; it does not create authorization, does not expose protected/private information, and a downstream notification failure must not falsify or undo an authoritative moderation decision or successfully persisted private member message.
