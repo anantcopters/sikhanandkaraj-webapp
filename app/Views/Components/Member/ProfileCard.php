@@ -282,18 +282,18 @@ $relationshipBadgeClass =
     match ($interestState) {
         'ACCEPTED_SENT',
         'ACCEPTED_RECEIVED' =>
-        'bg-success-subtle text-body',
+        'text-bg-success',
 
         'DECLINED_SENT',
         'DECLINED_RECEIVED' =>
-        'bg-danger-subtle text-body',
+        'text-bg-danger',
 
         'PENDING_SENT',
         'PENDING_RECEIVED' =>
-        'bg-warning-subtle text-body',
+        'text-bg-warning',
 
         default =>
-        'bg-light text-body',
+        'text-bg-light',
     };
 
 /*
@@ -564,7 +564,7 @@ $blockModalId =
                                     ) ?>"
                             class="btn
                                 btn-outline-primary
-                                btn-sm
+                                btn-md
                                 d-inline-flex
                                 align-items-center
                                 gap-1">
@@ -587,7 +587,7 @@ $blockModalId =
                                     ) ?>"
                             class="btn
                                 btn-outline-primary
-                                btn-sm
+                                btn-md
                                 d-inline-flex
                                 align-items-center fs-12
                                 gap-1">
@@ -625,7 +625,7 @@ $blockModalId =
                             <button
                                 type="submit"
                                 class="btn btn-danger
-                                    btn-sm
+                                    btn-md
                                     d-inline-flex
                                     align-items-center
                                     gap-2 fs-12">
@@ -677,7 +677,7 @@ $blockModalId =
                                                 $relationshipBadgeClass,
                                                 'attr'
                                             ) ?>
-                border p-2">
+                p-2 fs-10 text-uppercase fw-medium">
 
                             <?= esc(
                                 $relationshipLabel

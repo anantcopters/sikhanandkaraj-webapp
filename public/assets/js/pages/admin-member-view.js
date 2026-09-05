@@ -936,6 +936,25 @@
                         ? finalPayable
                         : null;
 
+                /*
+                 * A successfully evaluated coupon changes the calculated
+                 * payable amount.
+                 *
+                 * Amount Received must initially follow that authoritative
+                 * preview so Superadmin does not have to manually copy the
+                 * Final Payable value.
+                 *
+                 * The field intentionally remains editable. Superadmin may
+                 * subsequently change the actual amount received, in which
+                 * case the existing mismatch warning is displayed.
+                 */
+                if (
+                    expectedPayable !== null
+                ) {
+                    amountInput.value =
+                        expectedPayable.toFixed(2);
+                }
+
                 syncAmountWarning();
             }
         );

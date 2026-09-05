@@ -213,13 +213,13 @@ if ($createdAt !== '') {
 $badgeClass =
     match ($status) {
         'ACCEPTED' =>
-        'bg-success-subtle text-body',
+        'text-bg-success',
 
         'DECLINED' =>
-        'bg-danger-subtle text-body',
+        'text-bg-danger',
 
         default =>
-        'bg-warning-subtle text-body',
+        'text-bg-warning',
     };
 
 $statusLabel =
@@ -484,7 +484,7 @@ $profileNavigationUrl =
                                             $badgeClass,
                                             'attr'
                                         ) ?>
-                            border p-2
+                            p-2 fs-10 text-uppercase fw-medium
                             flex-shrink-0">
 
                         <?= esc(
@@ -611,7 +611,7 @@ $profileNavigationUrl =
 
                             <button
                                 type="submit"
-                                class="btn btn-sm
+                                class="btn btn-md
                                     btn-outline-secondary
                                     d-inline-flex
                                     align-items-center
@@ -666,7 +666,7 @@ $profileNavigationUrl =
                             <button
                                 type="submit"
                                 class="btn btn-danger
-                                    btn-sm
+                                    btn-md
                                     d-inline-flex
                                     align-items-center
                                     justify-content-center
@@ -718,7 +718,7 @@ $profileNavigationUrl =
                                         $profileUrl,
                                         'attr'
                                     ) ?>"
-                            class="btn btn-sm
+                            class="btn btn-md
             btn-outline-primary
             d-inline-flex
             align-items-center
@@ -741,7 +741,7 @@ $profileNavigationUrl =
                                         'web.account.settings.section',
                                         'plans'
                                     ) ?>"
-                            class="btn btn-sm
+                            class="btn btn-md
             btn-outline-primary
             d-inline-flex
             align-items-center

@@ -73,7 +73,7 @@ final class MemberOfflinePaymentValidation
                 'rules' => [
                     'required',
                     'decimal',
-                    'greater_than[0]',
+                    'greater_than_equal_to[0]',
                     'less_than_equal_to[999999.99]',
                 ],
 
@@ -84,8 +84,8 @@ final class MemberOfflinePaymentValidation
                     'decimal' =>
                     'Please enter a valid payment amount.',
 
-                    'greater_than' =>
-                    'Payment amount must be greater than zero.',
+                    'greater_than_equal_to' =>
+                    'Payment amount cannot be negative.',
 
                     'less_than_equal_to' =>
                     'The payment amount is invalid.',

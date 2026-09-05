@@ -356,6 +356,22 @@ final class CouponService
             $eligibilityType
             === CouponModel::ELIGIBILITY_GENDER
         ) {
+            /*
+     * Coupon administration stores gender eligibility as:
+     *
+     * - MALE
+     * - FEMALE
+     *
+     * Member identity uses the application's canonical short gender
+     * representation:
+     *
+     * - M
+     * - F
+     *
+     * Normalize both representations before comparing them. Do not
+     * change the persisted member gender or coupon gender values merely
+     * for coupon evaluation.
+     */
             $memberGender =
                 mb_strtoupper(
                     trim(
@@ -376,9 +392,22 @@ final class CouponService
                     )
                 );
 
+            $normalizedMemberGender =
+                match ($memberGender) {
+                    'M', 'MALE' =>
+                    CouponModel::GENDER_MALE,
+
+                    'F', 'FEMALE' =>
+                    CouponModel::GENDER_FEMALE,
+
+                    default =>
+                    '',
+                };
+
             if (
                 $eligibleGender === ''
-                || $memberGender
+                || $normalizedMemberGender === ''
+                || $normalizedMemberGender
                 !== $eligibleGender
             ) {
                 throw new DomainException(

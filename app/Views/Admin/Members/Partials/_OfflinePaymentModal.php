@@ -644,18 +644,18 @@ $todayIndia =
                                     id="offlinePaymentAmount"
                                     name="amount"
                                     class="
-                                        form-control
-                                        <?= isset(
-                                            $errors['amount']
-                                        )
-                                            ? 'is-invalid'
-                                            : '' ?>
-                                    "
+        form-control
+        <?= isset(
+            $errors['amount']
+        )
+            ? 'is-invalid'
+            : '' ?>
+    "
                                     value="<?= esc(
                                                 $oldAmount,
                                                 'attr'
                                             ) ?>"
-                                    min="0.01"
+                                    min="0"
                                     max="999999.99"
                                     step="0.01"
                                     data-error-required="Please enter the amount received."

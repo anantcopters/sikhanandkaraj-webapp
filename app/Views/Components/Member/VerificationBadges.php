@@ -104,7 +104,7 @@ $verificationSummary =
 
     <div
         class="border-top
-            bg-light-subtle
+            bg-secondary-subtle
             px-3 px-md-4 py-3">
 
         <!-- Verification heading -->
@@ -120,7 +120,7 @@ $verificationSummary =
                 <span
                     class="avatar-title
                         rounded-circle
-                        bg-dark-subtle
+                        bg-warning-subtle
                         text-success">
 
                     <i
