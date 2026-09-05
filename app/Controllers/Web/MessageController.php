@@ -118,6 +118,21 @@ final class MessageController extends BaseController
         $userId =
             $this->authenticatedUserId();
 
+        $beforeMessageId =
+            max(
+                0,
+                (int) $this
+                    ->request
+                    ->getGet(
+                        'before'
+                    )
+            );
+
+        $beforeMessageId =
+            $beforeMessageId > 0
+            ? $beforeMessageId
+            : null;
+
         try {
             /** @var MemberMessagingService $service */
             $service = service(
@@ -141,9 +156,13 @@ final class MessageController extends BaseController
                         $userId,
                         $service
                             ->conversation(
-                                $conversationId,
-                                $userId,
-                                true
+                                conversationId: $conversationId,
+
+                                userId: $userId,
+
+                                markRead: true,
+
+                                beforeMessageId: $beforeMessageId
                             )
                     ),
 
@@ -178,41 +197,6 @@ final class MessageController extends BaseController
                     $userId,
                     $profileReference
                 );
-
-            /*
-             * Free users keep the feature discoverable but cannot create an
-             * empty manual conversation merely by opening the action.
-             */
-            if (
-                !service(
-                    'membershipEntitlementService'
-                )->canSendMessage(
-                    $userId
-                )
-            ) {
-                return redirect()
-                    ->to(
-                        route_to(
-                            'web.account.settings.section',
-                            'plans'
-                        )
-                    )
-                    ->with(
-                        'formAlert',
-                        [
-                            'type' =>
-                            'info',
-
-                            'title' =>
-                            'Member Messaging',
-
-                            'message' =>
-                            'Messaging is available with membership. '
-                                . 'You can receive and read messages from members. '
-                                . 'Upgrade to start conversations and reply.',
-                        ]
-                    );
-            }
 
             /*
              * If a conversation already exists, open it.

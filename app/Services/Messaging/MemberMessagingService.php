@@ -487,13 +487,9 @@ final class MemberMessagingService
                 );
 
             /*
-             * In-app notification is authoritative application state and can
-             * participate in the same transaction, matching current Interest
-             * behaviour.
-             *
-             * Do NOT copy the private message body into the notification.
-             */
-
+            * Persist the message transaction independently from
+            * notification delivery.
+            */
 
             if (
                 $this->database
@@ -608,7 +604,8 @@ final class MemberMessagingService
     public function conversation(
         int $conversationId,
         int $userId,
-        bool $markRead = true
+        bool $markRead = true,
+        ?int $beforeMessageId = null
     ): array {
         $conversation = $this
             ->conversationModel
@@ -676,6 +673,15 @@ final class MemberMessagingService
             );
         }
 
+        $messagePage =
+            $this->memberVisibleMessages(
+                conversationId: $conversationId,
+
+                viewerUserId: $userId,
+
+                beforeId: $beforeMessageId
+            );
+
         return [
             'conversation' =>
             $conversation,
@@ -687,10 +693,10 @@ final class MemberMessagingService
             $profile,
 
             'messages' =>
-            $this->memberVisibleMessages(
-                $conversationId,
-                $userId
-            ),
+            $messagePage['messages'],
+
+            'nextBeforeMessageId' =>
+            $messagePage['nextBeforeId'],
 
             'composer' =>
             $this->composerState(
@@ -1088,17 +1094,34 @@ final class MemberMessagingService
     }
 
     /**
-     * @return list<array<string,mixed>>
+     * Return one cursor-paginated page of member-visible messages.
+     *
+     * Pagination is based on message ID rather than OFFSET so the
+     * result remains stable while new messages are being appended.
+     *
+     * @return array{
+     *     messages:list<array<string,mixed>>,
+     *     nextBeforeId:int|null
+     * }
      */
     private function memberVisibleMessages(
         int $conversationId,
-        int $viewerUserId
+        int $viewerUserId,
+        ?int $beforeId = null
     ): array {
-        $messages = $this
+        $page = $this
             ->messageModel
-            ->conversationMessages(
-                $conversationId
+            ->conversationPage(
+                conversationId: $conversationId,
+                beforeId: $beforeId,
+                limit: 50
             );
+
+        $messages =
+            isset($page['messages'])
+            && is_array($page['messages'])
+            ? $page['messages']
+            : [];
 
         foreach ($messages as &$message) {
             $message['isMine'] =
@@ -1117,12 +1140,18 @@ final class MemberMessagingService
             $message['isRemoved'] =
                 !empty($message['removed_at']);
 
+            /*
+         * Moderation is non-destructive internally.
+         *
+         * Members never receive the original moderated text.
+         */
             if (
                 $message['isRemoved']
                 && !$message['isSystem']
             ) {
                 $message['message_text'] =
-                    'This message was removed by SikhanandKaraj moderation.';
+                    'This message was removed by '
+                    . 'SikhanandKaraj moderation.';
             }
 
             $message['state'] =
@@ -1133,7 +1162,18 @@ final class MemberMessagingService
 
         unset($message);
 
-        return $messages;
+        return [
+            'messages' =>
+            $messages,
+
+            'nextBeforeId' =>
+            isset($page['nextBeforeId'])
+                && is_numeric(
+                    $page['nextBeforeId']
+                )
+                ? (int) $page['nextBeforeId']
+                : null,
+        ];
     }
 
     /**

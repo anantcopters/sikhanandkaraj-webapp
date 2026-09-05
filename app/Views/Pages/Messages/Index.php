@@ -65,6 +65,17 @@ $messages =
     ? $activeConversation['messages']
     : [];
 
+$nextBeforeMessageId =
+    is_array($activeConversation)
+    && isset(
+        $activeConversation['nextBeforeMessageId']
+    )
+    && is_numeric(
+        $activeConversation['nextBeforeMessageId']
+    )
+    ? (int) $activeConversation['nextBeforeMessageId']
+    : null;
+
 $composer =
     is_array($activeConversation)
     && isset($activeConversation['composer'])
@@ -768,7 +779,45 @@ $plansUrl =
                     style="min-height: 360px;
         max-height: 55vh;"
                     data-message-scroll>
+                    <?php if (
+                        $nextBeforeMessageId !== null
+                        && $nextBeforeMessageId > 0
+                        && is_array(
+                            $activeConversationRow
+                        )
+                    ): ?>
 
+                        <div
+                            class="text-center
+            mb-3">
+
+                            <a
+                                href="<?= route_to(
+                                            'web.messages.conversation',
+                                            (int) (
+                                                $activeConversationRow['id']
+                                                ?? 0
+                                            )
+                                        )
+                                            . '?before='
+                                            . $nextBeforeMessageId ?>"
+                                class="btn
+                btn-outline-primary
+                btn-sm">
+
+                                <i
+                                    class="ri-history-line
+                    me-1"
+                                    aria-hidden="true">
+                                </i>
+
+                                Load Earlier Messages
+
+                            </a>
+
+                        </div>
+
+                    <?php endif; ?>
                     <?php if ($messages === []): ?>
 
                         <div class="text-center text-muted py-5">
@@ -834,10 +883,8 @@ $plansUrl =
 
                                         <div
                                             class="fs-11
-            mt-1
-            <?= $isMine
-                                            ? 'text-end'
-                                            : 'text-muted' ?>">
+            text-muted
+            mt-1">
 
                                             <?= esc(
                                                 $messageCreatedAt
@@ -877,6 +924,24 @@ $plansUrl =
                                                                     ?? ''
                                                                 )
                                                             ) ?></div>
+                                        <?php if (
+                                            $messageCreatedAt !== ''
+                                        ): ?>
+
+                                            <div
+                                                class="fs-11
+            mt-1
+            <?= $isMine
+                                                ? 'text-end'
+                                                : 'text-muted' ?>">
+
+                                                <?= esc(
+                                                    $messageCreatedAt
+                                                ) ?>
+
+                                            </div>
+
+                                        <?php endif; ?>
 
                                         <?php if ($isMine): ?>
 
@@ -1055,9 +1120,13 @@ $plansUrl =
 
                                 <span
                                     class="fs-12
-                                        text-muted"
+        text-muted"
                                     data-message-counter>
-                                    0/200
+
+                                    0/<?= esc(
+                                            (string) $messageMaximumLength
+                                        ) ?>
+
                                 </span>
 
                                 <button
