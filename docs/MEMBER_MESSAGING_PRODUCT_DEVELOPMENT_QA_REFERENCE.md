@@ -271,7 +271,7 @@ A conversation must not expose otherwise-hidden phone, email, Aadhaar or private
 
 ### 8.4 Composer
 
-V1 is plain text, recommended `1–500` characters, with character counter and both client/server validation.
+V1 is plain text, `1–200` characters, with character counter and both client/server validation.
 
 Do not support in V1: attachments, images, PDFs, Aadhaar/documents, voice notes, video attachments/calls, arbitrary files, reactions, disappearing messages, typing indicator, online/last-seen presence or group/family chat.
 
@@ -436,7 +436,7 @@ Test B blocks while A sends; authoritative ordering prevents later message bypas
 
 ### Content
 
-Test whitespace-only, 1 char, exactly 500, 501, Unicode/Gurmukhi/emoji, line breaks, HTML/script, URLs, phone/email patterns, malicious strings, repeated copy/paste and rapid submissions. Render user content safely as text.
+Test whitespace-only, 1 char, exactly 200, 201, Unicode/Gurmukhi/emoji, line breaks, HTML/script, URLs, phone/email patterns, malicious strings, repeated copy/paste and rapid submissions. Render user content safely as text.
 
 ### Read/unread
 
