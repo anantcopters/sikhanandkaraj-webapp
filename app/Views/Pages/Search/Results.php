@@ -24,6 +24,7 @@ use CodeIgniter\Pager\Pager;
  * @var string                     $resultTitle
  * @var bool                       $showBackToSearch
  * @var bool                       $showSearchCriteria
+ * @var bool                       $isMaleViewer
  */
 
 /*
@@ -63,6 +64,10 @@ $showSearchCriteria =
     isset($showSearchCriteria)
     ? (bool) $showSearchCriteria
     : true;
+
+$isMaleViewer =
+    isset($isMaleViewer)
+    && $isMaleViewer === true;
 
 $mode =
     isset($mode)
@@ -406,6 +411,49 @@ $this->section(
             </form>
 
         </div>
+
+        <!-- =============================================================
+             Female Full Profile privacy information
+             ============================================================= -->
+
+        <?php if ($isMaleViewer): ?>
+
+            <div
+                class="
+                    alert
+                    alert-info
+                    d-flex
+                    align-items-start
+                    gap-2
+                    mb-3
+                "
+                role="note">
+
+                <i
+                    class="
+                        ri-information-line
+                        fs-20
+                        flex-shrink-0
+                    "
+                    aria-hidden="true">
+                </i>
+
+                <div class="fs-13">
+
+                    <span class="fw-semibold">
+                        Female Profile Privacy
+                    </span>
+
+                    <span class="d-block">
+                        A female member's Full Profile can be viewed
+                        only after she accepts your Interest.
+                    </span>
+
+                </div>
+
+            </div>
+
+        <?php endif; ?>
 
         <!-- =============================================================
              Active Search chips

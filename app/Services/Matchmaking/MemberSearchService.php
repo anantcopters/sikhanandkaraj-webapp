@@ -196,6 +196,26 @@ final class MemberSearchService
             );
         }
 
+        /*
+        * Presentation state used by member-discovery screens.
+        *
+        * Male members must be clearly informed that viewing a female member's
+        * Full Profile is subject to her accepting their Interest.
+        *
+        * This is presentation information only. Full Profile authorization
+        * continues to be enforced independently by the existing profile-access
+        * policy.
+        */
+        $isMaleViewer =
+            mb_strtoupper(
+                trim(
+                    (string) (
+                        $viewer['gender']
+                        ?? ''
+                    )
+                )
+            ) === 'M';
+
         $mode = $this->mode(
             $input['mode'] ?? null
         );
@@ -506,6 +526,9 @@ final class MemberSearchService
 
             'activity' =>
             $activity,
+
+            'isMaleViewer' =>
+            $isMaleViewer,
 
             'sort' =>
             $sort,
